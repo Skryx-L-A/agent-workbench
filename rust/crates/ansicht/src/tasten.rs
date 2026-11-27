@@ -187,6 +187,16 @@ mod tests {
         );
         assert_eq!(deute(&strg("v")), Deutung::Nichts);
         assert_eq!(deute(&strg("1")), Deutung::Nichts);
+        // SE1 point 13: Shift+Insert pastes through `paste`, Control+Insert copies; both stay with the browser
+        for (umschalt, strg) in [(true, false), (false, true)] {
+            let t = Taste {
+                key: "Insert",
+                umschalt,
+                strg,
+                ..Taste::default()
+            };
+            assert_eq!(deute(&t), Deutung::Nichts);
+        }
         let t = Taste {
             key: "C",
             strg: true,

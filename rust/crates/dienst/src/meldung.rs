@@ -7,9 +7,8 @@
 //! SECURITY: the service accepts exactly one connection, and only one whose peer is this user and, under Linux and macOS, the child of
 //! the session (Linux `SO_PEERCRED` through `rustix`, macOS `LOCAL_PEERCRED` and `LOCAL_PEERPID` through `nix`: user and pid of the process
 //! that called `connect`). Every other connection is closed at once and never read. It reads at most [`ZEILE_MAX`] bytes without blocking.
-//! Only the exact form of the line counts; anything else is [`GRUND_UNGUELTIG`] (fail closed). On any other system the service gets no peer
-//! credentials without `unsafe`; there only the mode of the socket (0600) and of the folder of the session (0700) keep others out; the
-//! contract names this as a limit.
+//! Only the exact form of the line counts; anything else is [`GRUND_UNGUELTIG`] (fail closed). On any other system there is no measured
+//! check of the peer, so the crate does not build there (project decision, 27.11.2026; before, the first connection was taken, fail open).
 
 #[cfg(unix)]
 use std::fs;
@@ -25,6 +24,13 @@ use std::path::Path;
 use crate::dienst::{Annahme, Gelesen, annahme, gelesen};
 #[cfg(unix)]
 use crate::startdatei::SOCKET_PFAD_MAX;
+
+// The peer of the report channel is checked only under Linux, macOS and Windows (`Meldung::gegenseite_gut`). Any other system would take
+// every peer (fail open), so it gets no build at all (contract `dienst` section 18 point 6 (b), project decision, 27.11.2026).
+#[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+compile_error!(
+    "wb-dienst: the report channel checks its peer only under Linux, macOS and Windows; this system is not supported"
+);
 
 /// The name of the socket in the folder of the session.
 pub(crate) const SOCKET_NAME: &str = "meldung.sock";
@@ -258,11 +264,6 @@ impl Meldung {
         #[cfg(windows)]
         {
             crate::sys::gegenseite_gut(strom, self.pid, self.euid)
-        }
-        #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
-        {
-            let _ = (strom, self.euid, self.pid);
-            true
         }
     }
 
@@ -692,6 +693,59 @@ mod tests {
                 code: 69,
                 grund: "lauf.kind".to_owned()
             }
+        );
+    }
+
+    /// Contract `dienst` section 18 point 6 (b), project decision, 27.11.2026: no branch for a system outside Linux, macOS and Windows may
+    /// let a check pass. Every `cfg(not(any(…)))` in the sources of the crate is read with its next lines; a `true` or an `Ok(())` there
+    /// is a check that passes where nothing was measured. The report channel itself refuses to build on such a system.
+    #[test]
+    fn kein_zweig_fuer_fremde_systeme_laesst_durch() {
+        fn dateien(ordner: &Path, liste: &mut Vec<std::path::PathBuf>) {
+            for eintrag in fs::read_dir(ordner).expect("src is readable") {
+                let pfad = eintrag.expect("entry").path();
+                if pfad.is_dir() {
+                    dateien(&pfad, liste);
+                } else if pfad.extension().is_some_and(|e| e == "rs") {
+                    liste.push(pfad);
+                }
+            }
+        }
+        let mut liste = Vec::new();
+        dateien(
+            &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
+            &mut liste,
+        );
+        assert!(liste.len() > 10, "the sources were found");
+        let mut funde = Vec::new();
+        for pfad in &liste {
+            let text = fs::read_to_string(pfad).expect("source is readable");
+            let zeilen: Vec<&str> = text.lines().collect();
+            for (i, zeile) in zeilen.iter().enumerate() {
+                if !zeile.contains("cfg(not(any(") || zeile.trim_start().starts_with("//") {
+                    continue;
+                }
+                for folgende in zeilen.iter().skip(i + 1).take(6) {
+                    let t = folgende.trim();
+                    if t == "true"
+                        || t == "Ok(())"
+                        || t.ends_with("=> true,")
+                        || t == "return true;"
+                    {
+                        funde.push(format!("{}:{}", pfad.display(), i + 1));
+                    }
+                }
+            }
+        }
+        assert!(
+            funde.is_empty(),
+            "a branch for another system lets a check pass: {funde:?}"
+        );
+        let eigen = include_str!("meldung.rs");
+        let sperre = "#[cfg(not(any(target_os = \"linux\", target_os = \"macos\", windows)))]\ncompile_error!(";
+        assert!(
+            eigen.contains(sperre),
+            "the report channel refuses to build outside Linux, macOS and Windows"
         );
     }
 }

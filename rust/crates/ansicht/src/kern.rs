@@ -12,7 +12,7 @@ use crate::ansagen::{Ansager, Ausgabe};
 use crate::start::Startform;
 use crate::tasten::Deutung;
 use crate::zeile;
-use crate::ziel::{self, Agent, Einstellung, Herkunft, Treffer, Verlauf};
+use crate::ziel::{self, Agent, Anfragestand, Einstellung, Herkunft, Ordnerinhalt, Suchtreffer};
 
 /// Texts of rejections without their own field `text` (SE3 point 3); every other reason stands with its code.
 const TEXTE: [(&str, &str); 5] = [
@@ -85,18 +85,38 @@ impl Sitzung {
         }
     }
 
-    /// The name shown: the name of L5, else the id.
+    /// The name shown: the name of L5 when it is not empty, else the id.
     #[must_use]
     pub fn anzeigename(&self) -> &str {
         self.herkunft
             .as_ref()
-            .map_or(self.id.as_str(), |h| h.name.as_str())
+            .map(|h| h.name.as_str())
+            .filter(|n| !n.is_empty())
+            .unwrap_or(self.id.as_str())
     }
 
-    /// Whether it ended with an error (B17 "Wiederbeleben").
+    /// Whether it crashed (B17 "Wiederbeleben"): only the field `abgestuerzt` of the list says so (DI-L5 point 2), never the code.
     #[must_use]
     pub fn abgestuerzt(&self) -> bool {
-        !self.laeuft && !self.code.is_empty() && self.code != "0"
+        !self.laeuft && self.herkunft.as_ref().is_some_and(|h| h.abgestuerzt)
+    }
+
+    /// The project shown (B02, B09): the field `projekt` of L5 when it is not empty.
+    #[must_use]
+    pub fn projekt(&self) -> Option<&str> {
+        self.herkunft
+            .as_ref()
+            .map(|h| h.projekt.as_str())
+            .filter(|p| !p.is_empty())
+    }
+
+    /// The working folder shown: the field `ordner` of L5 when it is not empty.
+    #[must_use]
+    pub fn ordner(&self) -> Option<&str> {
+        self.herkunft
+            .as_ref()
+            .map(|h| h.ordner.as_str())
+            .filter(|p| !p.is_empty())
     }
 
     /// Harness and model, as far as known.
@@ -144,8 +164,24 @@ pub struct Anfrage {
     pub werkzeug: String,
     /// Preview of the command.
     pub vorschau: String,
-    /// The proof of the person for `Freigabe` (L6, addition); without it the request can only be shown.
+    /// The proof of the person for `Freigabe`. No message of the contracts carries one to the view (the core takes it from the
+    /// gateway, `zustandskern` section 4); it stays `None`, and without it the request can only be shown.
     pub nachweis: Option<String>,
+}
+
+/// One line of the guard history (B07): a message `Anfrage` with an end state (`zustandskern` R-L6 point 5), in the order of arrival.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Verlauf {
+    /// Request id.
+    pub anfrage: String,
+    /// The session that asked.
+    pub sitzung: String,
+    /// `erteilt`, `abgelehnt` or `abgelaufen`.
+    pub zustand: String,
+    /// The tool.
+    pub werkzeug: String,
+    /// The reason of a refusal, may be empty.
+    pub begruendung: String,
 }
 
 /// The state of the view.
@@ -169,28 +205,32 @@ pub struct Kern {
     ansager: Ansager,
     /// Open requests (B03, B56).
     pub anfragen: Vec<Anfrage>,
-    /// The guard history (B07, L6); `None` in today's form of `Anfragen`.
-    pub verlauf: Option<Vec<Verlauf>>,
-    /// Workers seen (B22, B26, B29): id and state, from today's form and from the target form of `Agenten` alike.
+    /// The guard history (B07): every message `Anfrage` with an end state, in the order of arrival (R-L6 point 5).
+    pub verlauf: Vec<Verlauf>,
+    /// Workers seen (B22, B26, B29): id and state, from every form of `Agenten` alike.
     pub agenten: Vec<(String, String)>,
-    /// Workers with their session (L1); `None` while the stream sends today's form of `Agenten`.
+    /// Workers with their session (L1); `None` while no entry of `Agenten` names its session.
     pub ziel_agenten: Option<Vec<Agent>>,
+    /// Whether the last `Agenten` carried the raster of each worker (DI-L1 point 3, L2).
+    pub agenten_mit_raster: bool,
     /// The settings of the person, as sent (field `werte`).
     pub einstellungen: Option<Value>,
-    /// The settings with effective value, origin and right to change (L4, B72, B78); `None` in today's form.
+    /// The settings of version 2 with effective value, origin and right to change (L4, B72); `None` in version 1.
     pub ziel_einstellungen: Option<Vec<Einstellung>>,
+    /// Whether `Einstellungen` version 2 says that the viewer is an admin (`regelebenen` 15.10, B78).
+    pub admin: bool,
     /// The routes, as sent (B69).
     pub routen: Option<Value>,
     /// Open dialogs of harnesses (B42).
     pub dialoge: Vec<Dialog>,
-    /// The content of the working folder (L9): session, path, entries.
-    pub ordner: Option<(String, String, Vec<ziel::Eintrag>)>,
-    /// The hits of the content search (L9): session, pattern, hits.
-    pub treffer: Option<(String, String, Vec<Treffer>)>,
-    /// The raster of the worker pane that holds the focus; input then goes to it (L2).
-    pub pane: Option<u8>,
-    /// The worker rasters subscribed with their last size (L2).
-    pub worker_abos: HashMap<u8, (usize, usize)>,
+    /// The content of the working folder (L9).
+    pub ordner: Option<Ordnerinhalt>,
+    /// The hits of the content search (L9).
+    pub treffer: Option<Suchtreffer>,
+    /// The session of the worker pane that holds the focus; input then goes to it (L2: input names the session of the pane).
+    pub pane: Option<String>,
+    /// The sessions of the worker panes subscribed, with their last size (R-L2: one `Abo` per session).
+    pub worker_abos: HashMap<String, (usize, usize)>,
 }
 
 impl Default for Kern {
@@ -208,11 +248,13 @@ impl Default for Kern {
             bild: None,
             ansager: Ansager::default(),
             anfragen: Vec::new(),
-            verlauf: None,
+            verlauf: Vec::new(),
             agenten: Vec::new(),
             ziel_agenten: None,
+            agenten_mit_raster: false,
             einstellungen: None,
             ziel_einstellungen: None,
+            admin: false,
             routen: None,
             dialoge: Vec::new(),
             ordner: None,
@@ -387,7 +429,6 @@ impl Kern {
             }
             Some("Hinweis") => self.hinweis(n),
             Some("Anfragen") => {
-                self.verlauf = ziel::verlauf_lesen(n);
                 self.anfragen = n
                     .get("anfragen")
                     .and_then(Value::as_array)
@@ -398,7 +439,7 @@ impl Kern {
                                 sitzung: feld(x, "sitzung"),
                                 werkzeug: feld(x, "werkzeug"),
                                 vorschau: feld(x, "vorschau"),
-                                nachweis: ziel::nachweis_lesen(x),
+                                nachweis: None,
                             })
                             .filter(|x| !x.id.is_empty())
                             .collect()
@@ -406,6 +447,20 @@ impl Kern {
                     .unwrap_or_default();
                 Vec::new()
             }
+            Some("Anfrage") => {
+                if let Some(a) = ziel::anfrage_lesen(n) {
+                    self.anfrage_nehmen(a);
+                }
+                Vec::new()
+            }
+            Some("Gestartet") => match ziel::gestartet_lesen(n) {
+                Some(s) => {
+                    self.fehler = None;
+                    let t = format!("Sitzung {s} gestartet");
+                    vec![Wirkung::Ansage(t.clone()), Wirkung::Notiz(t)]
+                }
+                None => Vec::new(),
+            },
             Some("Agenten") => {
                 self.agenten_nehmen(n);
                 Vec::new()
@@ -416,7 +471,9 @@ impl Kern {
             }
             Some("Einstellungen") => {
                 self.einstellungen = n.get("werte").cloned();
-                self.ziel_einstellungen = ziel::einstellungen_lesen(n);
+                let l4 = ziel::einstellungen_lesen(n);
+                self.admin = l4.as_ref().is_some_and(|(a, _)| *a);
+                self.ziel_einstellungen = l4.map(|(_, w)| w);
                 Vec::new()
             }
             Some("Routen") => {
@@ -473,6 +530,34 @@ impl Kern {
             })
             .unwrap_or_default();
         self.ziel_agenten = ziel::agenten_lesen(n);
+        self.agenten_mit_raster = ziel::agenten_mit_raster(n);
+    }
+
+    /// `Anfrage`: an open request joins the list of open requests or replaces its entry; an ended one leaves it and becomes a line of
+    /// the guard history (R-L6 point 5).
+    fn anfrage_nehmen(&mut self, a: Anfragestand) {
+        if a.beendet() {
+            self.anfragen.retain(|x| x.id != a.id);
+            self.verlauf.push(Verlauf {
+                anfrage: a.id,
+                sitzung: a.sitzung,
+                zustand: a.zustand,
+                werkzeug: a.werkzeug,
+                begruendung: a.begruendung,
+            });
+            return;
+        }
+        let neu = Anfrage {
+            id: a.id,
+            sitzung: a.sitzung,
+            werkzeug: a.werkzeug,
+            vorschau: a.vorschau,
+            nachweis: None,
+        };
+        match self.anfragen.iter_mut().find(|x| x.id == neu.id) {
+            Some(e) => *e = neu,
+            None => self.anfragen.push(neu),
+        }
     }
 
     /// `Agentenzustand`: the state of one worker, in today's form and in the target form of L1.
@@ -565,14 +650,12 @@ impl Kern {
         }
         let mut w = Vec::new();
         if let Some(alt) = &self.aktiv {
-            let mut weg: Vec<u8> = std::mem::take(&mut self.worker_abos).into_keys().collect();
+            let mut weg: Vec<String> = std::mem::take(&mut self.worker_abos).into_keys().collect();
             weg.sort_unstable();
-            for nr in weg {
-                w.push(Wirkung::Senden(ziel::abo_raster(alt, nr, false, (0, 0))));
+            for s in weg {
+                w.push(Wirkung::Senden(ziel::abo(&s, false, (0, 0))));
             }
-            w.push(Wirkung::Senden(
-                json!({"art": "Abo", "sitzung": alt, "an": false}),
-            ));
+            w.push(Wirkung::Senden(ziel::abo(alt, false, (0, 0))));
         }
         self.pane = None;
         self.aktiv = Some(id.to_owned());
@@ -582,11 +665,8 @@ impl Kern {
             .as_ref()
             .and_then(|e| nr.and_then(|n| e.abbild(n)))
             .cloned();
-        let (sp, ze) = groesse;
         self.gemeldet.insert(id.to_owned(), groesse);
-        w.push(Wirkung::Senden(
-            json!({"art": "Abo", "sitzung": id, "an": true, "spalten": sp, "zeilen": ze}),
-        ));
+        w.push(Wirkung::Senden(ziel::abo(id, true, groesse)));
         w.push(Wirkung::FokusTerminal);
         w
     }
@@ -601,9 +681,7 @@ impl Kern {
             _ => return Vec::new(),
         }
         self.gemeldet.insert(id.clone(), groesse);
-        vec![Wirkung::Senden(
-            json!({"art": "Groesse", "sitzung": id, "spalten": groesse.0, "zeilen": groesse.1}),
-        )]
+        vec![Wirkung::Senden(ziel::groesse(&id, groesse))]
     }
 
     /// A key in the terminal (SE1).
@@ -617,28 +695,29 @@ impl Kern {
     }
 
     fn sende_taste(&self, taste: &str, umschalter: &[&str]) -> Vec<Wirkung> {
-        let Some(s) = &self.aktiv else {
+        let Some(s) = self.eingabe_ziel() else {
             return Vec::new();
         };
-        vec![self.an_pane(
+        vec![Wirkung::Senden(
             json!({"art": "Taste", "sitzung": s, "taste": taste, "umschalter": umschalter}),
         )]
     }
 
-    /// An event of the terminal: to the worker pane with the focus, if any (L2), else to the session.
-    fn an_pane(&self, e: Value) -> Wirkung {
-        Wirkung::Senden(match self.pane {
-            Some(nr) => ziel::mit_raster(e, nr),
-            None => e,
-        })
+    /// The session that gets input of the terminal: the worker pane with the focus, if any (L2: the pane is a session of its own,
+    /// R-L2 point 3), else the shown session.
+    fn eingabe_ziel(&self) -> Option<&str> {
+        self.aktiv.as_ref()?;
+        self.pane.as_deref().or(self.aktiv.as_deref())
     }
 
     /// Text into the terminal (a key, a composition, inserted text).
     #[must_use]
     pub fn text(&self, t: &str) -> Vec<Wirkung> {
-        match &self.aktiv {
+        match self.eingabe_ziel() {
             Some(s) if !t.is_empty() => {
-                vec![self.an_pane(json!({"art": "Text", "sitzung": s, "text": t}))]
+                vec![Wirkung::Senden(
+                    json!({"art": "Text", "sitzung": s, "text": t}),
+                )]
             }
             _ => Vec::new(),
         }
@@ -647,9 +726,11 @@ impl Kern {
     /// Paste into the terminal (SE1 point 10): unchanged, never as `Text`.
     #[must_use]
     pub fn einfuegen(&self, t: &str) -> Vec<Wirkung> {
-        match &self.aktiv {
+        match self.eingabe_ziel() {
             Some(s) if !t.is_empty() => {
-                vec![self.an_pane(json!({"art": "Einfuegen", "sitzung": s, "text": t}))]
+                vec![Wirkung::Senden(
+                    json!({"art": "Einfuegen", "sitzung": s, "text": t}),
+                )]
             }
             _ => Vec::new(),
         }
@@ -739,18 +820,21 @@ impl Kern {
             .unwrap_or_default()
     }
 
-    /// Whether the service manages sessions (L3: continue, revive, delete, rename). L3 has no message of its own; the view
-    /// takes the fields of L5 in `Sitzungsliste` as its sign, because both come with the same addendum of the contract `dienst`.
-    #[must_use]
-    pub fn verwaltung(&self) -> bool {
-        self.sitzungen.iter().any(|s| s.herkunft.is_some())
-    }
-
-    /// The gaps of `rust/spec/VERTRAEGE.md` section 4 that the stream has closed so far, read from the messages it sent: L1 with the
-    /// target form of `Agenten`, L2 when a worker names its raster, L3 and L9 with the fields of L5 (they have no message of
-    /// their own before a request), L4 with the target form of `Einstellungen`, L5 with name, folder and project in
-    /// `Sitzungsliste`, L6 with the proof of the person or the history in `Anfragen`, L10 with efforts in `Startwahl`. L8
-    /// needs no message.
+    /// The gaps of `rust/spec/VERTRAEGE.md` section 4 that the stream has closed, each read from a field that exists only with the addendum of
+    /// its contract. The view guesses no gap from another one; a gap without such a field stays open, and every path that needs it is
+    /// absent (OF8 point 3):
+    /// - L1: an entry of `Agenten` names its session (`zustandskern` R-L1 point 1, `dienst` DI-L1 point 3). An empty list is the same
+    ///   before and after the addendum (DI-L1 point 4) and says nothing.
+    /// - L2: every entry of `Agenten` carries `nr` (DI-L1 point 3); the view then knows the raster of each worker and subscribes its session.
+    /// - L4: `Einstellungen` with `fassung: 2` (`regelebenen` 15.10).
+    /// - L5: an entry of `Sitzungsliste` carries `name`, `ordner` and `projekt` (DI-L5 point 1).
+    /// - L6: a message `Anfrage` with an end state came; it is a line of the guard history (R-L6 point 5). Deciding needs a proof of
+    ///   the person, which no message gives the view; the buttons stay away.
+    /// - L10: `Startwahl` with `fassung: 2` (contract `start`, message `Startwahl` with efforts).
+    /// - L8 needs no message.
+    /// - L3 and L9 have no field before a request: `Umbenennen`, `Fortsetzen`, `Wiederbeleben`, `Loeschen` and (L9) `OrdnerLesen`,
+    ///   `InhaltSuchen` say nothing until sent, and a service without them ends the connection (`art_nicht_erlaubt`, DI3). They stay
+    ///   open. L7 and L11 name no operating path of the browser.
     #[must_use]
     pub fn luecken(&self) -> crate::bedienwege::Luecken {
         let mut l = crate::bedienwege::Luecken::KEINE;
@@ -759,23 +843,12 @@ impl Kern {
                 l = l.mit(n);
             }
         };
-        let l5 = self.sitzungen.iter().any(|s| s.herkunft.is_some());
         zu(1, self.ziel_agenten.is_some());
-        zu(
-            2,
-            self.ziel_agenten
-                .as_ref()
-                .is_some_and(|a| a.iter().any(|x| x.nr.is_some())),
-        );
-        zu(3, l5);
+        zu(2, self.ziel_agenten.is_some() && self.agenten_mit_raster);
         zu(4, self.ziel_einstellungen.is_some());
-        zu(5, l5);
-        zu(
-            6,
-            self.verlauf.is_some() || self.anfragen.iter().any(|a| a.nachweis.is_some()),
-        );
-        zu(9, l5);
-        zu(10, self.start.mit_effort());
+        zu(5, self.sitzungen.iter().any(|s| s.herkunft.is_some()));
+        zu(6, !self.verlauf.is_empty());
+        zu(10, self.start.fassung2);
         l
     }
 
@@ -785,12 +858,44 @@ impl Kern {
         crate::bedienwege::im_browser(nr, self.luecken())
     }
 
-    /// The workers of the shown session (L1); `None` while the stream does not name the session of a worker.
+    /// Whether the session `id` is a worker (DI-L1 point 1): the sidebar shows it under its orchestrator, not as a row of its own.
+    #[must_use]
+    pub fn ist_worker(&self, id: &str) -> bool {
+        self.ziel_agenten
+            .as_ref()
+            .is_some_and(|a| a.iter().any(|x| x.worker == id))
+    }
+
+    /// The workers of the shown session (L1); `None` while no entry of `Agenten` names the session of its worker.
     #[must_use]
     pub fn worker_der_sitzung(&self) -> Option<Vec<Agent>> {
         let a = self.ziel_agenten.as_ref()?;
         let s = self.aktiv.as_deref()?;
         Some(a.iter().filter(|x| x.sitzung == s).cloned().collect())
+    }
+
+    /// The raster number of a worker: the field `nr` of its session in the last `Sitzungsliste` (DI-L2 point 1), else the one of
+    /// `Agenten`.
+    #[must_use]
+    pub fn worker_nr(&self, w: &Agent) -> Option<u8> {
+        if self.sitzungen.iter().any(|s| s.id == w.worker) {
+            nr_der(&self.sitzungen, &w.worker)
+        } else {
+            w.nr
+        }
+    }
+
+    /// The workers of the shown session that wait for a guard decision: running workers with an open request of their own session
+    /// (`Anfrage.sitzung` is the session that asks, a worker is a session of its own, DI-L1 point 1). A worker state "waits" does not
+    /// exist (DI-L1 point 3).
+    #[must_use]
+    pub fn angehaltene_worker(&self) -> Option<Vec<Agent>> {
+        let w = self.worker_der_sitzung()?;
+        Some(
+            w.into_iter()
+                .filter(|x| x.laeuft() && self.anfragen.iter().any(|a| a.sitzung == x.worker))
+                .collect(),
+        )
     }
 
     /// The picture of a raster number (the panes of the workers, L2).
@@ -799,29 +904,34 @@ impl Kern {
         self.empfang.as_ref().and_then(|e| e.abbild(nr))
     }
 
-    /// The worker panes shown change (L2): `Abo` off for the rasters no longer shown, `Abo` on with its size for the new ones.
-    pub fn worker_zeigen(&mut self, panes: &[(u8, (usize, usize))]) -> Vec<Wirkung> {
-        let Some(s) = self.aktiv.clone() else {
+    /// The worker panes shown change (L2): `Abo` off for the sessions no longer shown, `Abo` on with its size for the new ones,
+    /// `Groesse` for a pane whose size changed. Each pane names the session of its worker (R-L2 points 1 and 2).
+    pub fn worker_zeigen(&mut self, panes: &[(String, (usize, usize))]) -> Vec<Wirkung> {
+        if self.aktiv.is_none() {
             return Vec::new();
-        };
+        }
         let mut w = Vec::new();
-        let weg: Vec<u8> = self
+        let mut weg: Vec<String> = self
             .worker_abos
             .keys()
-            .copied()
-            .filter(|nr| !panes.iter().any(|(n, _)| n == nr))
+            .filter(|s| !panes.iter().any(|(p, _)| p == *s))
+            .cloned()
             .collect();
-        for nr in weg {
-            self.worker_abos.remove(&nr);
-            w.push(Wirkung::Senden(ziel::abo_raster(&s, nr, false, (0, 0))));
+        weg.sort_unstable();
+        for s in weg {
+            self.worker_abos.remove(&s);
+            if self.pane.as_deref() == Some(s.as_str()) {
+                self.pane = None;
+            }
+            w.push(Wirkung::Senden(ziel::abo(&s, false, (0, 0))));
         }
-        for (nr, g) in panes {
-            match self.worker_abos.get(nr) {
-                None => w.push(Wirkung::Senden(ziel::abo_raster(&s, *nr, true, *g))),
-                Some(alt) if alt != g => w.push(Wirkung::Senden(ziel::groesse_raster(&s, *nr, *g))),
+        for (s, g) in panes {
+            match self.worker_abos.get(s) {
+                None => w.push(Wirkung::Senden(ziel::abo(s, true, *g))),
+                Some(alt) if alt != g => w.push(Wirkung::Senden(ziel::groesse(s, *g))),
                 Some(_) => continue,
             }
-            self.worker_abos.insert(*nr, *g);
+            self.worker_abos.insert(s.clone(), *g);
         }
         w
     }
@@ -1046,5 +1156,99 @@ mod tests {
         );
         k.waehle("s-301", (80, 24));
         assert!(k.bild.is_none(), "the picture of s-300 is gone");
+    }
+
+    /// The list of the service with a worker (DI-L1 point 3) and the fields of DI-L5.
+    fn mit_worker(k: &mut Kern) {
+        liste(
+            k,
+            &json!({"art": "Sitzungsliste", "sitzungen": [
+                {"id": "s-1", "zustand": "laeuft", "nr": 1, "name": "", "ordner": "/a/p", "projekt": "p"},
+                {"id": "s-2", "zustand": "laeuft", "nr": 2, "name": "", "ordner": "/a/p", "projekt": "p"}]}),
+        );
+        liste(
+            k,
+            &json!({"art": "Agenten", "agenten": [
+                {"worker": "s-2", "sitzung": "s-1", "rolle": "bauer", "modell": "m", "zustand": "laeuft", "nr": 2}]}),
+        );
+    }
+
+    /// L2 (R-L2, DI-L2): a worker pane subscribes the session of its worker without `nr`, and input into the pane names that session.
+    #[test]
+    fn a_worker_pane_is_a_subscription_of_the_session_of_the_worker() {
+        let mut k = Kern::default();
+        mit_worker(&mut k);
+        assert_eq!(k.aktiv.as_deref(), Some("s-1"));
+        assert!(k.ist_worker("s-2"));
+        let w = k.worker_der_sitzung().expect("L1");
+        assert_eq!(k.worker_nr(&w[0]), Some(2));
+        assert_eq!(
+            k.worker_zeigen(&[("s-2".into(), (40, 10))]),
+            vec![Wirkung::Senden(
+                json!({"art": "Abo", "sitzung": "s-2", "an": true, "spalten": 40, "zeilen": 10})
+            )]
+        );
+        k.pane = Some("s-2".into());
+        assert_eq!(
+            k.text("x"),
+            vec![Wirkung::Senden(
+                json!({"art": "Text", "sitzung": "s-2", "text": "x"})
+            )]
+        );
+        assert_eq!(
+            k.worker_zeigen(&[("s-2".into(), (41, 10))]),
+            vec![Wirkung::Senden(
+                json!({"art": "Groesse", "sitzung": "s-2", "spalten": 41, "zeilen": 10})
+            )]
+        );
+        assert_eq!(
+            k.worker_zeigen(&[]),
+            vec![Wirkung::Senden(
+                json!({"art": "Abo", "sitzung": "s-2", "an": false})
+            )]
+        );
+        assert_eq!(k.pane, None);
+        let l = k.luecken();
+        assert!(l.hat(1) && l.hat(2) && l.hat(5));
+        assert!(
+            !l.hat(3) && !l.hat(9),
+            "L3 and L9 have no sign before a request"
+        );
+    }
+
+    /// L6 (R-L6 point 5): a message `Anfrage` with an end state leaves the open requests and is a line of the guard history; a worker
+    /// with an open request of its own session waits.
+    #[test]
+    fn requests_with_an_end_state_are_the_guard_history() {
+        let mut k = Kern::default();
+        mit_worker(&mut k);
+        liste(
+            &mut k,
+            &json!({"art": "Anfrage", "id": "a1", "sitzung": "s-2", "werkzeug": "bash", "vorschau": "ls", "zustand": "offen"}),
+        );
+        assert_eq!(k.anfragen.len(), 1);
+        assert_eq!(k.angehaltene_worker().map(|w| w.len()), Some(1));
+        assert!(!k.luecken().hat(6));
+        liste(
+            &mut k,
+            &json!({"art": "Anfrage", "id": "a1", "sitzung": "s-2", "werkzeug": "bash", "zustand": "abgelehnt", "begruendung": "nein"}),
+        );
+        assert_eq!(k.anfragen, Vec::new());
+        assert_eq!(k.angehaltene_worker().map(|w| w.len()), Some(0));
+        assert_eq!(k.verlauf.len(), 1);
+        assert_eq!(
+            (
+                k.verlauf[0].zustand.as_str(),
+                k.verlauf[0].begruendung.as_str()
+            ),
+            ("abgelehnt", "nein")
+        );
+        assert!(k.luecken().hat(6));
+        // the answer of `Fortsetzen` (DI-L3 point 2)
+        let t = "Sitzung s-3 gestartet".to_owned();
+        assert_eq!(
+            liste(&mut k, &json!({"art": "Gestartet", "sitzung": "s-3"})),
+            vec![Wirkung::Ansage(t.clone()), Wirkung::Notiz(t)]
+        );
     }
 }

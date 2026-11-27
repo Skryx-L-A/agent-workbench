@@ -1,0 +1,339 @@
+{
+ "beschreibung": "Mit Startwahl Fassung 2 steht Name gleich welche Route; Effort steht nur bei einer Route mit Efforts fuer den gewaehlten Harness und fehlt bei einer Route ohne Efforts, dann traegt die Start-Struktur effort null.",
+ "datensatz": "A",
+ "name": "se6_route_ohne_effort",
+ "regeln": [
+  "SE2",
+  "SE6",
+  "SE7"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": []
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Arbeitsordner",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "effort-wahl"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Startwahl",
+    "fassung": 2,
+    "harness": [
+     {
+      "art": "claude",
+      "name": "claude",
+      "routenart": "cloud"
+     },
+     {
+      "art": "pi",
+      "name": "pi",
+      "routenart": "cloud"
+     },
+     {
+      "art": "hermes",
+      "name": "hermes",
+      "routenart": "cloud"
+     }
+    ],
+    "kunden": [
+     "k-beispiel",
+     "k-zwei",
+     null
+    ],
+    "routen": [
+     {
+      "art": "cloud",
+      "efforts": [
+       {
+        "erlaubt": [
+         "low",
+         "medium",
+         "high"
+        ],
+        "harness": "claude",
+        "modell": "cloud-modell-a",
+        "vorgabe": "medium"
+       },
+       {
+        "erlaubt": [],
+        "harness": "pi",
+        "modell": "cloud-modell-a",
+        "vorgabe": null
+       },
+       {
+        "erlaubt": [],
+        "harness": "hermes",
+        "modell": "cloud-modell-a",
+        "vorgabe": null
+       }
+      ],
+      "klasse": "extern",
+      "modell": "cloud-modell-a",
+      "schluessel": "cloud"
+     },
+     {
+      "art": "cloud",
+      "efforts": [
+       {
+        "erlaubt": [],
+        "harness": "claude",
+        "modell": "auto",
+        "vorgabe": null
+       },
+       {
+        "erlaubt": [],
+        "harness": "pi",
+        "modell": "auto",
+        "vorgabe": null
+       },
+       {
+        "erlaubt": [],
+        "harness": "hermes",
+        "modell": "auto",
+        "vorgabe": null
+       }
+      ],
+      "klasse": "extern",
+      "modell": null,
+      "schluessel": "offen"
+     },
+     {
+      "art": "lokal",
+      "efforts": [
+       {
+        "erlaubt": [],
+        "harness": "claude",
+        "modell": "lokal-modell-b",
+        "vorgabe": null
+       },
+       {
+        "erlaubt": [],
+        "harness": "pi",
+        "modell": "lokal-modell-b",
+        "vorgabe": null
+       },
+       {
+        "erlaubt": [],
+        "harness": "hermes",
+        "modell": "lokal-modell-b",
+        "vorgabe": null
+       }
+      ],
+      "klasse": "intern",
+      "modell": "lokal-modell-b",
+      "schluessel": "lokal"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "medium",
+   "optionen": [
+    "Vorgabe des Harness",
+    "low",
+    "medium",
+    "high"
+   ],
+   "testid": "effort-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "name-eingabe"
+   }
+  },
+  {
+   "art": "Einsetzen",
+   "text": "Bau Süd"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "arbeitsordner-eingabe"
+   }
+  },
+  {
+   "art": "Einsetzen",
+   "text": "/srv/projekt-ä"
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "offen"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "effort-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "effort": null,
+     "fassung": 2,
+     "harness": "claude",
+     "kunde": null,
+     "modell": "auto",
+     "name": "Bau Süd",
+     "route": "offen"
+    }
+   ]
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "cloud"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "medium",
+   "optionen": [
+    "Vorgabe des Harness",
+    "low",
+    "medium",
+    "high"
+   ],
+   "testid": "effort-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "effort": "medium",
+     "fassung": 2,
+     "harness": "claude",
+     "kunde": null,
+     "modell": "cloud-modell-a",
+     "name": "Bau Süd",
+     "route": "cloud"
+    }
+   ]
+  },
+  {
+   "art": "Waehle",
+   "testid": "harness-wahl",
+   "wert": "pi"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "effort-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "effort": null,
+     "fassung": 2,
+     "harness": "pi",
+     "kunde": null,
+     "modell": "cloud-modell-a",
+     "name": "Bau Süd",
+     "route": "cloud"
+    }
+   ]
+  },
+  {
+   "art": "Testid",
+   "sichtbar": false,
+   "testid": "fehler"
+  }
+ ],
+ "starten": [
+  {
+   "antwort": {
+    "sitzung": "s-3"
+   },
+   "status": 200
+  },
+  {
+   "antwort": {
+    "sitzung": "s-3"
+   },
+   "status": 200
+  },
+  {
+   "antwort": {
+    "sitzung": "s-3"
+   },
+   "status": 200
+  }
+ ]
+}

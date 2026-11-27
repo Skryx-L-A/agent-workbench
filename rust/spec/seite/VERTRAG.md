@@ -77,6 +77,7 @@ An einem Schritt nennt es den Bedienweg (etwa `"B37"`): Der Läufer überspringt
 | `Komposition` | `text` | `Input.imeSetComposition` (laufende Komposition, zum Beispiel nach einer toten Taste) |
 | `Einsetzen` | `text` | `Input.insertText` (schließt eine laufende Komposition ab; sonst Text ohne Taste, wie eine Bildschirmtastatur) |
 | `Einfuegen` | `text` | künstliches `paste` am fokussierten Element |
+| `Zwischenablage` | `text` (Nachtrag 27.11.2026) | schreibt `text` in die Zwischenablage des Prüfbrowsers (Rechte `clipboard-read` und `clipboard-write` nur für die Seite); ein folgendes Umschalt+Einfg liest sie |
 | `Fenster` | `breite`, `hoehe` | neue Fenstergröße |
 | `Klick` | `ziel` `{rolle, name}` oder `{testid}` | Klick (mit `beruehrung` Tippen) auf genau ein Element dieser Rolle und dieses Namens oder dieses `data-testid` |
 | `Waehle` | `testid`, `wert` | wählt im Auswahlfeld mit diesem `data-testid` die Option mit dieser Beschriftung |
@@ -133,6 +134,9 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
 11. Die Seite schickt die Ereignisse **in der Reihenfolge der Eingabe, eins nach dem anderen** (V): das nächste `POST /eingabe` erst nach der Antwort auf das vorige.
 12. Steht der Fokus nicht im Terminal, schicken Tasten keine Ereignisse. Felder sammeln ihren Text selbst. (26.11.) Die Eingabezeile (SE5 Punkt 3) ruht
     bis nach dem Pilot.
+13. **Umschalt+Einfg und Strg+Einfg** (Projektentscheid, 27.11.2026): Umschalt+Einfg ist Einfügen wie Strg+V und geht als `Einfuegen` mit dem Text
+    (Punkt 10), nie als `Taste`. Strg+Einfg kopiert die Auswahl und schickt nichts an das Programm. Beide gehören dem Browser: Die Seite schickt beim
+    `keydown` nichts und verhindert nichts; im Browser liefert Umschalt+Einfg das Ereignis `paste`. Fall: `se1_einfg`.
 
 ### SE2 Fokus
 
@@ -148,6 +152,7 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
    **Fenster „Sitzungen“** (26.11., SE2 gilt ab dem Öffnen): Ist es offen, bleibt der Fokus in ihm. Tab und Umschalt+Tab laufen nur durch seine Halte,
    in dieser Reihenfolge: die Liste der Sitzungen, `Name` (ab L10), `Arbeitsordner`, `Harness`, `Modell`, `Effort` (ab L10), `Route`, `Kunde`, der Knopf `Starten`,
    die Knöpfe `Beenden` und `Fortsetzen` der gewählten Sitzung und der Knopf `Schließen`. Beim Öffnen über „+“ steht der Fokus im ersten Feld des Formulars (`Name`, vor L10 `Arbeitsordner`).
+   (27.11.) `Name` steht da, sobald der Dienst Fassung 2 der Start-Struktur trägt, erkennbar an `fassung: 2` der `Startwahl`; er hängt nicht an der Route. `Effort` steht da, sobald die gewählte Route Efforts trägt (für den gewählten Harness ein nicht leeres `erlaubt`), und fehlt bei einer Route ohne Efforts; dann schickt der Start kein Effort (`effort: null`).
    Escape und `Schließen` schließen das Fenster, und der Fokus geht zurück auf „+“.
 3. **Im Terminal gehören Tab und Umschalt+Tab dem Programm** (SE1 Punkt 5); der Fokus bleibt.
 4. **Bereiche wechseln** (V, 26.11.): Die Bereiche sind Titelleiste, Leiste, Terminal und Inspektor (wenn offen), in dieser Folge, im Kreis.
@@ -267,6 +272,7 @@ Jedes `data-testid` steht **genau einmal** auf der Seite, ist unabhängig von Sp
    (26.11.) Dazu kommen `neue-sitzung` (Knopf „+“), `sitzungen-fenster` (das Fenster), `name-eingabe` und `effort-wahl` (beide sobald L10 gilt; vorher fehlen sie nach `rust/spec/VERTRAEGE.md` OF8),
    `sitzung-beenden` und `sitzung-fortsetzen` (Knöpfe für die gewählte Sitzung) und `sitzungen-schliessen`. Kennungen in einem Fenster oder einer Blase
    stehen genau einmal, solange es offen ist, und fehlen, solange es zu ist.
+   (27.11.) `name-eingabe` steht ab einer `Startwahl` mit `fassung: 2`, gleich welche Route gewählt ist; `effort-wahl` steht nur, solange die gewählte Route Efforts trägt, und fehlt bei einer Route ohne Efforts.
    Weitere neue Kennungen (26.11.): `inspektor` (der Bereich, nur wenn offen), `inspektor-umschalter`, `ansicht-umschalter` (Orchestrator/Worker),
    `worker-liste` (Blase), `freigaben-blatt`, `ordner-blatt`, `einstellungen` und `admin-einstellungen` (nur für Admins).
 3. `terminal-raster`: das Raster als Text im DOM (kein Canvas), mit `data-cursor="<zeile>,<spalte>,<sichtbar>"` (V: `sichtbar` als `true` oder `false`;
@@ -293,6 +299,7 @@ Jedes `data-testid` steht **genau einmal** auf der Seite, ist unabhängig von Sp
 12. Eingabezeile schickt `Text` und `Taste Enter` erst beim Absenden (ruht bis nach dem Pilot, 26.11.).
 13. Kein Abruf eines Symbols; nur drei Routen mit Token.
 14. Feste Selektoren SE7; `data-cursor` mit `true`/`false`; Fehlerfeld zeigt die letzte Ablehnung; „ohne Kunde“ schickt `null`.
+15. Umschalt+Einfg fügt ein (`Einfuegen`, nie `Taste`); Strg+Einfg kopiert und schickt nichts (27.11.).
 
 ## 6. Gegenproben (Mutanten)
 
@@ -360,6 +367,12 @@ Liste in `attrappe/seite.js` ist, dass die Attrappe beide Sätze grün besteht u
 | `f6_ueberspringt_inspektor` | SE2.4 | F6 vom Terminal springt am offenen Inspektor vorbei (Nachtrag 26.11.2026) |
 | `platzhalter_sichtbar` | OF8 | ein Bedienweg mit Umfang N steht im Baum (Nachtrag 26.11.2026) |
 | `name_ohne_l10` | SE2.2 | das Feld `Name` steht vor L10 im Fenster „Sitzungen“, der Fokus darin (Nachtrag 27.11.2026) |
+| `name_an_route` | SE2.2 | `Name` erscheint nur mit einer Route, die Efforts trägt, statt mit `Startwahl` Fassung 2 (Nachtrag 27.11.2026) |
+| `effort_an_fassung` | SE2.2 | `Effort` erscheint mit `Startwahl` Fassung 2 auch auf einer Route ohne Efforts (Nachtrag 27.11.2026) |
+| `effort_fehlt_ohne_efforts` | SE6.3 | die Start-Struktur trägt auf einer Route ohne Efforts einen Effort statt `null` (Nachtrag 27.11.2026) |
+| `leiste_ohne_b80` | OF8 | der Knopf „Leiste ein- und ausblenden“ trägt kein `data-bw` `B80` (Nachtrag 27.11.2026) |
+| `umschalt_einfg_als_taste` | SE1.13 | Umschalt+Einfg geht als `Taste` statt als `Einfuegen` (Nachtrag 27.11.2026) |
+| `strg_einfg_sendet` | SE1.13 | Strg+Einfg schickt ein Ereignis an das Programm (Nachtrag 27.11.2026) |
 
 `eingabezeile_sofort` ruht mit der Eingabezeile (Nachtrag 26.11.2026); `gegenprobe.sh` führt ihn in der Liste `RUHEND` und zählt ihn nicht als überlebt.
 

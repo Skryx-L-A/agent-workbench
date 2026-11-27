@@ -73,6 +73,15 @@
    }
   },
   {
+   "art": "Attribut",
+   "attribut": "data-bw",
+   "wert": "B80",
+   "ziel": {
+    "name": "Leiste ein- und ausblenden",
+    "rolle": "button"
+   }
+  },
+  {
    "art": "Bedienwege",
    "fehlen": [
     "B01",

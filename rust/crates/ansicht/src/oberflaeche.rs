@@ -589,8 +589,7 @@ pub(crate) fn punkt_klasse(s: Option<&Sitzung>) -> &'static str {
 fn agent_punkt(a: &Agent) -> &'static str {
     match a.zustand.as_str() {
         "laeuft" => "punkt laeuft",
-        "wartet" => "punkt will",
-        "fertig" => "punkt fertig",
+        "beendet" => "punkt aus",
         _ => "punkt ruhig",
     }
 }
@@ -599,8 +598,6 @@ fn agent_punkt(a: &Agent) -> &'static str {
 pub(crate) fn zustand_wort(z: &str) -> &str {
     match z {
         "laeuft" => "läuft",
-        "wartet" => "wartet auf dich",
-        "fertig" => "fertig",
         "beendet" => "läuft nicht mehr",
         x => x,
     }
@@ -619,13 +616,10 @@ fn titelleiste(a: A) -> Element {
     let (name, herkunft) = match &s {
         Some(s) => {
             let mut teile: Vec<&str> = s.teile();
-            if let Some(h) = &s.herkunft {
-                teile.push(&h.ordner);
+            if let Some(o) = s.ordner() {
+                teile.push(o);
             }
-            let name = s
-                .herkunft
-                .as_ref()
-                .map_or_else(|| s.id.clone(), |h| h.projekt.clone());
+            let name = s.projekt().unwrap_or(s.id.as_str()).to_owned();
             (name, teile.join(" · "))
         }
         None => ("Keine Sitzung gewählt".to_owned(), String::new()),
@@ -705,7 +699,6 @@ fn ansicht_setzen(a: A, neu: Ansicht) {
     if neu == Ansicht::Orchestrator {
         let mut k = a.kern;
         let w = k.write().worker_zeigen(&[]);
-        k.write().pane = None;
         wirken(a, w);
     } else {
         spawn(async move {
@@ -730,7 +723,13 @@ fn kanalwarnung(a: A) -> Element {
 #[allow(clippy::too_many_lines)]
 fn leiste(a: A) -> Element {
     let k = a.kern.read();
-    let sitzungen = k.sitzungen.clone();
+    // a worker is a session of its own (DI-L1 point 1); the sidebar shows it under its orchestrator, not as a row
+    let sitzungen: Vec<Sitzung> = k
+        .sitzungen
+        .iter()
+        .filter(|s| !k.ist_worker(&s.id))
+        .cloned()
+        .collect();
     let aktiv = k.aktiv.clone();
     let agenten = k.ziel_agenten.clone();
     let (b09, b22) = (k.zeigt("B09"), k.zeigt("B22"));
@@ -745,11 +744,7 @@ fn leiste(a: A) -> Element {
     let mit_projekt = b09;
     let mut gruppen: Vec<(String, Vec<Sitzung>)> = Vec::new();
     for s in sortiert {
-        let p = s
-            .herkunft
-            .as_ref()
-            .map(|h| h.projekt.clone())
-            .unwrap_or_default();
+        let p = s.projekt().unwrap_or_default().to_owned();
         match gruppen.iter_mut().find(|(q, _)| *q == p) {
             Some((_, l)) => l.push(s),
             None => gruppen.push((p, vec![s])),
@@ -819,7 +814,7 @@ fn sitzungszeile(a: A, s: &Sitzung, aktiv: Option<&str>, agenten: Option<&[Agent
         .concat()
         .join(" ")
     );
-    let label = if s.herkunft.is_some() {
+    let label = if s.herkunft.is_some() && s.anzeigename() != s.id {
         format!("{label}, {}", s.id)
     } else {
         label
@@ -926,7 +921,7 @@ fn kontextmenue(a: A) -> Element {
                     let _ = e.focus();
                 }
             },
-            if b11 && !s.laeuft {
+            if b11 && !s.laeuft && s.herkunft.as_ref().is_none_or(|h| h.fortgesetzt_als.is_none()) {
                 button { r#type: "button", role: "menuitem", "data-bw": "B11",
                     onclick: move |_| { schliessen(); senden(&ziel::fortsetzen(&i1)); }, "Fortsetzen" }
             }
@@ -1022,7 +1017,7 @@ pub(crate) fn fehlerfeld(fehler: Option<&(String, String)>) -> Element {
 }
 
 /// One terminal: the raster as text (SE4, SE7 point 3) and the input element for keys (SE1). The orchestrator terminal carries
-/// the fixed selectors; a worker pane (`nr`) carries none.
+/// the fixed selectors; a worker pane (`pane`, the session of its worker) carries none.
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn terminal(
     a: A,
@@ -1032,10 +1027,11 @@ fn terminal(
     bild: Option<&rasterauszug::Bild>,
     name: &str,
     zeilenhoehe: usize,
-    nr: Option<u8>,
+    pane: Option<String>,
     fest: bool,
     versteckt: bool,
 ) -> Element {
+    let worker_pane = pane.is_some();
     let cursor = bild.map_or((0, 0, false), |b| {
         (b.cursor.zeile, b.cursor.spalte, b.cursor.sichtbar)
     });
@@ -1053,7 +1049,7 @@ fn terminal(
             "aria-label": "{name}", "data-bw": "B35", hidden: versteckt,
             div { class: "raster", id: "{raster_id}", "data-bw": "B39",
                 onresize: move |_| {
-                    if nr.is_some() { worker_messen(a); return; }
+                    if worker_pane { worker_messen(a); return; }
                     let g = messen();
                     let mut k = a.kern;
                     let w = k.write().groesse(g);
@@ -1083,7 +1079,7 @@ fn terminal(
                         "aria-label": "{name}", "aria-roledescription": "Terminal",
                         "aria-describedby": "hinweis-f6", autocapitalize: "off", autocomplete: "off",
                         "autocorrect": "off", spellcheck: "false", rows: "1", style: "{cursor_stil}",
-                        onfocus: move |_| { let mut k = a.kern; if k.peek().pane != nr { k.write().pane = nr; } },
+                        onfocus: move |_| { let mut k = a.kern; if k.peek().pane != pane { k.write().pane.clone_from(&pane); } },
                         onkeydown: move |e: KeyboardEvent| terminal_taste(a, &e),
                         oncompositionend: move |e: CompositionEvent| {
                             let w = a.kern.read().text(&e.data().data());
@@ -1114,14 +1110,19 @@ fn terminal(
 /// The worker panes of the session (B27, B30 to B33, L1, L2): tiled, six per tab; a zoomed pane fills the area.
 #[allow(clippy::too_many_lines)]
 fn worker_flaeche(a: A, worker: Vec<Agent>, zeilenhoehe: usize) -> Element {
-    let mit_raster: Vec<Agent> = worker.into_iter().filter(|w| w.nr.is_some()).collect();
+    let k = a.kern.read();
+    // each worker with the number of its raster (DI-L2 point 1); a worker without a number has no picture
+    let mit_raster: Vec<(Agent, u8)> = worker
+        .into_iter()
+        .filter_map(|w| k.worker_nr(&w).map(|n| (w, n)))
+        .collect();
     let tabs = mit_raster.len().div_ceil(JE_TAB).max(1);
     let tab = (*a.worker_tab.read()).min(tabs - 1);
     let gezoomt = *a.gezoomt.read();
-    let sichtbar: Vec<Agent> = match gezoomt {
-        Some(z) if mit_raster.iter().any(|w| w.nr == Some(z)) => mit_raster
+    let sichtbar: Vec<(Agent, u8)> = match gezoomt {
+        Some(z) if mit_raster.iter().any(|(_, n)| *n == z) => mit_raster
             .iter()
-            .filter(|w| w.nr == Some(z))
+            .filter(|(_, n)| *n == z)
             .cloned()
             .collect(),
         _ => mit_raster
@@ -1133,12 +1134,11 @@ fn worker_flaeche(a: A, worker: Vec<Agent>, zeilenhoehe: usize) -> Element {
     };
     let spalten = if sichtbar.len() > 2 { 2 } else { 1 };
     let raster_stil = format!("grid-template-columns:repeat({spalten},minmax(0,1fr));");
-    let k = a.kern.read();
     let bilder: Vec<Option<rasterauszug::Bild>> = sichtbar
         .iter()
-        .map(|w| w.nr.and_then(|n| k.abbild(n).cloned()))
+        .map(|(_, n)| k.abbild(*n).cloned())
         .collect();
-    let fokus_nr = k.pane;
+    let fokus_pane = k.pane.clone();
     drop(k);
     rsx! {
         div { class: "worker-flaeche",
@@ -1163,10 +1163,9 @@ fn worker_flaeche(a: A, worker: Vec<Agent>, zeilenhoehe: usize) -> Element {
                 div { class: "leer-mitte", "data-bw": "B34", "Diese Sitzung hat keine laufenden Worker." }
             }
             div { class: "kacheln", style: "{raster_stil}",
-                for (w, b) in sichtbar.into_iter().zip(bilder) {
+                for ((w, nr), b) in sichtbar.into_iter().zip(bilder) {
                     {
-                        let nr = w.nr.unwrap_or(0);
-                        let aktiv = fokus_nr == Some(nr);
+                        let aktiv = fokus_pane.as_deref() == Some(w.worker.as_str());
                         let name = format!("Terminal {}", w.rolle);
                         let tid = format!("w-terminal-{nr}");
                         let rid = format!("raster-w{nr}");
@@ -1184,7 +1183,7 @@ fn worker_flaeche(a: A, worker: Vec<Agent>, zeilenhoehe: usize) -> Element {
                                         {symbol_zoom()}
                                     }
                                 }
-                                {terminal(a, &tid, &rid, &eid, b.as_ref(), &name, zeilenhoehe, Some(nr), false, false)}
+                                {terminal(a, &tid, &rid, &eid, b.as_ref(), &name, zeilenhoehe, Some(w.worker.clone()), false, false)}
                             }
                         }
                     }
@@ -1202,12 +1201,14 @@ fn worker_messen(a: A) {
     if *a.ansicht.peek() != Ansicht::Worker {
         return;
     }
-    let panes: Vec<(u8, (usize, usize))> = worker
+    let k = a.kern.peek();
+    let panes: Vec<(String, (usize, usize))> = worker
         .iter()
-        .filter_map(|w| w.nr)
-        .filter(|nr| element(&format!("raster-w{nr}")).is_some())
-        .map(|nr| (nr, messen_in(&format!("raster-w{nr}"))))
+        .filter_map(|w| k.worker_nr(w).map(|nr| (w.worker.clone(), nr)))
+        .filter(|(_, nr)| element(&format!("raster-w{nr}")).is_some())
+        .map(|(s, nr)| (s, messen_in(&format!("raster-w{nr}"))))
         .collect();
+    drop(k);
     let mut k = a.kern;
     let w = k.write().worker_zeigen(&panes);
     wirken(a, w);
@@ -1314,10 +1315,7 @@ fn dialog_teil(a: A, d: &crate::kern::Dialog) -> Element {
 #[allow(clippy::too_many_lines)]
 fn inspektor(a: A) -> Element {
     let k = a.kern.read();
-    let ordner_da = k.zeigt("B52")
-        && k.aktive_sitzung()
-            .and_then(|s| s.herkunft.clone())
-            .is_some();
+    let ordner_da = k.zeigt("B52") && k.aktive_sitzung().and_then(Sitzung::ordner).is_some();
     drop(k);
     let reiter = if ordner_da {
         *a.reiter.read()
@@ -1359,9 +1357,8 @@ fn freigaben_blatt(a: A) -> Element {
     let k = a.kern.read();
     let anfragen = k.anfragen.clone();
     let verlauf = k.verlauf.clone();
-    let angehalten: Option<Vec<Agent>> = k
-        .worker_der_sitzung()
-        .map(|w| w.into_iter().filter(|x| x.zustand == "wartet").collect());
+    let b07 = k.zeigt("B07") && !verlauf.is_empty();
+    let angehalten: Option<Vec<Agent>> = k.angehaltene_worker();
     drop(k);
     let n = anfragen.len();
     rsx! {
@@ -1404,19 +1401,27 @@ fn freigaben_blatt(a: A) -> Element {
                     div { key: "{x.worker}", class: "worker-zeile", span { class: "punkt will" } span { class: "wname", "{x.rolle}" } span { class: "wmodell", "{x.modell}" } }
                 }
             }
-            if let Some(v) = verlauf {
-                h3 { class: "blatt-titel", "Guard-Verlauf " span { class: "blatt-zahl", "{v.len()}" } }
-                if v.is_empty() { p { class: "blatt-leer", "Noch keine Entscheidung aufgezeichnet." } }
-                for (i, x) in v.into_iter().enumerate() {
+            if b07 {
+                h3 { class: "blatt-titel", "Guard-Verlauf " span { class: "blatt-zahl", "{verlauf.len()}" } }
+                for (i, x) in verlauf.into_iter().enumerate() {
                     div { key: "{i}", class: "verlauf-zeile", "data-bw": "B07",
-                        span { class: if x.entscheid == "erteilt" { "marke gut" } else { "marke schlecht" },
-                            if x.entscheid == "erteilt" { "Freigabe erteilt" } else { "Freigabe abgelehnt" } }
+                        span { class: if x.zustand == "erteilt" { "marke gut" } else { "marke schlecht" },
+                            {verlauf_text(&x.zustand)} }
                         span { class: "wname", "{x.werkzeug}" }
                         if !x.begruendung.is_empty() { span { class: "wmodell", "{x.begruendung}" } }
                     }
                 }
             }
         }
+    }
+}
+
+/// The text of one line of the guard history (B07).
+fn verlauf_text(zustand: &str) -> &'static str {
+    match zustand {
+        "erteilt" => "Freigabe erteilt",
+        "abgelehnt" => "Freigabe abgelehnt",
+        _ => "Frist abgelaufen",
     }
 }
 
@@ -1437,20 +1442,22 @@ fn ordner_blatt(a: A) -> Element {
     drop(k);
     let pfad = s
         .as_ref()
-        .and_then(|s| s.herkunft.as_ref())
-        .map(|h| h.ordner.clone())
-        .unwrap_or_default();
+        .and_then(Sitzung::ordner)
+        .unwrap_or_default()
+        .to_owned();
     let id = s.map(|s| s.id).unwrap_or_default();
     let id2 = id.clone();
-    let eintraege = ordner.filter(|(s, _, _)| *s == id).map(|(_, _, e)| e);
-    let treffer = treffer.filter(|(s, m, _)| *s == id && !m.is_empty());
+    let eintraege = ordner.filter(|o| o.sitzung == id).map(|o| o.eintraege);
+    let treffer = treffer
+        .filter(|t| t.sitzung == id && !t.muster.is_empty())
+        .map(|t| (t.muster, t.treffer));
     let inhalt = match eintraege {
         Some(e) if e.is_empty() => rsx! { p { class: "blatt-leer", "Dieser Ordner ist leer." } },
         Some(e) => rsx! {
             ul { class: "ordner-liste", "aria-label": "Inhalt des Arbeitsordners",
                 for x in e {
-                    li { key: "{x.name}", class: if x.ordner { "eintrag ordner" } else { "eintrag datei" },
-                        if x.ordner { {symbol_ordner()} } else { {symbol_datei()} }
+                    li { key: "{x.name}", class: if x.ordner() { "eintrag ordner" } else { "eintrag datei" },
+                        if x.ordner() { {symbol_ordner()} } else { {symbol_datei()} }
                         span { "{x.name}" }
                     }
                 }
@@ -1471,10 +1478,10 @@ fn ordner_blatt(a: A) -> Element {
                     }
                 },
             }
-            if let Some((_, m, t)) = treffer {
+            if let Some((m, t)) = treffer {
                 p { class: "blatt-leer", "{t.len()} Treffer für „{m}“" }
                 for (i, x) in t.into_iter().enumerate() {
-                    div { key: "{i}", class: "treffer", span { class: "treffer-pfad", "{x.pfad}:{x.zeile}" } code { "{x.text}" } }
+                    div { key: "{i}", class: "treffer", span { class: "treffer-pfad", "{x.pfad}:{x.zeile}" } code { "{x.auszug}" } }
                 }
             } else {
                 {inhalt}

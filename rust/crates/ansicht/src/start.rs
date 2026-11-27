@@ -1,5 +1,9 @@
 //! Start form (contract `seite` SE6 points 3 and 4, contract `dienst` DI12 point 10): the message `Startwahl` fills
-//! the choice fields; submitting gives the start structure of version 1, "ohne Kunde" as `null`.
+//! the choice fields; submitting gives the start structure, "ohne Kunde" as `null`.
+//!
+//! Version 2 (contract `start`, "Fassung 2"): `Startwahl` with `fassung: 2` says that the service takes the start structure of version
+//! 2. From then on the form has the field `Name`, whatever the route. The field `Effort` stands only while the chosen route carries
+//! efforts for the chosen harness; for a route without efforts the start structure has `effort: null`.
 
 use serde_json::{Value, json};
 
@@ -7,6 +11,8 @@ use serde_json::{Value, json};
 pub const OHNE_KUNDE: &str = "ohne Kunde";
 /// The model that holds without a model of the route.
 pub const MODELL_AUTO: &str = "auto";
+/// The entry of the field `Effort` that sends `null` (contract `start`, message `Startwahl` with efforts).
+pub const VORGABE_HARNESS: &str = "Vorgabe des Harness";
 
 /// One option: value and visible text.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -74,11 +80,14 @@ pub struct Startform {
     pub modelle: Vec<(String, Option<String>)>,
     /// Whether a `Startwahl` came.
     pub startwahl_da: bool,
-    /// The name of the new session (window "Sitzungen", SE2 point 2); sent from version 2 of the start structure on (L10).
+    /// Whether the last `Startwahl` has version 2: the service takes the start structure of version 2 (`name` and `effort`).
+    pub fassung2: bool,
+    /// The name of the new session (window "Sitzungen", SE2 point 2); sent with version 2, empty as `null`.
     pub name: String,
-    /// The efforts of each route (L10): allowed ones and the default of the user; empty in today's form of `Startwahl`.
-    pub efforts: Vec<(String, Vec<String>, Option<String>)>,
-    /// The effort of the new session (L10); without efforts of the route the field `effort-wahl` is absent.
+    /// The efforts of each route (`routen[].efforts` of `Startwahl` version 2); empty with version 1.
+    pub efforts: Vec<(String, Vec<crate::ziel::Effort>)>,
+    /// The effort of the new session: "Vorgabe des Harness" (value `""`, sent as `null`) and the allowed efforts of the chosen route
+    /// and harness; without allowed efforts the field `effort-wahl` is absent.
     pub effort: Wahlfeld,
 }
 
@@ -109,6 +118,7 @@ impl Default for Startform {
             arbeitsordner: String::new(),
             modelle: Vec::new(),
             startwahl_da: false,
+            fassung2: false,
             name: String::new(),
             efforts: Vec::new(),
             effort: Wahlfeld::neu(Vec::new(), None),
@@ -128,9 +138,9 @@ fn text(v: Option<&Value>) -> Option<&str> {
 }
 
 impl Startform {
-    /// Takes a message `Startwahl` (SE6 point 4); a message not of version 1 changes nothing.
+    /// Takes a message `Startwahl` (SE6 point 4) of version 1 or 2; another version changes nothing.
     pub fn startwahl(&mut self, n: &Value) {
-        let (Some(1), Some(harness), Some(routen), Some(kunden)) = (
+        let (Some(fassung @ (1 | 2)), Some(harness), Some(routen), Some(kunden)) = (
             n.get("fassung").and_then(Value::as_i64),
             n.get("harness").and_then(Value::as_array),
             n.get("routen").and_then(Value::as_array),
@@ -172,14 +182,18 @@ impl Startform {
             .into_iter()
             .map(|(s, m)| (s.to_owned(), m))
             .collect();
-        self.efforts = routen
-            .iter()
-            .filter_map(|r| {
-                let s = text(r.get("schluessel"))?;
-                let (e, v) = crate::ziel::efforts_lesen(r)?;
-                Some((s.to_owned(), e, v))
-            })
-            .collect();
+        self.fassung2 = fassung == 2;
+        self.efforts = if self.fassung2 {
+            routen
+                .iter()
+                .filter_map(|r| {
+                    let s = text(r.get("schluessel"))?;
+                    Some((s.to_owned(), crate::ziel::efforts_lesen(r)))
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
         self.startwahl_da = true;
         self.modell_fuellen();
     }
@@ -227,22 +241,50 @@ impl Startform {
             .and_then(|(_, m)| m.clone())
             .unwrap_or_else(|| MODELL_AUTO.to_owned());
         self.modell = Wahlfeld::neu(vec![Eintrag::gleich(&m)], None);
-        let (erlaubt, vorgabe) = self
-            .efforts
-            .iter()
-            .find(|(r, _, _)| *r == self.route.wert)
-            .map(|(_, e, v)| (e.clone(), v.clone()))
-            .unwrap_or_default();
-        self.effort = Wahlfeld::neu(
-            erlaubt.iter().map(|e| Eintrag::gleich(e)).collect(),
-            vorgabe.as_deref(),
-        );
+        self.effort_fuellen();
     }
 
-    /// Whether the start structure has version 2 (L10: `Startwahl` carries efforts).
+    /// The field `Effort` after the choice of route and harness: the allowed efforts of the entry of the harness in the route, with
+    /// "Vorgabe des Harness" first and the default of the user chosen; no entries when the route carries no allowed effort for it.
+    fn effort_fuellen(&mut self) {
+        let e = self
+            .efforts
+            .iter()
+            .find(|(r, _)| *r == self.route.wert)
+            .and_then(|(_, e)| e.iter().find(|x| x.harness == self.harness.wert))
+            .filter(|e| !e.erlaubt.is_empty());
+        self.effort = match e {
+            Some(e) => {
+                let mut eintraege = vec![Eintrag {
+                    wert: String::new(),
+                    text: VORGABE_HARNESS.to_owned(),
+                }];
+                eintraege.extend(e.erlaubt.iter().map(|x| Eintrag::gleich(x)));
+                Wahlfeld::neu(eintraege, Some(e.vorgabe.as_deref().unwrap_or("")))
+            }
+            None => Wahlfeld::neu(Vec::new(), None),
+        };
+    }
+
+    /// Whether the form has the field `Name`: the service takes version 2 of the start structure (`Startwahl` with `fassung: 2`). The
+    /// name does not hang on the route.
+    #[must_use]
+    pub fn mit_name(&self) -> bool {
+        self.fassung2
+    }
+
+    /// Whether the form has the field `Effort`: version 2 and the chosen route carries allowed efforts for the chosen harness.
     #[must_use]
     pub fn mit_effort(&self) -> bool {
-        !self.effort.eintraege.is_empty()
+        self.fassung2 && !self.effort.eintraege.is_empty()
+    }
+
+    /// A new choice of the harness; with version 2 the field `Effort` follows it.
+    pub fn harness_waehlen(&mut self, wert: &str) {
+        wert.clone_into(&mut self.harness.wert);
+        if self.startwahl_da {
+            self.effort_fuellen();
+        }
     }
 
     /// A new choice of the route; after a `Startwahl` the model follows it.
@@ -264,11 +306,15 @@ impl Startform {
             "kunde": if self.kunde.wert.is_empty() { Value::Null } else { json!(self.kunde.wert) },
             "arbeitsordner": self.arbeitsordner,
         });
-        if self.mit_effort() {
-            crate::ziel::struktur_fassung2(f1, &self.name, &self.effort.wert)
-        } else {
-            f1
+        if !self.fassung2 {
+            return f1;
         }
+        let effort = Some(self.effort.wert.as_str()).filter(|e| self.mit_effort() && !e.is_empty());
+        crate::ziel::struktur_fassung2(
+            f1,
+            Some(self.name.as_str()).filter(|n| !n.is_empty()),
+            effort,
+        )
     }
 }
 
@@ -315,7 +361,57 @@ mod tests {
         f.harness.wert = "b".into();
         f.startwahl(&json!({"fassung": 1, "harness": [{"name": "b"}, {"name": "c"}], "routen": [], "kunden": []}));
         assert_eq!(f.harness.wert, "b");
-        f.startwahl(&json!({"fassung": 2, "harness": [], "routen": [], "kunden": []}));
+        f.startwahl(&json!({"fassung": 3, "harness": [], "routen": [], "kunden": []}));
         assert_eq!(f.harness.wert, "b");
+    }
+
+    fn wahl2() -> Value {
+        json!({"fassung": 2,
+            "harness": [{"name": "claude", "art": "cloud", "routenart": "cloud"}, {"name": "copilot", "art": "cloud", "routenart": "cloud"}],
+            "routen": [{"schluessel": "copilot", "art": "cloud", "klasse": "intern", "modell": null,
+                        "efforts": [{"harness": "claude", "modell": "auto", "erlaubt": [], "vorgabe": null},
+                                    {"harness": "copilot", "modell": "auto", "erlaubt": ["low", "medium", "high"], "vorgabe": "medium"}]},
+                       {"schluessel": "ohne", "art": "cloud", "klasse": "intern", "modell": null,
+                        "efforts": [{"harness": "claude", "modell": "auto", "erlaubt": [], "vorgabe": null},
+                                    {"harness": "copilot", "modell": "auto", "erlaubt": [], "vorgabe": null}]}],
+            "kunden": [null]})
+    }
+
+    /// Decision of 27.11.2026: the name appears with version 2 and does not hang on the route; the effort appears while
+    /// the chosen route carries efforts and goes away for a route without; then the start sends no effort.
+    #[test]
+    fn name_with_version_2_and_effort_with_the_route() {
+        let mut f = Startform::default();
+        assert!(!f.mit_name() && !f.mit_effort());
+        f.startwahl(&wahl2());
+        f.leeren();
+        assert!(f.mit_name());
+        assert!(
+            !f.mit_effort(),
+            "claude has no allowed effort on this route"
+        );
+        f.harness_waehlen("copilot");
+        assert!(f.mit_effort());
+        assert_eq!(f.effort.wert, "medium");
+        assert_eq!(f.effort.eintraege[0].text, VORGABE_HARNESS);
+        f.name = "Bau".into();
+        let s = f.struktur();
+        assert_eq!(
+            (&s["fassung"], &s["name"], &s["effort"]),
+            (&json!(2), &json!("Bau"), &json!("medium"))
+        );
+        f.route_waehlen("ohne");
+        assert!(f.mit_name() && !f.mit_effort());
+        let s = f.struktur();
+        assert_eq!((&s["name"], &s["effort"]), (&json!("Bau"), &Value::Null));
+        f.route_waehlen("copilot");
+        f.effort.wert = String::new();
+        f.name.clear();
+        let s = f.struktur();
+        assert_eq!((&s["name"], &s["effort"]), (&Value::Null, &Value::Null));
+        // back to version 1: no name, no effort, version 1
+        f.startwahl(&json!({"fassung": 1, "harness": [{"name": "claude"}], "routen": [{"schluessel": "r"}], "kunden": []}));
+        assert!(!f.mit_name() && !f.mit_effort());
+        assert_eq!(f.struktur()["fassung"], 1);
     }
 }

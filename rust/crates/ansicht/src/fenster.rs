@@ -65,7 +65,8 @@ fn wahl(
 
 fn option_text(s: &Sitzung) -> String {
     let mut t = vec![s.anzeigename().to_owned()];
-    if s.herkunft.is_some() {
+    // the id after a name; a session without a name shows its id once
+    if s.anzeigename() != s.id {
         t.push(s.id.clone());
     }
     t.extend(s.teile().iter().map(|x| (*x).to_owned()));
@@ -90,8 +91,8 @@ pub(crate) fn sitzungen(a: A) -> Element {
         || "Eine Sitzung wählen: Beenden und Fortsetzen gelten für sie.".to_owned(),
         |s| {
             let mut t = vec![s.anzeigename().to_owned(), s.zustand_text()];
-            if let Some(h) = &s.herkunft {
-                t.push(h.ordner.clone());
+            if let Some(o) = s.ordner() {
+                t.push(o.to_owned());
             }
             t.join(" · ")
         },
@@ -104,18 +105,28 @@ pub(crate) fn sitzungen(a: A) -> Element {
     let fortsetzen_grund = match &gewaehlt {
         None => "Keine Sitzung gewählt",
         Some(s) if s.laeuft => "Sitzung läuft",
+        Some(s)
+            if s.herkunft
+                .as_ref()
+                .is_some_and(|h| h.fortgesetzt_als.is_some()) =>
+        {
+            "Sitzung ist schon fortgesetzt"
+        }
         Some(_) => "",
     };
     let ids: Vec<String> = sitzungen.iter().map(|s| s.id.clone()).collect();
     let ids2 = ids.clone();
+    // Name with version 2 of the start structure (`Startwahl` with `fassung: 2`), whatever the route; Effort only while the chosen
+    // route carries efforts (decision of 27.11.2026; SE2 point 2, SE7 point 2)
+    let mit_name = f.mit_name();
     let mit_effort = f.mit_effort();
     rsx! {
         div { class: "fenster-grund" }
         div { class: "fenster sitzungen", id: "sitzungen-fenster", role: "dialog", "aria-modal": "true", "aria-label": "Sitzungen",
             "data-testid": "sitzungen-fenster", "data-bw": "B68",
             onkeydown: move |e: KeyboardEvent| falle("sitzungen-fenster", &e),
-            // The focus starts in the first field of the form: `Name` with L10, before that `Arbeitsordner` (SE2 point 2).
-            onmounted: move |_| fokus(if mit_effort { "wahl-name" } else { "wahl-arbeitsordner" }),
+            // The focus starts in the first field of the form: `Name` with version 2, before that `Arbeitsordner` (SE2 point 2).
+            onmounted: move |_| fokus(if mit_name { "wahl-name" } else { "wahl-arbeitsordner" }),
             div { class: "fenster-kopf", h2 { "Sitzungen" } }
             div { class: "fenster-leib",
                 div { class: "fenster-spalte liste-spalte",
@@ -167,8 +178,8 @@ pub(crate) fn sitzungen(a: A) -> Element {
                     },
                     h3 { class: "gruppe-titel", "Ordner" }
                     div { class: "karte",
-                        // `Name` and `Effort` come with L10 only: before it the start structure has no field for them (OF8).
-                        if mit_effort {
+                        // `Name` comes with version 2 only: before it the start structure has no field for it (OF8).
+                        if mit_name {
                             div { class: "form-zeile",
                                 label { class: "form-name", r#for: "wahl-name", "Name" }
                                 input { class: "feld", id: "wahl-name", "data-testid": "name-eingabe", r#type: "text", value: "{f.name}",
@@ -186,7 +197,7 @@ pub(crate) fn sitzungen(a: A) -> Element {
                     }
                     h3 { class: "gruppe-titel", "Programm und Modell" }
                     div { class: "karte", "data-bw": "B69",
-                        {wahl(a, "wahl-harness", "harness-wahl", "Harness", f.harness.clone(), |k, v| k.start.harness.wert = v)}
+                        {wahl(a, "wahl-harness", "harness-wahl", "Harness", f.harness.clone(), |k, v| k.start.harness_waehlen(&v))}
                         {wahl(a, "wahl-modell", "modell-wahl", "Modell", f.modell.clone(), |k, v| k.start.modell.wert = v)}
                         if mit_effort {
                             {wahl(a, "wahl-effort", "effort-wahl", "Effort", f.effort.clone(), |k, v| k.start.effort.wert = v)}
@@ -276,7 +287,7 @@ pub(crate) fn loeschen(a: A, id: String) -> Element {
             onkeydown: move |e: KeyboardEvent| falle("frage", &e),
             onmounted: move |_| fokus("frage-nein"),
             h2 { "„{name}“ endgültig löschen?" }
-            p { class: "fenster-hinweis", "Ordner und Verlauf der Sitzung sind danach weg." }
+            p { class: "fenster-hinweis", "Die Sitzung verschwindet aus der Liste. Arbeitsordner und Gespräch bleiben erhalten." }
             div { class: "form-fuss",
                 button { r#type: "button", id: "frage-nein", class: "knopf-rand", onclick: move |_| schliessen(a), "Abbrechen" }
                 button { r#type: "button", class: "knopf-voll gefahr", onclick: move |_| { senden(&ziel::loeschen(&id)); schliessen(a); }, "Endgültig löschen" }
@@ -287,7 +298,8 @@ pub(crate) fn loeschen(a: A, id: String) -> Element {
 
 // ---- settings (OF9) ----
 
-/// The pages of the user area: key, name, one-line description.
+/// The pages of the user area: key, name, one-line description. A page without a key of the catalog in `Einstellungen` stays away,
+/// except "Aussehen" of this device.
 const SEITEN_NUTZER: [(&str, &str, &str); 4] = [
     (
         "aussehen",
@@ -326,190 +338,117 @@ const SEITEN_ADMIN: [(&str, &str, &str); 4] = [
     ),
 ];
 
-/// Known keys: key, group, title, description of at most one line. Unknown keys appear with their key.
-const KATALOG: [(&str, &str, &str, &str); 22] = [
+/// The keys of the catalog of the pilot (`regelebenen` 15.1) with page, group, title and a description of at most one line. The keys
+/// `aussehen.*` and `terminal.schriftgroesse` stay on the page "Aussehen" of this device (L8) and are not listed here.
+const KATALOG: [(&str, &str, &str, &str, &str); 13] = [
     (
         "sitzung.harness",
+        "sitzung",
         "Neue Sitzungen",
         "Harness",
         "Womit eine neue Sitzung startet.",
     ),
     (
         "sitzung.modell",
+        "sitzung",
         "Neue Sitzungen",
         "Modell",
-        "Aus der Freigabe der Admins.",
+        "Vorgabe für das Modell.",
     ),
     (
         "sitzung.effort",
+        "sitzung",
         "Neue Sitzungen",
         "Effort",
         "Wie gründlich das Modell denkt.",
     ),
     (
-        "sitzung.beendete_zeigen",
-        "Leiste",
-        "Beendete Sitzungen zeigen",
-        "Sie bleiben in der Leiste stehen.",
-    ),
-    (
-        "sitzung.schliessen_beendet",
-        "Leiste",
-        "Beim Schließen beenden",
-        "Das Terminal endet mit dem Fenster.",
-    ),
-    (
-        "regeln.rueckfrage",
-        "Worker",
-        "Rückfrage vor Befehlen",
-        "Worker fragen vor jedem Befehl nach.",
-    ),
-    (
-        "regeln.eigener_baum",
-        "Worker",
-        "Eigener Arbeitsbaum",
-        "Jeder Worker arbeitet in seiner Kopie.",
-    ),
-    (
-        "regeln.guards",
-        "Sicherungen",
-        "Guards vor jedem Befehl",
-        "Prüft Befehle, bevor sie laufen.",
-    ),
-    (
-        "admin.modelle.freigabe",
+        "harnesses",
+        "admin.modelle",
         "Freigabe",
-        "Freigegebene Modelle",
-        "Was Nutzer wählen dürfen.",
+        "Harnesses je Datenklasse",
+        "Was Nutzer je Klasse wählen dürfen.",
     ),
     (
-        "admin.modelle.effort_max",
+        "modelle",
+        "admin.modelle",
+        "Freigabe",
+        "Modelle je Datenklasse",
+        "Was Nutzer je Klasse wählen dürfen.",
+    ),
+    (
+        "effort.grenzen",
+        "admin.modelle",
         "Effort",
-        "Höchster Effort",
-        "Grenze für alle Sitzungen dieser Stufe.",
+        "Grenzen des Efforts",
+        "Höchster Effort je Harness und Klasse.",
     ),
     (
-        "admin.modelle.effort_vorgabe",
-        "Effort",
-        "Vorgabe des Efforts",
-        "Gilt, bis der Nutzer selbst wählt.",
+        "optionen.copilot_ohne_rueckfrage",
+        "admin.erlaubnisse",
+        "Copilot",
+        "Ohne Rückfrage",
+        "Werkzeuge der Firmenliste ohne Frage.",
     ),
     (
-        "admin.modelle.harness_aktuell",
-        "Harnesses",
-        "Harnesses aktuell halten",
-        "Neue Fassungen von selbst holen.",
+        "optionen.copilot_telemetrie",
+        "admin.erlaubnisse",
+        "Copilot",
+        "Telemetrie",
+        "Das Telemetrie-Ziel der Copilot CLI.",
     ),
     (
-        "admin.erlaubnisse.ohne_rueckfrage",
-        "Worker",
-        "Ohne Rückfrage arbeiten",
-        "Worker führen Befehle direkt aus.",
+        "optionen.copilot_eingeschraenktes_token",
+        "admin.erlaubnisse",
+        "Copilot",
+        "Eingeschränktes Token",
+        "Statt der Geräte-Anmeldung.",
     ),
     (
-        "admin.erlaubnisse.eigener_baum",
-        "Worker",
-        "Eigener Arbeitsbaum",
-        "Pflicht für jeden Worker.",
+        "optionen.lokale_ca",
+        "admin.erlaubnisse",
+        "Netz",
+        "Lokale CA zulassen",
+        "Cloud-Sitzungen über die lokale CA.",
     ),
     (
-        "admin.erlaubnisse.guards",
-        "Sicherungen",
-        "Guards vor jedem Befehl",
-        "Pflicht für alle Sitzungen.",
+        "optionen.herstellerzugang",
+        "admin.erlaubnisse",
+        "Hersteller",
+        "Herstellerzugang",
+        "Zugang des Herstellers.",
     ),
     (
-        "admin.aufsicht.kontextwache",
-        "Wachen",
-        "Kontextwache",
-        "Achtet auf volle Kontextfenster.",
-    ),
-    (
-        "admin.aufsicht.eingreifen",
-        "Wachen",
-        "Wache greift ein",
-        "Die Wache handelt selbst.",
-    ),
-    (
-        "admin.aufsicht.meldungen",
-        "Meldungen",
-        "Meldungen nach außen",
-        "Hinweise auch außerhalb des Fensters.",
-    ),
-    (
-        "admin.routen.cloud",
-        "Routen",
-        "Cloud-Route",
-        "Modelle bei Anbietern im Netz.",
-    ),
-    (
-        "admin.routen.lokal",
-        "Routen",
-        "Lokale Route",
-        "Modelle auf eigenen Rechnern.",
-    ),
-    (
-        "admin.routen.datenklasse",
+        "optionen.herabstufen",
+        "admin.routen",
         "Datenklassen",
-        "Höchste Datenklasse der Cloud",
-        "Was die Cloud sehen darf.",
+        "Herabstufen",
+        "Die Automatik darf eine Klasse senken.",
     ),
     (
-        "admin.protokoll",
-        "Protokoll",
-        "Änderungsprotokoll",
-        "Jede Änderung mit Admin, Ebene und Zeit.",
+        "leseklassen",
+        "admin.routen",
+        "Datenklassen",
+        "Leseklassen",
+        "Wer welche Klasse lesen darf.",
     ),
 ];
 
-fn seite_von(schluessel: &str) -> String {
-    let mut t = schluessel.split('.');
-    match (t.next(), t.next()) {
-        (Some("admin"), Some(s)) => format!("admin.{s}"),
-        (Some(s), _) => s.to_owned(),
-        _ => String::new(),
-    }
+fn seite_von(schluessel: &str) -> &'static str {
+    KATALOG
+        .iter()
+        .find(|(k, ..)| *k == schluessel)
+        .map_or("", |(_, s, ..)| *s)
 }
 
 fn katalog(schluessel: &str) -> (String, String, String) {
-    if let Some((_, g, t, b)) = KATALOG.iter().find(|(k, ..)| *k == schluessel) {
-        return ((*g).to_owned(), (*t).to_owned(), (*b).to_owned());
-    }
-    // keys with a variable tail (a model, a level): "modelle.<name>", "admin.modelle.freigabe.<stufe>.<modell>"
-    let teile: Vec<&str> = schluessel.split('.').collect();
-    if teile.first() == Some(&"modelle") && teile.len() >= 2 {
-        return (
-            "Deine Modelle".into(),
-            teile[1..].join("."),
-            "In deiner Auswahl beim Start.".into(),
-        );
-    }
-    if let Some(stufe) = schluessel.strip_prefix("admin.modelle.freigabe.") {
-        let (st, m) = stufe.split_once('.').unwrap_or((stufe, ""));
-        return (
-            format!("Freigabe: {}", stufe_name(st)),
-            m.to_owned(),
-            "Freigegeben für diese Stufe.".into(),
-        );
-    }
-    if let Some(stufe) = schluessel.strip_prefix("admin.modelle.effort.") {
-        return (
-            "Grenzen des Efforts".into(),
-            stufe_name(stufe),
-            "Höchster Effort dieser Stufe.".into(),
-        );
-    }
-    ("Weitere".into(), schluessel.to_owned(), String::new())
+    KATALOG.iter().find(|(k, ..)| *k == schluessel).map_or_else(
+        || ("Weitere".into(), schluessel.to_owned(), String::new()),
+        |(_, _, g, t, b)| ((*g).to_owned(), (*t).to_owned(), (*b).to_owned()),
+    )
 }
 
-fn stufe_name(s: &str) -> String {
-    match s.split_once(':') {
-        Some(("gruppe", g)) => format!("Gruppe {g}"),
-        _ if s == "firma" => "Firma".to_owned(),
-        _ => s.to_owned(),
-    }
-}
-
+/// The origin as text (`regelebenen` 15.5): "Firma", "Gruppe <name>" or "du".
 fn herkunft_text(e: &Einstellung) -> String {
     match e.herkunft.as_str() {
         "firma" => "Firma".into(),
@@ -565,21 +504,27 @@ fn symbol_schloss() -> Element {
 /// The settings (OF9): the user area and, for admins only, the admin area; every row shows its effective value and origin.
 #[allow(clippy::too_many_lines)]
 pub(crate) fn einstellungen(a: A, seite: &'static str) -> Element {
-    let werte = a.kern.read().ziel_einstellungen.clone();
-    let admin = werte
-        .as_ref()
-        .is_some_and(|w| w.iter().any(|e| e.bereich == "admin"));
-    // without L4 only the look of this device can be set
+    let k = a.kern.read();
+    let werte = k.ziel_einstellungen.clone();
+    // the area of the admins only when `Einstellungen` version 2 says `admin: true` (`regelebenen` 15.10, B78)
+    let admin = werte.is_some() && k.admin;
+    drop(k);
+    let hat = |seite: &str| {
+        werte
+            .as_ref()
+            .is_some_and(|w| w.iter().any(|e| seite_von(&e.schluessel) == seite))
+    };
+    // without L4 only the look of this device can be set; a page without keys stays away
     let nutzer_seiten: Vec<(&str, &str, &str)> = SEITEN_NUTZER
         .iter()
         .copied()
-        .filter(|(k, ..)| *k == "aussehen" || werte.is_some())
+        .filter(|(k, ..)| *k == "aussehen" || hat(k))
         .collect();
-    let admin_seiten: Vec<(&str, &str, &str)> = if admin {
-        SEITEN_ADMIN.to_vec()
-    } else {
-        Vec::new()
-    };
+    let admin_seiten: Vec<(&str, &str, &str)> = SEITEN_ADMIN
+        .iter()
+        .copied()
+        .filter(|(k, ..)| admin && hat(k))
+        .collect();
     let seite = if nutzer_seiten
         .iter()
         .chain(admin_seiten.iter())
@@ -755,15 +700,18 @@ fn werte_seite(seite: &str, werte: Vec<Einstellung>) -> Element {
 fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
     let herkunft = herkunft_text(&e);
     let herkunft_klasse = format!("herkunft {}", e.herkunft);
-    let gesperrt_grund = if e.aenderbar {
-        String::new()
-    } else if e.herkunft == "nutzer" {
-        "Nur ein Admin kann das ändern".to_owned()
-    } else {
-        format!("Vorgabe: {herkunft}")
+    // the reason of a lock with its fixed short text (`regelebenen` 15.5, OF9 point 6)
+    let gesperrt_grund = match e.grund.as_deref() {
+        Some("nur_admin") => "Vorgabe der Firma".to_owned(),
+        Some("nur_strenger") => "Nur strenger als die Vorgabe".to_owned(),
+        Some("fest") => "Im Pilot fest aus".to_owned(),
+        Some(x) => x.to_owned(),
+        None if e.aenderbar => String::new(),
+        None => format!("Vorgabe: {herkunft}"),
     };
+    // the user sets their own level, an admin the level of the company (`regelebenen` 15.9)
     let ebene = if e.bereich == "admin" {
-        e.herkunft.clone()
+        "firma".to_owned()
     } else {
         "nutzer".to_owned()
     };
@@ -797,11 +745,11 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
     };
     rsx! {
         div { key: "{e.schluessel}", class: if e.aenderbar { "einst-zeile" } else { "einst-zeile gesperrt" },
-            span { class: "zeile-symbol", {seiten_symbol(&seite_von(&e.schluessel))} }
+            span { class: "zeile-symbol", {seiten_symbol(seite_von(&e.schluessel))} }
             div { class: "zeile-text",
                 div { class: "zeile-name", "{titel}" }
                 if !beschreibung.is_empty() { div { class: "zeile-beschreibung", "{beschreibung}" } }
-                if !e.aenderbar { div { class: "zeile-grund", {symbol_schloss()} span { "{gesperrt_grund}" } } }
+                if !gesperrt_grund.is_empty() { div { class: "zeile-grund", {symbol_schloss()} span { "{gesperrt_grund}" } } }
             }
             span { class: "{herkunft_klasse}", title: "Wirksam: {wert_text(&e.wert)}, Herkunft: {herkunft}", "{herkunft}" }
             {steuerung}

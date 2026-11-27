@@ -1,0 +1,137 @@
+{
+ "beschreibung": "Umschalt+Einfg fuegt die Zwischenablage als genau ein Einfuegen ein, nie als Taste; Strg+Einfg kopiert und schickt nichts.",
+ "datensatz": "A",
+ "name": "se1_einfg",
+ "regeln": [
+  "SE1"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "nr": 1,
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Zwischenablage",
+   "text": "eins\nzwei"
+  },
+  {
+   "art": "Taste",
+   "code": "Insert",
+   "key": "Insert",
+   "umschalter": [
+    "umschalt"
+   ],
+   "vk": 45
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Einfuegen",
+     "sitzung": "s-1",
+     "text": "eins\nzwei"
+    }
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "Insert",
+   "key": "Insert",
+   "umschalter": [
+    "strg"
+   ],
+   "vk": 45
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  },
+  {
+   "art": "Zwischenablage",
+   "text": "a\r\nb"
+  },
+  {
+   "art": "Taste",
+   "code": "Insert",
+   "key": "Insert",
+   "umschalter": [
+    "umschalt"
+   ],
+   "vk": 45
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Einfuegen",
+     "sitzung": "s-1",
+     "text": "a\r\nb"
+    }
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "Insert",
+   "key": "Insert",
+   "umschalter": [
+    "strg"
+   ],
+   "vk": 45
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  }
+ ]
+}
