@@ -3,7 +3,8 @@
 //! (W3, W4, W7, W8 and L6 to L9 in the form of version 1), the role from the program (L3 in part) and the search.
 //!
 //! The peer is this test process; its program is made the role program of the test (root of the role programs: the
-//! folder of the test binary, owner: the own uid). Throw-away folders lie below `CARGO_TARGET_TMPDIR`.
+//! folder of the test binary, owner: the own uid). Throw-away folders lie on tmpfs below `/dev/shm` ([`basis`]), else
+//! below `CARGO_TARGET_TMPDIR`.
 #![cfg(target_os = "linux")]
 #![allow(
     clippy::many_single_char_names,
@@ -38,10 +39,60 @@ fn uhr() -> i64 {
     JETZT
 }
 
+/// `TMPFS_MAGIC` of `statfs`.
+const TMPFS: i128 = 0x0102_1994;
+
+/// The least age of a folder of an ended test process before [`basis`] removes it.
+const REST_ALTER: Duration = Duration::from_secs(3600);
+
+/// The start of the name of a throw-away folder of this uid on tmpfs; the pid of the test process follows.
+fn vorsilbe() -> String {
+    format!("halter-test-{}-", uid())
+}
+
+/// Where the throw-away folders lie: `/dev/shm` if it is tmpfs, else `CARGO_TARGET_TMPDIR`. Every refused ticket
+/// writes a chain line with `sync_data` under the lock of the chain; on a disk under load one such sync took longer
+/// than [`HAENGEGRENZE`] (the holder in state D in `btrfs_btree_wait_writeback_range`, the other connections in
+/// `flock`). On tmpfs the sync does not wait for a disk, so the bound measures the holder, not the disk. The first
+/// call removes the folders of test processes of this uid that ended (nothing removes a folder on tmpfs otherwise).
+/// A folder must also be older than [`REST_ALTER`]: a test in its own pid namespace that shares `/dev/shm` does not see
+/// the pid of a test outside and would else take the folder of a running test.
+fn basis() -> &'static Path {
+    static BASIS: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    BASIS.get_or_init(|| {
+        let shm = Path::new("/dev/shm");
+        if !rustix::fs::statfs(shm).is_ok_and(|s| i128::from(s.f_type) == TMPFS) {
+            return PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
+        }
+        let vorsilbe = vorsilbe();
+        for e in std::fs::read_dir(shm).into_iter().flatten().flatten() {
+            let name = e.file_name();
+            let Some(pid) = name
+                .to_str()
+                .and_then(|n| n.strip_prefix(&vorsilbe))
+                .and_then(|r| r.split('-').next())
+            else {
+                continue;
+            };
+            let eigen_und_alt = e.path().symlink_metadata().is_ok_and(|m| {
+                m.is_dir()
+                    && std::os::unix::fs::MetadataExt::uid(&m) == uid()
+                    && m.modified()
+                        .ok()
+                        .and_then(|t| t.elapsed().ok())
+                        .is_some_and(|a| a > REST_ALTER)
+            });
+            if eigen_und_alt && !Path::new("/proc").join(pid).exists() {
+                let _ = std::fs::remove_dir_all(e.path());
+            }
+        }
+        shm.to_path_buf()
+    })
+}
+
 fn ordner() -> PathBuf {
     let n = ZAEHLER.fetch_add(1, Ordering::Relaxed);
-    let p = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
-        .join(format!("halter-{}-{n}", std::process::id()));
+    let p = basis().join(format!("{}{}-{n}", vorsilbe(), std::process::id()));
     let _ = std::fs::remove_dir_all(&p);
     std::fs::create_dir_all(&p).expect("folder");
     std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o700)).expect("mode");
