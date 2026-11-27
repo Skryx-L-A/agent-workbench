@@ -234,6 +234,8 @@ FILES=(
   # dieselben Hooks auf beiden Maschinen.
   ".claude/hooks/tests/test-pane-schreiber.sh" ".claude/hooks/tests/test-pane-schreiber-kette.sh"
   ".claude/hooks/tests/test-snapshot-raeumen-waechter.sh" ".claude/hooks/tests/test-mailweg.sh"
+  # Here-Doc-Marker in Anfuehrungszeichen (26.11.2026): dieselbe Stufe auf beiden Maschinen.
+  ".claude/hooks/tests/test-heredoc-anfuehrung.sh"
   # tmux-Vorrang (task, 10.11.2026): Suite, Gegenprobe und Repro auf beiden Maschinen.
   ".claude/hooks/tests/test-tmux-vorrang.sh" ".claude/hooks/tests/gegenprobe-tmux-vorrang.py"
   ".claude/hooks/tests/hilfen/repro-tmux-vorrang.sh"
