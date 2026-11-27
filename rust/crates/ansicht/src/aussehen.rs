@@ -180,6 +180,15 @@ impl Aussehen {
         let _ = e.set_attribute("data-thema", &self.thema);
         let _ = e.set_attribute("data-farbsatz", &self.farbsatz);
         let _ = e.set_attribute("data-terminal", &self.terminal);
+        // macOS: the frame of the active tile takes the accent colour of the system (`AccentColor`, `ansicht.css`)
+        let _ = e.set_attribute(
+            "data-system",
+            if ist_mac(&plattform()) {
+                "mac"
+            } else {
+                "anders"
+            },
+        );
     }
 
     /// The height of one terminal line for the font size (13 px gives 17 px).
@@ -221,6 +230,31 @@ impl Aussehen {
     }
 }
 
+/// The platform of the browser: `navigator.userAgentData.platform` where there is one, else `navigator.platform`; empty
+/// outside a browser. Read over `Reflect`, so that no further web-sys feature is needed.
+fn plattform() -> String {
+    let Some(w) = web_sys::window() else {
+        return String::new();
+    };
+    let lies = |o: &JsValue, k: &str| js_sys::Reflect::get(o, &JsValue::from_str(k)).ok();
+    let Some(nav) = lies(&w, "navigator") else {
+        return String::new();
+    };
+    lies(&nav, "userAgentData")
+        .filter(JsValue::is_object)
+        .and_then(|d| lies(&d, "platform"))
+        .and_then(|p| p.as_string())
+        .filter(|p| !p.is_empty())
+        .or_else(|| lies(&nav, "platform").and_then(|p| p.as_string()))
+        .unwrap_or_default()
+}
+
+/// Whether the platform is macOS (`macOS` from `userAgentData`, `MacIntel` from `navigator.platform`).
+#[must_use]
+pub fn ist_mac(plattform: &str) -> bool {
+    plattform.to_ascii_lowercase().starts_with("mac")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,5 +271,14 @@ mod tests {
         let s: Vec<&&str> = a.sortiert(&l, |x| *x);
         assert_eq!(s, vec![&"s-3", &"s-1", &"s-2"]);
         assert_eq!(a.zeilenhoehe(), 17);
+    }
+
+    #[test]
+    fn only_macos_counts_as_mac() {
+        assert!(ist_mac("macOS"));
+        assert!(ist_mac("MacIntel"));
+        assert!(!ist_mac("Windows"));
+        assert!(!ist_mac("Linux x86_64"));
+        assert!(!ist_mac(""));
     }
 }

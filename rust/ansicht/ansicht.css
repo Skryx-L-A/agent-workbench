@@ -13,9 +13,12 @@
   --gut: #1f7a3e; --warn: #8d6017; --warn-tinte: #ffffff; --schalter-aus: #c7c7cc; --schlecht: #b3261e; --fehlergrund: #fdf0ef; --schatten: rgba(0, 0, 0, 0.18);
   /* Terminal dunkel in beiden Themen (Vorgabe wie heute) */
   --term-dunkel: #1e1e1e;
+  /* Kacheln der Worker (Projektentscheid, 27.11.2026): Grund der Buehne und Rahmen der aktiven Kachel wie im App-Fenster */
+  --buehne: #ffffff; --kachel-rahmen: #3478f6;
   /* Masse (gemessen an den Vorlagebildern, Punkte) */
   --titelhoehe: 50px; --leiste-breite: 210px; --inspektor-breite: 320px; --zeilenhoehe: 40px; --panekopf: 22px;
   --r-klein: 6px; --r-mittel: 8px; --r-karte: 10px; --r-zeile: 8px;
+  --kachel-radius: 8px; --kachel-fuge: 4px; --kachel-rahmenbreite: 2px; --kachel-kopf: 24px;
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace; --term-schrift: 13px; --term-zeile: 17px;
 }
 /* grau dunkel (Vorlage haupt-*-dunkel.png): neutral, ohne Blaustich */
@@ -26,7 +29,7 @@
   --schrift: #e8e8e8; --gedaempft: #b4b4b7; --pane-kopf: #353636; --pane-kopf-aktiv: #233047;
   --akzent: #2d6de0; --akzent-tinte: #ffffff; --akzent-text: #5f9cf8; --punkt: #639ff8;
   --gut: #46b46a; --warn: #e0a33e; --warn-tinte: #1b1300; --schalter-aus: #59595a; --schlecht: #e07a7a; --fehlergrund: #3a2526; --schatten: rgba(0, 0, 0, 0.5);
-  --term-dunkel: #1e1e1e;
+  --term-dunkel: #1e1e1e; --buehne: #292a2a; --kachel-rahmen: #5e94f8;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-thema="hell"]) {
@@ -36,7 +39,7 @@
     --schrift: #e8e8e8; --gedaempft: #b4b4b7; --pane-kopf: #353636; --pane-kopf-aktiv: #233047;
     --akzent: #2d6de0; --akzent-tinte: #ffffff; --akzent-text: #5f9cf8; --punkt: #639ff8;
     --gut: #46b46a; --warn: #e0a33e; --warn-tinte: #1b1300; --schalter-aus: #59595a; --schlecht: #e07a7a; --fehlergrund: #3a2526; --schatten: rgba(0, 0, 0, 0.5);
-    --term-dunkel: #1e1e1e;
+    --term-dunkel: #1e1e1e; --buehne: #292a2a; --kachel-rahmen: #5e94f8;
   }
 }
 /* blauschwarz (Fassung vom 23.11.2026), nur im dunklen Thema */
@@ -44,12 +47,14 @@
   --titel: #171a20; --leiste: #171a20; --grund: #101216; --insp: #171a20; --erhoben: #1e232b; --karte: #1e232b;
   --wahl: #212732; --linie: #262b34; --feldgrund: #0b0d10; --segment: #1e232b; --segment-wahl: #343b48;
   --schrift: #d8dee9; --gedaempft: #8b93a1; --pane-kopf: #1e232b; --pane-kopf-aktiv: #1d2d48; --term-dunkel: #101216;
+  --buehne: #1b1e22; --kachel-rahmen: #0070e0;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-thema="hell"])[data-farbsatz="blauschwarz"] {
     --titel: #171a20; --leiste: #171a20; --grund: #101216; --insp: #171a20; --erhoben: #1e232b; --karte: #1e232b;
     --wahl: #212732; --linie: #262b34; --feldgrund: #0b0d10; --segment: #1e232b; --segment-wahl: #343b48;
     --schrift: #d8dee9; --gedaempft: #8b93a1; --pane-kopf: #1e232b; --pane-kopf-aktiv: #1d2d48; --term-dunkel: #101216;
+    --buehne: #1b1e22; --kachel-rahmen: #0070e0;
   }
 }
 
@@ -203,9 +208,19 @@ h2, h3, p { margin: 0; }
 #tabstreifen .tab { padding: 4px 10px; border-radius: var(--r-klein); color: var(--gedaempft); }
 #tabstreifen .tab.gewaehlt { background: var(--segment-wahl); color: var(--schrift); }
 #tabstreifen .hinweis { color: var(--gedaempft); font-size: 12px; margin-right: auto; }
-.kacheln { flex: 1 1 auto; display: grid; grid-auto-rows: minmax(0, 1fr); gap: 6px; min-height: 0; padding: 0; background: var(--grund); }
-.pane.worker { border: 2px solid transparent; border-radius: 4px; overflow: hidden; }
-.pane.worker.aktiv { border-color: var(--akzent); }
+/* Kacheln wie die heutige App: 8 px Rundung, 4 px Fuge im Grund der Buehne, die aktive Kachel mit 2 px Rahmen in der
+   Akzentfarbe, nur wenn mehr als eine Kachel da ist. Der Rahmen liegt innen ueber der Kachel und verschiebt nichts. */
+.kacheln { flex: 1 1 auto; display: grid; grid-auto-rows: minmax(0, 1fr); gap: var(--kachel-fuge); min-height: 0; padding: 0; background: var(--buehne); }
+.pane.worker { border-radius: var(--kachel-radius); overflow: hidden; }
+.pane.worker > .pane-kopf { flex-basis: var(--kachel-kopf); min-height: var(--kachel-kopf); }
+.kacheln.mehrere > .pane.worker.aktiv::after { content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
+  border: var(--kachel-rahmenbreite) solid var(--kachel-rahmen); }
+/* dort zeigt der Rahmen den Fokus; ein zweiter Ring im Terminal entfaellt */
+.kacheln.mehrere > .pane.worker.aktiv .terminal:focus-within { outline: none; }
+/* macOS: die Akzentfarbe des Systems, wo der Browser sie als Systemfarbe kennt; sonst der Wert des Themas */
+@supports (color: AccentColor) {
+  :root[data-system="mac"] .kacheln.mehrere > .pane.worker.aktiv::after { border-color: AccentColor; }
+}
 
 /* Fehlerfeld (SE7 Punkt 5, B71) und Kurzmeldung (B67) */
 .fehler { display: flex; align-items: baseline; gap: 8px; margin: 8px 12px; padding: 7px 12px; border-radius: var(--r-mittel);

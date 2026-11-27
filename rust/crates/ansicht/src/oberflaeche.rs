@@ -1133,6 +1133,12 @@ fn worker_flaeche(a: A, worker: Vec<Agent>, zeilenhoehe: usize) -> Element {
             .collect(),
     };
     let spalten = if sichtbar.len() > 2 { 2 } else { 1 };
+    // the frame of the active tile only where there is more than one tile (as today's app)
+    let kacheln_klasse = if sichtbar.len() > 1 {
+        "kacheln mehrere"
+    } else {
+        "kacheln"
+    };
     let raster_stil = format!("grid-template-columns:repeat({spalten},minmax(0,1fr));");
     let bilder: Vec<Option<rasterauszug::Bild>> = sichtbar
         .iter()
@@ -1162,7 +1168,7 @@ fn worker_flaeche(a: A, worker: Vec<Agent>, zeilenhoehe: usize) -> Element {
             if sichtbar.is_empty() {
                 div { class: "leer-mitte", "data-bw": "B34", "Diese Sitzung hat keine laufenden Worker." }
             }
-            div { class: "kacheln", style: "{raster_stil}",
+            div { class: kacheln_klasse, style: "{raster_stil}",
                 for ((w, nr), b) in sichtbar.into_iter().zip(bilder) {
                     {
                         let aktiv = fokus_pane.as_deref() == Some(w.worker.as_str());

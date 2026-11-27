@@ -42,6 +42,7 @@ Dieser Teil legt fest, **wie die Oberfläche aussieht, welche Bedienwege sie hat
    der Worker der gewählten Sitzung gekachelt (B27, B30). Über dem Terminal steht keine Werkzeugzeile:
    - Den Tab-Streifen gibt es nur in der Ansicht „Worker“, und auch dort erst, wenn mehr Worker laufen, als eine Kachelform fasst (B30 bis B33, G7).
    - Die Editorzeile kommt nach dem Pilot (B58 bis B64).
+   - **Kacheln** (Projektentscheid, 27.11.2026): jede Kachel 8 px Eckenrundung und 24 px Kopfzeile, zwischen zwei Kacheln 4 px Fuge im Grund der Bühne, die aktive Kachel 2 px Rahmen innen, nur wenn mehr als eine Kachel da ist; in hell und dunkel, gekachelt und gezoomt. Der Grund der Bühne hebt sich im dunklen Thema sichtbar vom Terminal ab: grau dunkel #292a2a (Grund der Leiste der heutigen App, gemessen; deren Fuge #1f2020 hat zum Terminal #1e1e1e nur 1,02:1), blauschwarz #1b1e22 (derselbe Abstand auf #101216), hell #ffffff. Der Rahmen nimmt unter macOS die Akzentfarbe des Systems (`AccentColor`, wo der Browser sie kennt), sonst den Akzent des Themas wie das App-Fenster: hell #3478f6, grau dunkel #5e94f8, blauschwarz #0070e0.
 5. Der **Inspektor** hat Symbolreiter wie heute: Schild (Freigaben, B56), Ordner (B52), Uhr (Aktivität) und Blatt mit Lupe (Protokolle). Im Pilot gibt es
    nur Freigaben und Ordner (B51).
 6. Das **Fenster „Sitzungen“** öffnet sich in der Oberfläche über „+“ (F1, B68). Es steht nie fest in einer Spalte.
