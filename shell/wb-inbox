@@ -549,7 +549,7 @@ def _prozess(pid):
     """(ppid, Befehlszeile) eines Prozesses, oder None, wenn ps ihn nicht kennt."""
     try:
         r = subprocess.run([PS_BIN, "-o", "ppid=", "-o", "command=", "-p", str(pid)],
-                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=5)
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=5)
     except (OSError, subprocess.SubprocessError):
         return None
     teile = r.stdout.strip().split(None, 1)
@@ -664,7 +664,7 @@ def tmux_feld(pane, feld, tmux_bin=None):
     befehl += tmux_server_args()
     befehl += ["display", "-p", "-t", pane, feld]
     try:
-        r = subprocess.run(befehl, capture_output=True, text=True, timeout=5)
+        r = subprocess.run(befehl, capture_output=True, text=True, errors="replace", timeout=5)
     except Exception:
         return ""
     return r.stdout.strip() if r.returncode == 0 else ""
@@ -680,7 +680,7 @@ def ahnenreihe(pid, wurzel, tiefe=40):
             return False
         try:
             r = subprocess.run([PS_BIN, "-o", "ppid=", "-p", str(q)],
-                               capture_output=True, text=True, timeout=5)
+                               capture_output=True, text=True, errors="replace", timeout=5)
             q = int(r.stdout.strip())
         except Exception:
             return False
@@ -734,7 +734,7 @@ def _prozessstart_utc(pid):
     umg = dict(os.environ, LC_ALL="C", TZ="UTC")
     try:
         r = subprocess.run([PS_BIN, "-o", "lstart=", "-p", str(pid)], env=umg,
-                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=5)
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=5)
     except (OSError, subprocess.SubprocessError):
         return ""
     return " ".join(r.stdout.split()) if r.returncode == 0 else ""
@@ -846,7 +846,7 @@ def absender_pane():
     befehl += tmux_server_args()
     befehl += ["list-panes", "-a", "-F", "#{pane_pid} #{pane_id}"]
     try:
-        r = subprocess.run(befehl, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+        r = subprocess.run(befehl, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace",
                            timeout=5)
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -1320,7 +1320,7 @@ def prozesse_unter(pane_pid):
     """[(pid, befehlszeile)] aller Nachfahren von pane_pid, pane_pid eingeschlossen."""
     try:
         r = subprocess.run([PS_BIN, "-A", "-o", "pid=", "-o", "ppid=", "-o", "command="],
-                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=10)
     except (OSError, subprocess.SubprocessError):
         return []
     kinder, befehl = {}, {}
@@ -1452,7 +1452,7 @@ def _umgebung_von(pid):
     """Die Umgebung eines eigenen Prozesses laut `ps eww` (nur KEY=wert-Woerter)."""
     try:
         r = subprocess.run([PS_BIN, "eww", "-o", "command=", "-p", str(pid)],
-                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=5)
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=5)
     except (OSError, subprocess.SubprocessError):
         return {}
     umg = {}
@@ -1466,7 +1466,7 @@ def _umgebung_von(pid):
 def _cwd_von(pid):
     try:
         r = subprocess.run(["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
-                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=10)
     except (OSError, subprocess.SubprocessError):
         return ""
     for z in r.stdout.splitlines():
@@ -1478,7 +1478,7 @@ def _cwd_von(pid):
 def _start_ms(pid):
     try:
         r = subprocess.run([PS_BIN, "-o", "lstart=", "-p", str(pid)], stdin=subprocess.DEVNULL,
-                           capture_output=True, text=True, timeout=5,
+                           capture_output=True, text=True, errors="replace", timeout=5,
                            env=dict(os.environ, LC_ALL="C", LANG="C"))
         t = time.mktime(time.strptime(r.stdout.strip(), "%a %b %d %H:%M:%S %Y"))
         return int(t * 1000)
@@ -1798,7 +1798,7 @@ def pane_text(pane):
     befehl += tmux_server_args()
     befehl += ["capture-pane", "-p", "-t", pane]
     try:
-        r = subprocess.run(befehl, capture_output=True, text=True, timeout=5,
+        r = subprocess.run(befehl, capture_output=True, text=True, errors="replace", timeout=5,
                            stdin=subprocess.DEVNULL)
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -1840,7 +1840,7 @@ def codex_senden(ziel, text, harnesses, pane=""):
     rollout_ab = _rollout_groesse(ziel.get("rollout"))
     try:
         r = subprocess.run(argv, cwd=ziel["cwd"] or None, env=umg, stdin=subprocess.DEVNULL,
-                           capture_output=True, text=True, timeout=60)
+                           capture_output=True, text=True, errors="replace", timeout=60)
     except (OSError, subprocess.SubprocessError) as e:
         fehler("`codex queue` nicht ausfuehrbar (%s). Nichts gesendet." % e)
         return 1
@@ -2369,7 +2369,7 @@ def cmd_sende(pane, datei):
             umg["WB_TMUX_SOCKET"] = TMUX_SOCKET
         try:
             subprocess.run([schlaf, "wecken", pane, "--warten", "120"], env=umg,
-                           capture_output=True, text=True, timeout=150)
+                           capture_output=True, text=True, errors="replace", timeout=150)
         except Exception as e:
             fehler("%s schlief, Wecken gescheitert: %s" % (pane, e))
             return 1
