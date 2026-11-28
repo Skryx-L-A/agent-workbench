@@ -123,6 +123,11 @@
         "art": "lokal",
         "name": "pi",
         "routenart": "lokal"
+       },
+       {
+        "art": "lokal",
+        "name": "opencode",
+        "routenart": "lokal"
        }
       ],
       "kunden": [
@@ -422,6 +427,11 @@
        {
         "art": "lokal",
         "name": "pi",
+        "routenart": "lokal"
+       },
+       {
+        "art": "lokal",
+        "name": "opencode",
         "routenart": "lokal"
        }
       ],

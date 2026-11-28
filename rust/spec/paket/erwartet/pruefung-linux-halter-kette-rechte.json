@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.halter_kette_rechte: Der Halter startete nicht, weil er seine Kette nicht schreiben kann (halter.kette_rechte); Ordner halter/protokoll pruefen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

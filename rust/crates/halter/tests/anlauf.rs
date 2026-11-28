@@ -178,7 +178,7 @@ fn schritt_2_text_bis_konten_max() {
 }
 
 /// Step 3 with the folder of the chain next to `geheim`: made with 0700 if missing, kept if it is an own folder with
-/// exactly 0700, else no chain (`None`), and nothing is changed.
+/// exactly 0700, else `halter.kette_rechte` (fail closed, decision of the operator, 28.11.2026), and nothing is changed.
 #[test]
 fn schritt_3_ordner_der_kette() {
     let w = ordner();
@@ -198,7 +198,7 @@ fn schritt_3_ordner_der_kette() {
         uid(),
     )
     .expect("store");
-    assert_eq!(k1.as_deref(), Some(kette.as_path()));
+    assert_eq!(k1, kette);
     let m = std::fs::symlink_metadata(&kette).expect("chain folder");
     assert!(m.is_dir());
     assert_eq!(m.mode() & 0o7777, 0o700);
@@ -210,33 +210,34 @@ fn schritt_3_ordner_der_kette() {
         uid(),
     )
     .expect("store");
-    assert_eq!(k2.as_deref(), Some(kette.as_path()));
-    // there with 0750: no chain, the folder stays as it is
+    assert_eq!(k2, kette);
+    let rechte = Err(Startfehler::KetteRechte);
+    // there with 0750: refused, the folder stays as it is
     modus(&kette, 0o750);
-    let (_, k3) = start::ablage_pruefen(
+    let k3 = start::ablage_pruefen(
         &k.passwd,
         &k.gruppen,
         &k.gruppen.with_file_name("nsswitch.conf"),
         uid(),
     )
-    .expect("store");
-    assert_eq!(k3, None);
+    .map(|(_, k)| k);
+    assert_eq!(k3, rechte);
     assert_eq!(
         std::fs::symlink_metadata(&kette).expect("stat").mode() & 0o7777,
         0o750
     );
-    // a file with 0700: no chain
+    // a file with 0700: refused
     std::fs::remove_dir(&kette).expect("rmdir");
     std::fs::write(&kette, b"").expect("file");
     modus(&kette, 0o700);
-    let (_, k4) = start::ablage_pruefen(
+    let k4 = start::ablage_pruefen(
         &k.passwd,
         &k.gruppen,
         &k.gruppen.with_file_name("nsswitch.conf"),
         uid(),
     )
-    .expect("store");
-    assert_eq!(k4, None);
+    .map(|(_, k)| k);
+    assert_eq!(k4, rechte);
     assert!(std::fs::symlink_metadata(&kette).expect("stat").is_file());
     // no entry of the uid in the file of the accounts
     assert_eq!(

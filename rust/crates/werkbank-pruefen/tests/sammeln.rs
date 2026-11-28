@@ -12,8 +12,8 @@ use werkbank_pruefen::bewerte::{bewerte, kuerzen};
 use werkbank_pruefen::lage::{Abweichung, Lage};
 use werkbank_pruefen::manifest::{PFLICHT, PROFIL_A, PROFIL_B, STARTER};
 use werkbank_pruefen::sammeln::{
-    Ausgabe, Echt, Kennwerte, System, Umgebung, anhang_trifft, aufrufer, nutzer_gut, reale_uid,
-    rollengruppe_zustand, rollenprogramm_zustand,
+    Ausgabe, Echt, Kennwerte, System, Umgebung, anhang_trifft, aufrufer, halter_kette_aus,
+    nutzer_gut, reale_uid, rollengruppe_zustand, rollenprogramm_zustand,
 };
 
 /// One answer: the program, a part of its command line, and what it returns (`None` = did not run).
@@ -210,6 +210,7 @@ fn attrappe_ok(uid: u32) -> Attrappe {
                 Some((0, "LoadState=loaded\nActiveState=active\n".to_owned())),
             ),
             ("setpriv", "bwrap", Some((0, String::new()))),
+            ("journalctl", "wb-halter", Some((0, String::new()))),
             rollenprogramm_gut(),
         ],
         aufrufe: RefCell::new(Vec::new()),
@@ -1520,6 +1521,7 @@ fn attrappe_ohne_root(system: Vec<Antwort>) -> Attrappe {
             ".service",
             Some((0, "LoadState=loaded\nActiveState=active\n".to_owned())),
         ),
+        ("journalctl", "wb-halter", Some((0, String::new()))),
         rollenprogramm_gut(),
     ];
     antworten.extend(system);
@@ -2846,5 +2848,91 @@ fn der_echte_blick_auf_eine_datei() {
     assert!(!Echt.kennwerte(&w).expect("look").expect("there").datei);
     assert!(Echt.kennwerte(&w.join("fehlt")).expect("look").is_none());
     assert!(Echt.kennwerte(&w.join("f/unter")).is_err(), "below a file");
+    fs::remove_dir_all(&w).ok();
+}
+
+/// The chain of the holder (decision of the operator, 28.11.2026): a line `halter.kette_fehler` or a start ended with
+/// `halter.kette_rechte` in the journal of `wb-halter.service` turns the result red with its sentence; a journal without
+/// them stays green; a failed read is `nicht_pruefbar`. The read names the unit and the uid of the user, nothing else.
+#[test]
+fn die_kette_des_halters_aus_dem_journal() {
+    assert_eq!(halter_kette_aus(""), "ok");
+    assert_eq!(
+        halter_kette_aus("halter.antwortform: {}\nhalter.pfad_verboten: x\n"),
+        "ok"
+    );
+    let fehler =
+        "halter.kette_fehler: {\"art\":\"halter.pfad_verboten\",\"klasse\":\"ein_ausgabe\"}";
+    assert_eq!(halter_kette_aus(&format!("a\n{fehler}\nb")), "fehler");
+    assert_eq!(
+        halter_kette_aus(&format!(
+            "{fehler}\nhalter.kette_rechte: Kette nicht schreibbar\n"
+        )),
+        "rechte"
+    );
+    // only at the start of a message: a name that holds the word is no finding
+    assert_eq!(halter_kette_aus("x halter.kette_fehler: y"), "ok");
+    let w = eigener_ordner("halter-kette");
+    baum(&w, "1.2.3", false);
+    nutzerdaten(&w, true);
+    schreiben(&w, "usr/bin/bwrap", b"bwrap", 0o755);
+    let uid = eigene_uid();
+    let mit_journal = |antwort: Option<(i32, String)>| {
+        let mut sys = attrappe_ok(uid);
+        sys.antworten.retain(|(p, _, _)| *p != "journalctl");
+        sys.antworten
+            .insert(0, ("journalctl", "wb-halter", antwort));
+        let lage = lage_mit(&w, &sys, Some("anna"));
+        let aufruf = sys
+            .aufrufe
+            .borrow()
+            .iter()
+            .find(|a| a.starts_with("journalctl"))
+            .cloned()
+            .expect("journalctl was called");
+        (lage, aufruf)
+    };
+    let (lage, aufruf) = mit_journal(Some((0, format!("{fehler}\n"))));
+    assert_eq!(lage.halter_kette, "fehler");
+    assert_eq!(
+        aufruf,
+        format!(
+            "journalctl --no-pager -q -b -o cat -n 20000 _SYSTEMD_USER_UNIT=wb-halter.service _UID={uid}"
+        )
+    );
+    let r = bewerte(&lage);
+    assert_eq!(r.rc, 1);
+    assert!(
+        r.zeilen
+            .iter()
+            .any(|z| z.starts_with("pruef.halter_kette_fehler: ")),
+        "{:?}",
+        r.zeilen
+    );
+    let (lage, _) = mit_journal(Some((
+        0,
+        "halter.kette_rechte: Kette nicht schreibbar\n".to_owned(),
+    )));
+    assert_eq!(lage.halter_kette, "rechte");
+    let r = bewerte(&lage);
+    assert_eq!(r.rc, 1);
+    assert!(
+        r.zeilen
+            .iter()
+            .any(|z| z.starts_with("pruef.halter_kette_rechte: "))
+    );
+    let (lage, _) = mit_journal(Some((0, "halter.antwortform: {}\n".to_owned())));
+    assert_eq!(lage.halter_kette, "ok");
+    assert_eq!(bewerte(&lage).rc, 0);
+    for antwort in [None, Some((1, String::new()))] {
+        let (lage, _) = mit_journal(antwort);
+        assert_eq!(lage.halter_kette, "nicht_pruefbar");
+        assert!(
+            bewerte(&lage)
+                .zeilen
+                .iter()
+                .any(|z| z.starts_with("pruef.halter_kette_nicht_pruefbar: "))
+        );
+    }
     fs::remove_dir_all(&w).ok();
 }

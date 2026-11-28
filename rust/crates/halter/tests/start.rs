@@ -373,6 +373,101 @@ fn schritt_3_ablage_ist_78_und_legt_fehlendes_an() {
     assert_eq!(beenden(kind), 0);
 }
 
+/// Chain fail closed (decision of the operator, 28.11.2026): a missing folder `protokoll` is made with 0700 and the holder
+/// starts; every other state ends the start with 78 `halter.kette_rechte` and no socket: a folder that cannot be made,
+/// a file, a link, the modes 0750, 0770 and 0755, a folder the holder cannot write in, a chain file it cannot write and
+/// a chain file that is a link. Another owner no test can make; `start::tests::regel_der_kette` holds that rule.
+#[test]
+fn schritt_3_kette_fail_closed() {
+    let fehler = (78, "halter.kette_rechte: Kette nicht schreibbar\n");
+    let halter_ordner = |a: &Aufbau| a.heim.join(".local/state/agent-workbench/halter");
+    // missing and makeable: made with 0700, the holder starts, no probe file stays
+    let a = Aufbau::neu(&standard());
+    a.mit_anmeldung();
+    let kind = a.laufend();
+    let k = halter_ordner(&a).join("protokoll");
+    let m = std::fs::symlink_metadata(&k).expect("protokoll");
+    assert!(m.is_dir() && m.mode() & 0o7777 == 0o700);
+    assert_eq!(
+        std::fs::read_dir(&k).expect("dir").count(),
+        0,
+        "no probe file stays"
+    );
+    assert_eq!(beenden(kind), 0);
+    // the right folder is taken again
+    let kind = a.laufend();
+    assert_eq!(beenden(kind), 0);
+    // not makeable: `halter` without write for the owner
+    let a = Aufbau::neu(&standard());
+    a.mit_anmeldung();
+    modus(&halter_ordner(&a), 0o500);
+    let (code, e) = a.ende(&mut a.befehl());
+    modus(&halter_ordner(&a), 0o700);
+    assert_eq!((code, e.as_str()), fehler, "not makeable");
+    assert!(!a.socket().exists());
+    let mit_protokoll = |m: u32| {
+        let a = Aufbau::neu(&standard());
+        a.mit_anmeldung();
+        let k = halter_ordner(&a).join("protokoll");
+        std::fs::create_dir(&k).expect("protokoll");
+        modus(&k, m);
+        (a, k)
+    };
+    for m in [0o750, 0o770, 0o755] {
+        let (a, _) = mit_protokoll(m);
+        let (code, e) = a.ende(&mut a.befehl());
+        assert_eq!((code, e.as_str()), fehler, "{m:o}");
+        assert!(!a.socket().exists());
+    }
+    // 0500: right owner, but no file can be made in it
+    let (a, k) = mit_protokoll(0o500);
+    let (code, e) = a.ende(&mut a.befehl());
+    modus(&k, 0o700);
+    assert_eq!((code, e.as_str()), fehler, "not writable");
+    // a file instead of the folder
+    let a = Aufbau::neu(&standard());
+    a.mit_anmeldung();
+    std::fs::write(halter_ordner(&a).join("protokoll"), b"").expect("file");
+    let (code, e) = a.ende(&mut a.befehl());
+    assert_eq!((code, e.as_str()), fehler, "file");
+    // a link to a right folder is not followed
+    let a = Aufbau::neu(&standard());
+    a.mit_anmeldung();
+    let ziel = a.wurzel.join("anderswo");
+    std::fs::create_dir(&ziel).expect("dir");
+    modus(&ziel, 0o700);
+    std::os::unix::fs::symlink(&ziel, halter_ordner(&a).join("protokoll")).expect("link");
+    let (code, e) = a.ende(&mut a.befehl());
+    assert_eq!((code, e.as_str()), fehler, "link");
+    assert_eq!(
+        std::fs::read_dir(&ziel).expect("dir").count(),
+        0,
+        "nothing behind the link"
+    );
+    // a chain file the holder cannot write, and a chain file that is a link
+    let (a, k) = mit_protokoll(0o700);
+    std::fs::write(k.join("halter-2026-11.jsonl"), b"").expect("chain");
+    modus(&k.join("halter-2026-11.jsonl"), 0o400);
+    let (code, e) = a.ende(&mut a.befehl());
+    assert_eq!((code, e.as_str()), fehler, "chain file 0400");
+    let (a, k) = mit_protokoll(0o700);
+    std::os::unix::fs::symlink(a.wurzel.join("passwd"), k.join("halter.anker.jsonl"))
+        .expect("link");
+    let (code, e) = a.ende(&mut a.befehl());
+    assert_eq!((code, e.as_str()), fehler, "anchor is a link");
+    // counter check: a foreign file in the folder does not matter, a writable chain file is taken
+    let (a, k) = mit_protokoll(0o700);
+    // only a name with both the start `halter` and the extension `jsonl` is a chain file
+    for fremd in ["notiz.txt", "notiz.jsonl", "halter-notiz.txt"] {
+        std::fs::write(k.join(fremd), b"").expect("file");
+        modus(&k.join(fremd), 0o400);
+    }
+    std::fs::write(k.join("halter-2026-11.jsonl"), b"").expect("chain");
+    modus(&k.join("halter-2026-11.jsonl"), 0o600);
+    let kind = a.laufend();
+    assert_eq!(beenden(kind), 0);
+}
+
 /// The decision of the operator of 28.11.2026 in the program: under umask 002 the levels above `geheim` are 0775 with
 /// the private group of the person; the holder starts. A second member of that group in the file of the groups, or a
 /// second account with it as primary group, gives 78 `halter.ablage_rechte`, as does o+w at a level.

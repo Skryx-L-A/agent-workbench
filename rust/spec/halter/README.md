@@ -54,7 +54,8 @@ der Formen `anfrage`, `antwort` und `konfig` ändert sich.
 
 **Nachtrag Effort und Modellliste (Entscheid des Betreibers, 27.11.2026):** Ein Chat-Aufruf des Erststarts endete mit 400
 `invalid_reasoning_effort`, und weder die Anfrage noch die Modellliste zeigten den Grund. Darum nennt die Zeile der Antwortform
-zusätzlich den Effort der Anfrage und, bei `GET /models`, je Modell `policy.state` und `capabilities.supports.reasoning_effort`.
+zusätzlich den Effort der Anfrage und, bei `GET /models`, je Modell `policy.state`, `capabilities.supports.reasoning_effort` und
+`model_picker_enabled`.
 Diese Werte werden nie abgeschrieben: Jeder wird auf eine feste Liste abgebildet, jeder andere vorhandene Wert heißt `anderer`
 (Abschnitt 4, „Antwortform im Erststart“, Punkt „Effort und Modellliste“). Es ändert sich Abschnitt 4; kein Fall der Formen
 `anfrage`, `antwort` und `konfig` ändert sich.
@@ -195,6 +196,7 @@ Bei `halter.ablage_rechte` hängt unter Linux die Abhilfe `; Abhilfe: chmod g-w 
 | 1 | Aufruf ohne Argumente außer dem Dienstnamen | 64, `halter.aufruf`, `falscher Aufruf` |
 | 2 | `halter.json` lesbar, gültig, geschlossene Form, auf Linux und macOS ohne lokalen Server mit Token, auf Linux root-eigen und für die Person nicht schreibbar (2.3), auf Linux jede Rollengruppe aufgelöst und ohne Konto aus `konten` (2.3a; Nachtrag Rolle aus der Gruppe) | 78, `halter.konfig`, `Konfiguration ungueltig` |
 | 3 | Ablage mit den Rechten der Plattform | 78, `halter.ablage_rechte`, `Ablage hat falsche Rechte` |
+| 3 (Kette) | nur Linux: Ordner der Kette `halter/protokoll` angelegt oder vorhanden, kein Verweis, eigene Kennung, genau 0700, eine Probedatei anlegbar und löschbar, jede Datei `halter*.jsonl` gewöhnlich, eigen und für den Halter schreibbar (2.3, „Kette“; Entscheid des Betreibers, 28.11.2026) | 78, `halter.kette_rechte`, `Kette nicht schreibbar` |
 | 4 | Endpunkt exklusiv angelegt (Pipe oder Socket) | 74, `halter.pipe_belegt`, `Endpunkt schon belegt` |
 | jeder | unerwarteter Fehler | 70, `halter.intern`, `interner Fehler` |
 
@@ -405,12 +407,36 @@ ohne Nachweis setzt nichts), Abschnitt 11.
   Einschluss den Socket-Ordner nie einbindet (Abschnitt 10, Außentest L1 mit Gegenprobe).
 - **Kette (Nachtrag Rolle aus der Gruppe):** Die Kette des Halters (Abschnitt 9) liegt in Schritt I in
   `<heim>/.local/state/agent-workbench/halter/protokoll/`, Ordner 0700 der eigenen Kennung, neben `geheim/` und unter dem Ordner,
-  den der Einschluss sperrt (Abschnitt 10). `<heim>` ist das Heim aus `passwd` wie bei der Ablage. Fehlt der Ordner, legt der Halter
-  ihn mit 0700 an; hat er eine andere Art, einen anderen Eigentümer oder einen anderen Modus, schreibt der Halter keine Kettenzeile
-  und startet trotzdem. Lässt sich eine Zeile nicht anhängen (Fund F16), schreibt der Halter beim ersten Fehler des Laufs genau eine
-  feste Zeile ins Journal, ohne Pfad und Inhalt: `halter.kette_anker: Anker der Kette beschaedigt` bei einem unlesbaren oder nicht
-  passenden Anker (`kette.anker_falsch` aus Vertrag 5), sonst `halter.kette: Kette nicht fortgeschrieben`; die Anfrage beantwortet er
-  unverändert. alt: Ein Fehler der Kette blieb still. `apt purge` löscht `protokoll/` mit der Ablage (Paketvertrag, Abschnitt
+  den der Einschluss sperrt (Abschnitt 10). `<heim>` ist das Heim aus `passwd` wie bei der Ablage.
+  **Fail closed (Entscheid des Betreibers, 28.11.2026).** Der Halter läuft nie ohne Kette. In Schritt 3, nach der Ablage, öffnet er
+  den Ordner `halter` ohne Verweis und legt `protokoll` mit 0700 an, wenn es fehlt. Dann muss `protokoll` ein Ordner sein, kein
+  Verweis, der eigenen Kennung und mit genau 0700; der Halter legt darin die Probedatei `.halter-schreibprobe` exklusiv an und
+  löscht sie wieder (ein Rest eines früheren Starts geht vorher); jede Datei `halter*.jsonl` darin muss eine gewöhnliche Datei der
+  eigenen Kennung sein, für sie schreibbar, kein Verweis. Andere Dateien zählen nicht. Scheitert einer dieser Punkte, endet der Start
+  mit 78 `halter.kette_rechte` (`Kette nicht schreibbar`), ohne Socket. Die Regel der privaten Gruppe (`ablage::private_gruppe`)
+  gilt für `protokoll` nicht: Wie `geheim` ist es der eigene Ordner des Halters, den er selbst anlegt; Gruppenschreibrecht hätte
+  dort keinen Grund und ließe ein Konto der Gruppe Zeilen löschen. Die Ebenen darüber prüft die Ablage mit ihrer Regel.
+  alt (bis 28.11.2026): „hat er eine andere Art, einen anderen Eigentümer oder einen anderen Modus, schreibt der Halter keine
+  Kettenzeile und startet trotzdem.“ Grund: Ein stiller Rückfall ließ jede Ablehnung ohne Spur.
+  **Fehler im Lauf.** Lässt sich eine Zeile nicht anhängen, schreibt der Halter für jede verlorene Zeile genau eine Zeile ins Journal:
+  `halter.kette_fehler: ` und das kanonische JSON-Objekt (RFC 8785) mit genau `art` (der `aktionsname` der verlorenen Zeile:
+  `mcp.schein_abgelehnt`, `halter.pfad_verboten` oder `halter.leck_gesperrt`) und `klasse` aus der festen Liste `anker` (Anker
+  unlesbar oder unpassend, `kette.anker_falsch` aus Vertrag 5), `ein_ausgabe` (Öffnen, Sperren, Lesen oder Schreiben scheitert),
+  `bruch` (letzte Zeile unvollständig, andere Zeile unter der Sperre oder Kette gebrochen), `zeit` (Zeit ungültig oder Monat
+  geschlossen) und `zeile` (die Zeile selbst abgelehnt). Kein Pfad, kein Inhalt, kein Text des Fehlers. Die Anfrage beantwortet er
+  unverändert. Jedes Mal, nicht einmal je Lauf: So steht für jede Ablehnung genau eine Kettenzeile oder genau eine Fehlerzeile im
+  Protokoll, nie keine; die Zahl der Zeilen folgt der Zahl der Ablehnungen, die der Aufrufer ohnehin auslöst. Beispiel:
+  `halter.kette_fehler: {"art":"halter.pfad_verboten","klasse":"ein_ausgabe"}`. `werkbank-pruefen` meldet eine solche Zeile und
+  einen Startabbruch mit `halter.kette_rechte` im Journal von `wb-halter.service` seit dem Start des Rechners rot.
+  alt (Fund F16, bis 28.11.2026): „schreibt der Halter beim ersten Fehler des Laufs genau eine feste Zeile ins Journal, ohne Pfad und
+  Inhalt: `halter.kette_anker: Anker der Kette beschaedigt` bei einem unlesbaren oder nicht passenden Anker […], sonst `halter.kette:
+  Kette nicht fortgeschrieben`.“ Beide festen Zeilen gehen in `halter.kette_fehler` auf: `halter.kette_anker` ist die Klasse
+  `anker`, `halter.kette` jede andere Klasse. Unterschied: Die Zeile kommt jedes Mal statt einmal je Lauf und nennt Art und Klasse.
+  Tests im Bau: `tests/start.rs` `schritt_3_kette_fail_closed` (fehlt und anlegbar, nicht anlegbar, Datei, Verweis, 0750, 0770,
+  0755, nicht schreibbar, Kettendatei 0400, Anker als Verweis, Gegenprobe mit fremder Datei), `start::tests::regel_der_kette`
+  (fremde Kennung), `kette::tests::klasse_und_zeile_des_fehlers`, `tests/dienst.rs` `n1_kaputte_kette_meldet_kette_fehler` und
+  `gesperrter_pfad_gibt_kettenzeile_oder_fehlerzeile_nie_keine`.
+  alt: Ein Fehler der Kette blieb still. `apt purge` löscht `protokoll/` mit der Ablage (Paketvertrag, Abschnitt
   „Entfernen“). In Schritt II liegt die Kette unter `/var/lib/wb-halter/` (Paketvertrag, Teil A2). alt: Der Vertrag nannte
   für Linux keinen Ort. Grund: Der Bau brauchte einen Ort; die Leitung hat den gebauten bestätigt (Projektentscheid, 25.11.2026).
 
@@ -650,13 +676,33 @@ das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24)
     `GET` ohne Körper geben zweimal `null`. Die zwei Werte der Anfrage stehen in jeder Form der Zeile, auch bei `kein_json`,
     `zu_gross` und `geheimnis`, weil sie nur aus der festen Liste stammen. Die Anfrage geht unverändert an das Ziel.
   - **Modellliste.** Nur bei `GET /models` und der Form `json`: `modelle` hat je Name aus `data[].id` (nach Punkt „Werte“
-    bestanden und unter den ersten 200) genau die Schlüssel `policy.state` (Zustand, `anderer` oder `null`) und
-    `capabilities.supports.reasoning_effort`. Dieser ist `null`, wenn das Feld fehlt, `anderer`, wenn es keine Liste ist oder
+    bestanden und unter den ersten 200) genau die Schlüssel `policy.state` (Zustand, `anderer` oder `null`),
+    `model_picker_enabled` und `capabilities.supports.reasoning_effort`. `model_picker_enabled` (der Schlüssel des Elements,
+    Entscheid des Betreibers, 28.11.2026) ist `true` oder `false`, wenn das Feld ein Wahrheitswert ist, sonst `null`, auch bei
+    einem fehlenden Feld, `"true"`, einer Zahl, `null`, einer Liste oder einem Objekt; nie ein anderer Wert. Grund: Die CLI
+    wählt ein Modell aus dem Argument nur, wenn die Liste es für die Auswahl freigibt; die Zeile zeigt das je Modell.
+    `policy.state` ist genau `enabled` oder `disabled`, `null` nur bei fehlendem Feld; jeder andere Wert, auch `null` als Wert,
+    eine andere Schreibweise oder eine Zahl, ist `anderer`. `capabilities.supports.reasoning_effort` Dieser ist `null`, wenn das Feld fehlt, `anderer`, wenn es keine Liste ist oder
     eine Ebene darüber kein Objekt ist, sonst eine Liste: die Stufen der Quelle in der Reihenfolge oben, je einmal, und zuletzt
     einmal `anderer` für jedes andere Element. `policy.state` ist `anderer`, wenn `policy` kein Objekt ist. Steht ein Name
     mehrfach in `data`, gelten die Werte seines ersten Elements. Ein Name, der Punkt „Werte“ nicht besteht, und ein Element,
     das kein Objekt ist oder keinen Schlüssel `id` hat, geben keinen Eintrag. Sonst ist `modelle` ein leeres Objekt.
   - `anderer` zählt nicht in `wert_verworfen`; es ist selbst der Befund „unerwarteter Wert“.
+- **Modell der Anfrage (Entscheid des Betreibers, 28.11.2026).** Grund: Ein 400 auf einen Effort wird erst deutbar, wenn die
+  Zeile sagt, an welches Modell die Anfrage ging. Der Wert entsteht nur über einen Vergleich mit einer gemessenen Liste, nie
+  als Text der Anfrage:
+  - **Liste.** Die Liste ist `data[].id` der Zeile (nach Punkt „Werte“ bestanden, höchstens die ersten 200) der zuletzt in
+    diesem Lauf des Halters gemessenen Antwort auf `GET /models` desselben Ziels (Name aus `halter.json`). Gemessen ist eine
+    Antwort, für die der Halter eine Zeile `halter.antwortform` schreibt; ohne Regel `GET /models` im Schalter gibt es keine
+    Liste. Die Liste gilt, bis die nächste gemessene Antwort auf `GET /models` desselben Ziels sie ersetzt, längstens bis zum
+    Ende des Laufs; der Halter speichert sie nicht. Eine gemessene Antwort ohne Namen, auch eine der Formen `kein_json`,
+    `zu_gross` oder `geheimnis`, ersetzt sie durch eine leere Liste. Der Halter liest die Liste beim Lesen der Anfrage.
+  - **Wert.** Ist der Körper der Anfrage ein JSON-Objekt und hat er auf der obersten Ebene den Schlüssel `model`, nennt
+    `anfrage.model` den Eintrag der Liste, der dem Wert genau gleich ist (Bytes), wenn dieser Eintrag Tokenmuster und Wortmuster
+    nach Punkt „Werte“ mit den gehaltenen Geheimnissen der Anfrage erneut besteht. Sonst ist der Wert `anderer`: ein Name, der
+    nicht in der Liste steht, eine andere Schreibweise, kein Text, und jeder Name, solange keine Liste gemessen ist.
+    Fehlt `model`, ist der Körper kein JSON-Objekt oder ist es `GET` ohne Körper, ist der Wert `null`. `anfrage.model` steht
+    in jeder Form der Zeile wie die zwei Werte des Efforts und zählt nicht in `wert_verworfen`.
 - **Grenzen.** Höchstens 1048576 Byte Körper (darüber: Form `zu_gross`, keine Namen), höchstens 256 Namen, je Name höchstens
   256 Byte, höchstens 32 Ebenen. Ein längerer Name bleibt weg; eine Überschreitung setzt `abgeschnitten`.
 - **Regel der Namen.** Enthält ein Name `token`, `secret`, `key`, `session` oder `credential` (ohne Groß- und Kleinschreibung,
@@ -668,16 +714,17 @@ das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24)
 - **Zeile.** Genau eine Zeile im Journal (stderr der Einheit): `halter.antwortform: ` und das kanonische JSON-Objekt (RFC 8785)
   mit genau `abgeschnitten` (bool), `form` (`json`, `kein_json`, `zu_gross` oder `geheimnis`), `methode`, `namen` (Liste),
   `pfad` (das Feld `pfad` der Anfrage), `status` (HTTP-Status des Ziels), `wert_verworfen` (Zahl, Punkt „Werte“), `werte`
-  (Objekt mit genau `anfrage.reasoning.effort` und `anfrage.reasoning_effort`, je Stufe, `anderer` oder `null`, `data[].id`,
+  (Objekt mit genau `anfrage.model`, Name der Liste, `anderer` oder `null` nach Punkt „Modell der Anfrage“,
+  `anfrage.reasoning.effort` und `anfrage.reasoning_effort`, je Stufe, `anderer` oder `null`, `data[].id`,
   einer Liste, `error.code`, Text oder `null`, und `modelle`, einem Objekt, Punkt „Effort und Modellliste“), `ziel` (Name aus
   `halter.json`) und `zu` (bool). Nie `abfrage`, ein Kopf, ein Wert außer nach den Punkten „Werte“ und „Effort und
   Modellliste“, `id`, `lauf` oder eine Person. Ein Zeilenumbruch in einem Namen ist im JSON maskiert; die Zeile
   bleibt eine Zeile. Die Zeile steht nicht in der Kette; es gibt keine neue Art im Register von Vertrag 5.
 
 ```
-halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"wert_verworfen":0,"werte":{"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":[],"error.code":null,"modelle":{}},"ziel":"api.individual.githubcopilot.com","zu":true}
-halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"GET","namen":["data","data[].capabilities","data[].capabilities.supports","data[].capabilities.supports.reasoning_effort","data[].id","data[].name","data[].policy","data[].policy.state","object"],"pfad":"/models","status":200,"wert_verworfen":1,"werte":{"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":["claude-sonnet-5.5","gpt-6-luna"],"error.code":null,"modelle":{"claude-sonnet-5.5":{"capabilities.supports.reasoning_effort":["low","medium","high","xhigh","max"],"policy.state":"disabled"},"gpt-6-luna":{"capabilities.supports.reasoning_effort":["none","low","medium","high","xhigh","max"],"policy.state":"enabled"}}},"ziel":"api.individual.githubcopilot.com","zu":false}
-halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["error","error.code","error.message"],"pfad":"/chat/completions","status":400,"wert_verworfen":0,"werte":{"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":"anderer","data[].id":[],"error.code":"invalid_reasoning_effort","modelle":{}},"ziel":"api.individual.githubcopilot.com","zu":false}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"wert_verworfen":0,"werte":{"anfrage.model":null,"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":[],"error.code":null,"modelle":{}},"ziel":"api.individual.githubcopilot.com","zu":true}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"GET","namen":["data","data[].capabilities","data[].capabilities.supports","data[].capabilities.supports.reasoning_effort","data[].id","data[].model_picker_enabled","data[].name","data[].policy","data[].policy.state","object"],"pfad":"/models","status":200,"wert_verworfen":1,"werte":{"anfrage.model":null,"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":["claude-sonnet-5.5","gpt-6-luna"],"error.code":null,"modelle":{"claude-sonnet-5.5":{"capabilities.supports.reasoning_effort":["low","medium","high","xhigh","max"],"model_picker_enabled":null,"policy.state":"disabled"},"gpt-6-luna":{"capabilities.supports.reasoning_effort":["none","low","medium","high","xhigh","max"],"model_picker_enabled":false,"policy.state":"enabled"}}},"ziel":"api.individual.githubcopilot.com","zu":false}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["error","error.code","error.message"],"pfad":"/chat/completions","status":400,"wert_verworfen":0,"werte":{"anfrage.model":"gpt-6-luna","anfrage.reasoning.effort":null,"anfrage.reasoning_effort":"anderer","data[].id":[],"error.code":"invalid_reasoning_effort","modelle":{}},"ziel":"api.individual.githubcopilot.com","zu":false}
 ```
 
 Fälle der Form `konfig`: `k-gut-erststart-antwortform` (gültig, auch ein Pfad im Teilbaum von `pfade`), Gegenproben
@@ -686,14 +733,18 @@ Fälle der Form `konfig`: `k-gut-erststart-antwortform` (gültig, auch ein Pfad 
 in jeder Schreibweise, Grenzen genau und um eins darüber, gehaltenes Geheimnis als Name, Zeilenumbruch im Namen; zu den Werten:
 echte Modellnamen, ein anderes Feld ohne Wert, falsche Form mit 64 und 65 Byte, tokenähnlich vor dem Wortmuster je Regel, ein
 `error.code`, die Grenze 200 und 201, ohne Form `json` kein Wert; zu Effort und Modellliste: `bekannter_effort_steht_in_der_zeile`,
-`unbekannter_effort_wird_anderer`, `anfrage_ohne_effort`, `modellliste_mit_zustand_und_stufen`, `modellliste_mit_unerwarteter_form`),
+`unbekannter_effort_wird_anderer`, `anfrage_ohne_effort`, `modellliste_mit_zustand_und_stufen`, `modellliste_mit_unerwarteter_form`, `modellliste_mit_auswahl_und_zustand`;
+zum Modell der Anfrage: `modell_aus_der_liste`, `modell_nicht_in_der_liste`, `modell_ohne_gemessene_liste`,
+`modell_mit_tokenform_wird_anderer`, `modell_fehlt_oder_kein_json`, `messen_gibt_die_liste_nur_fuer_models`),
 `konfig::tests::erststart_antwortform_nur_genau_und_gedeckt`, `tests/dienst.rs` `antwortform_nennt_die_namen_ohne_werte` (die Antwort
 kommt unverändert an, die Zeile nennt `access_token`, `data`, `data[].id` und `"zu":true`, der Markenwert steht weder in der
 Zeile noch in der Kette), `antwortform_nennt_modellnamen_und_fehlercode` (Modellnamen aus `GET /models` und `error.code` aus einer
 Antwort mit Status 400, kein Wert eines anderen Felds, kein Wert in der Kette), `ohne_schalter_keine_antwortform` (dieselbe
 Antwort ohne Schalter: keine Zeile), `ohne_schalter_keine_modellnamen` (`GET /models` ohne Schalter: keine Zeile), `antwortform_nennt_effort_und_stufen` (Stufen und
 Zustand je Modell, ein unbekannter Effort als `anderer` bei 400 `invalid_reasoning_effort`, ein bekannter unter `reasoning`, ohne
-Effort `null`; die Anfrage kommt unverändert am Ziel an, kein Wert in der Kette) und `ohne_schalter_kein_effort`. Das Fallformat kennt
+Effort `null`; die Anfrage kommt unverändert am Ziel an, kein Wert in der Kette), `antwortform_nennt_das_modell_der_anfrage`
+(vor dem ersten gemessenen `GET /models` `anderer`, danach ein Name der Liste als dieser Eintrag, ein Name außerhalb der Liste
+als `anderer` ohne seinen Text, ohne `model` `null`; die Liste gilt für spätere Anfragen des Laufs, kein Modell in der Kette) und `ohne_schalter_kein_effort`. Das Fallformat kennt
 keine Antwort des Ziels; die Zeile prüft darum nur der Bau.
 
 ### `schluessel.vorhanden`
@@ -1023,8 +1074,9 @@ Art im Register (`formate`, `REGISTER_FREMD`, Gruppe „in anderen Verträgen fe
 `aktionsname`, `ergebnis` (`abgelehnt`), `fassung` (2), `grund` (`leck`), `op` (`modell.aufruf`, `modell.strom` oder
 `mcp.aufruf`), `vorher`, `zeit` und `ziel` (der Name des Ziels oder Servers aus `halter.json`). Nie der Wert, nie ein Teil des
 Treffers, keine Form, kein Pfad, kein Kopf, kein Körper, kein `id`, kein `lauf`. Kann der Halter die Kette nicht fortschreiben,
-gilt die Regel aus Abschnitt 2.3 (eine feste Journalzeile je Lauf, die Antwort bleibt `halter.leck_gesperrt`). alt: „Die
-Kettenzeile selbst schreibt der Halter erst, wenn Vertrag 5 ihre Art in sein Register aufnimmt.“ Test im Bau:
+gilt die Regel aus Abschnitt 2.3 (je verlorener Zeile eine Zeile `halter.kette_fehler`, die Antwort bleibt `halter.leck_gesperrt`). alt: „Die
+Kettenzeile selbst schreibt der Halter erst, wenn Vertrag 5 ihre Art in sein Register aufnimmt.“ Seit 28.11.2026 gibt eine nicht
+angehängte Zeile `halter.kette_fehler` (Abschnitt 2.3, „Fehler im Lauf“). Test im Bau:
 `kette::leck_tests::leck_schreibt_die_kettenzeile_mit_den_feldern_des_vertrags` liest die Zeile und prüft die Kette mit
 `formate::kette::pruefe_quelle` (Gegenprobe: eine Art mit Tippfehler bricht die Kette). Form der Zeile (eigene Art, weil ein
 Treffer bei `modell.*` keinen Schein, keinen `digest` und keinen `lauf` hat):
@@ -1038,8 +1090,8 @@ Treffer bei `modell.*` keinen Schein, keinen `digest` und keinen `lauf` hat):
 `methode` (`GET` oder `POST`, bei `modell.strom` `GET`), `op` (`modell.aufruf` oder `modell.strom`), `pfad` (das Feld `pfad`
 der Anfrage, ohne Abfrageteil), `vorher`, `zeit` und `ziel`. Nie `abfrage`, ein Kopf, der Körper, `id` oder ein Wert. Grund: Die
 Leitung entscheidet beim ersten Start jede fehlende Regel anhand der Kette (Abschnitt 4). Vertrag 5 führt die Art im Register
-(`formate`, `REGISTER_FREMD`); die Zeile kommt in die Kette ohne die feste Journalzeile `halter.kette: Kette nicht
-fortgeschrieben`, die nur ein Fehler der Kette auslöst (Abschnitt 2.3). Test im Bau: `kette::tests::die_zeile_eines_abgelehnten_pfads_traegt_methode_und_pfad`,
+(`formate`, `REGISTER_FREMD`); die Zeile kommt in die Kette ohne Zeile `halter.kette_fehler`, die nur ein Fehler der Kette
+auslöst (Abschnitt 2.3). Test im Bau: `kette::tests::die_zeile_eines_abgelehnten_pfads_traegt_methode_und_pfad`,
 `tests/dienst.rs` `n1_pfad_ausserhalb_der_regeln_geht_in_die_kette` und die Fallprüfung `tests/faelle.rs` (jede Ablehnung in Stufe 15
 trägt Methode und Pfad, keine andere).
 

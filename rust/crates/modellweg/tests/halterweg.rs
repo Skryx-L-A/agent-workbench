@@ -642,6 +642,10 @@ mod echt {
         });
         let konfig = konfig::lesen(k.to_string().as_bytes()).expect("configuration");
         let heim = heim(name, mit_geheimnis);
+        // The holder writes refused paths to his chain; here a folder 0700 of its own, as the start makes it.
+        let kette = heim.join("kette");
+        std::fs::create_dir(&kette).expect("chain");
+        std::fs::set_permissions(&kette, std::fs::Permissions::from_mode(0o700)).expect("chmod");
         let rollen = BTreeMap::from([(
             rustix::process::getegid().as_raw(),
             Rolle::aus_text(rolle).expect("role"),
@@ -652,7 +656,7 @@ mod echt {
             uid(),
             JETZT - 3_600_000,
             rollen,
-            None,
+            kette,
             uhr,
         ))
     }

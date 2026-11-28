@@ -4,7 +4,6 @@
 use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::os::fd::OwnedFd;
-use std::os::unix::fs::MetadataExt;
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
 
@@ -87,8 +86,8 @@ pub struct Bereit {
     pub rollen: BTreeMap<u32, Rolle>,
     /// The store.
     pub ablage: Ablage,
-    /// The folder of the chain.
-    pub kette: Option<PathBuf>,
+    /// The folder of the chain, checked by [`kette_pruefen`].
+    pub kette: PathBuf,
     /// The listening socket.
     pub hoerer: UnixListener,
     /// Path of the socket.
@@ -206,44 +205,102 @@ pub fn ablage_abhilfe(orte: &Orte, uid: u32) -> Option<String> {
     (!pfade.is_empty()).then(|| ablage::chmod_g_w(&pfade))
 }
 
-/// Step 3: the home from the file of the accounts and the levels of the store; also the folder of the chain
-/// (`halter/protokoll`, 0700) next to `geheim`. A level above `geheim` may be writable for the private group of the
+/// Step 3: the home from the file of the accounts and the levels of the store; then the folder of the chain
+/// (`halter/protokoll`, 0700) next to `geheim` after [`kette_pruefen`]. A level above `geheim` may be writable for the private group of the
 /// account after [`ablage::private_gruppe`], read from `passwd` and `gruppen`, and only when `nsswitch` takes accounts
 /// and groups from the files and systemd alone ([`ablage::nss_nur_dateien`]); if `gruppen` or `nsswitch` cannot be
 /// read, no group write is allowed.
 ///
 /// # Errors
-/// [`Startfehler::AblageRechte`].
+/// [`Startfehler::AblageRechte`], then [`Startfehler::KetteRechte`].
 pub fn ablage_pruefen(
     passwd: &Path,
     gruppen: &Path,
     nsswitch: &Path,
     uid: u32,
-) -> Result<(Ablage, Option<PathBuf>), Startfehler> {
+) -> Result<(Ablage, PathBuf), Startfehler> {
     let (heim, a) = ablage_fuer(passwd, gruppen, nsswitch, uid).ok_or(Startfehler::AblageRechte)?;
     let geheim = a.oeffnen(true).map_err(|_| Startfehler::AblageRechte)?;
     drop(geheim);
     let halter: PathBuf = ablage::EBENEN[..4]
         .iter()
         .fold(heim.clone(), |p, e| p.join(e));
-    let kette = halter.join("protokoll");
-    let kette = match std::fs::symlink_metadata(&kette) {
-        Ok(m) if m.is_dir() && m.uid() == uid && m.mode() & 0o7777 == 0o700 => Some(kette),
-        Ok(_) => None,
-        Err(_) => openat(
-            rustix::fs::CWD,
-            &halter,
-            OFlags::RDONLY
-                .union(OFlags::DIRECTORY)
-                .union(OFlags::NOFOLLOW)
-                .union(OFlags::CLOEXEC),
-            Mode::empty(),
-        )
-        .ok()
-        .and_then(|fd| mkdirat(&fd, "protokoll", Mode::from_raw_mode(0o700)).ok())
-        .map(|()| kette),
-    };
+    let kette = kette_pruefen(&halter, uid)?;
     Ok((a, kette))
+}
+
+/// The rule of the folder of the chain after `fstat`: a folder of `uid` with exactly 0700. A pure function on the raw
+/// fields, so that a test can give another owner (no test can make a folder of another owner).
+#[must_use]
+pub fn kette_ordner_ok(modus: rustix::fs::RawMode, eigner: u32, uid: u32) -> bool {
+    FileType::from_raw_mode(modus) == FileType::Directory
+        && eigner == uid
+        && modus & 0o7777 == 0o700
+}
+
+/// The rule of a file `halter*.jsonl` in the folder of the chain, looked at without following a link: an ordinary file
+/// of `uid`, writable for it.
+#[must_use]
+pub fn kette_datei_ok(modus: rustix::fs::RawMode, eigner: u32, uid: u32) -> bool {
+    FileType::from_raw_mode(modus) == FileType::RegularFile && eigner == uid && modus & 0o200 != 0
+}
+
+/// The name of the probe file the start makes and removes again in the folder of the chain.
+pub const PROBE: &str = ".halter-schreibprobe";
+
+/// Step 3, chain (decision of the operator, 28.11.2026): the folder `protokoll` below `halter` (the level above
+/// `geheim`, already checked with the store). Missing, it is made with 0700. Then it must be a folder, no link, of the
+/// own uid with exactly 0700 (no group rule: like `geheim` it is the holder's own folder, made by it), the holder must
+/// be able to make and remove a file in it ([`PROBE`]), and every file `halter*.jsonl` in it must be an ordinary file of
+/// the own uid, writable for it, no link. Anything else ends the start; the holder never runs without its chain.
+///
+/// # Errors
+/// [`Startfehler::KetteRechte`].
+pub fn kette_pruefen(halter: &Path, uid: u32) -> Result<PathBuf, Startfehler> {
+    let fehler = Startfehler::KetteRechte;
+    let ordner = OFlags::RDONLY
+        .union(OFlags::DIRECTORY)
+        .union(OFlags::NOFOLLOW)
+        .union(OFlags::CLOEXEC);
+    let oben = openat(rustix::fs::CWD, halter, ordner, Mode::empty()).map_err(|_| fehler)?;
+    match mkdirat(&oben, "protokoll", Mode::from_raw_mode(0o700)) {
+        Ok(()) | Err(Errno::EXIST) => {}
+        Err(_) => return Err(fehler),
+    }
+    let ordner_fd = openat(&oben, "protokoll", ordner, Mode::empty()).map_err(|_| fehler)?;
+    let st = fstat(&ordner_fd).map_err(|_| fehler)?;
+    if !kette_ordner_ok(st.st_mode, st.st_uid, uid) {
+        return Err(fehler);
+    }
+    // a rest of an earlier start goes first; then the probe must be made exclusively and removed
+    let _ = rustix::fs::unlinkat(&ordner_fd, PROBE, AtFlags::empty());
+    let probe = openat(
+        &ordner_fd,
+        PROBE,
+        OFlags::WRONLY
+            .union(OFlags::CREATE)
+            .union(OFlags::EXCL)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
+        Mode::from_raw_mode(0o600),
+    )
+    .map_err(|_| fehler)?;
+    drop(probe);
+    rustix::fs::unlinkat(&ordner_fd, PROBE, AtFlags::empty()).map_err(|_| fehler)?;
+    let pfad = halter.join("protokoll");
+    for e in std::fs::read_dir(&pfad).map_err(|_| fehler)? {
+        let name = e.map_err(|_| fehler)?.file_name();
+        let Some(n) = name.to_str() else { continue };
+        // exactly the names of `formate` (`halter-<JJJJ-MM>.jsonl`, `halter.anker.jsonl`), case included
+        if !(n.starts_with("halter") && Path::new(n).extension() == Some(OsStr::new("jsonl"))) {
+            continue;
+        }
+        let st_datei = statat(&ordner_fd, n, AtFlags::SYMLINK_NOFOLLOW).map_err(|_| fehler)?;
+        if !kette_datei_ok(st_datei.st_mode, st_datei.st_uid, uid) {
+            return Err(fehler);
+        }
+    }
+    Ok(pfad)
 }
 
 /// Step 4: the folder `wb-halter` (0700, own, no link; made if missing) and the socket `halter.sock` (0600), made
@@ -494,6 +551,29 @@ mod tests {
         let text = String::from_utf8_lossy(&aus.stdout);
         assert!(aus.status.success(), "{text}");
         assert!(text.contains("1 passed"), "{text}");
+    }
+
+    /// The rule of the folder and the files of the chain, also for an owner no test can make.
+    #[test]
+    fn regel_der_kette() {
+        use super::{kette_datei_ok, kette_ordner_ok};
+        assert!(kette_ordner_ok(0o040_700, 7, 7));
+        // another owner, another kind, another mode
+        assert!(!kette_ordner_ok(0o040_700, 8, 7));
+        assert!(!kette_ordner_ok(0o040_700, 0, 7));
+        assert!(!kette_ordner_ok(0o100_700, 7, 7));
+        assert!(!kette_ordner_ok(0o120_700, 7, 7));
+        for m in [
+            0o750, 0o770, 0o755, 0o710, 0o701, 0o600, 0o500, 0o1700, 0o2700, 0o4700,
+        ] {
+            assert!(!kette_ordner_ok(0o040_000 | m, 7, 7), "{m:o}");
+        }
+        assert!(kette_datei_ok(0o100_600, 7, 7));
+        assert!(kette_datei_ok(0o100_200, 7, 7));
+        assert!(!kette_datei_ok(0o100_400, 7, 7));
+        assert!(!kette_datei_ok(0o100_600, 8, 7));
+        assert!(!kette_datei_ok(0o120_600, 7, 7));
+        assert!(!kette_datei_ok(0o040_700, 7, 7));
     }
 
     #[test]

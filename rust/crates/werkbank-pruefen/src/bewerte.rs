@@ -5,7 +5,7 @@
 
 use crate::lage::{
     ABGELEHNT_SATZ, APPARMOR, Abweichung, COPILOT, COPILOT_ALTER_ORT, DIENST, DIENSTE,
-    HARNESS_HINWEIS, Lage, MANIFEST, NUTZERORDNER, OK, PROGRAMMORDNER, ROLLENGRUPPE,
+    HALTER_KETTE, HARNESS_HINWEIS, Lage, MANIFEST, NUTZERORDNER, OK, PROGRAMMORDNER, ROLLENGRUPPE,
     ROLLENPROGRAMM, SCHLUESSEL, VAULT,
 };
 
@@ -165,6 +165,8 @@ pub fn befunde(lage: &Lage) -> Vec<String> {
     // addendum "Rolle aus der Gruppe": part of the check of the units, the group before the program
     b.extend(satz(ROLLENGRUPPE, &lage.rollengruppe));
     b.extend(satz(ROLLENPROGRAMM, &lage.rollenprogramm));
+    // the chain of the holder (decision of the operator, 28.11.2026), still part of the check of the units
+    b.extend(satz(HALTER_KETTE, &lage.halter_kette));
     b.extend(satz(APPARMOR, &lage.apparmor));
     match lage.einstellungen.zustand.as_str() {
         "fehlt" => b.push(

@@ -215,6 +215,7 @@ mod tests {
             (Startfehler::Aufruf, 64),
             (Startfehler::Konfig, 78),
             (Startfehler::AblageRechte, 78),
+            (Startfehler::KetteRechte, 78),
             (Startfehler::PipeBelegt, 74),
             (Startfehler::Intern, 70),
         ] {
@@ -265,6 +266,9 @@ pub enum Startfehler {
     Konfig,
     /// Step 3: a level of the store breaks the rule.
     AblageRechte,
+    /// Step 3, chain: the folder of the chain cannot be made or opened, breaks the rule, or the holder cannot write in it
+    /// (decision of the operator, 28.11.2026).
+    KetteRechte,
     /// Step 4: the endpoint exists already or cannot be made exclusive.
     PipeBelegt,
     /// Any unexpected failure.
@@ -280,6 +284,7 @@ impl Startfehler {
             Self::Aufruf => (64, "halter.aufruf", "falscher Aufruf"),
             Self::Konfig => (78, "halter.konfig", "Konfiguration ungueltig"),
             Self::AblageRechte => (78, "halter.ablage_rechte", "Ablage hat falsche Rechte"),
+            Self::KetteRechte => (78, "halter.kette_rechte", "Kette nicht schreibbar"),
             Self::PipeBelegt => (74, "halter.pipe_belegt", "Endpunkt schon belegt"),
             Self::Intern => (70, "halter.intern", "interner Fehler"),
         }

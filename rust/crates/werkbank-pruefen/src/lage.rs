@@ -71,6 +71,24 @@ pub const ROLLENPROGRAMM: &[(&str, &str)] = &[
     ),
 ];
 
+/// The state of the chain of the holder in the journal of `wb-halter.service` since the boot and the sentence for it (decision
+/// of the operator, 28.11.2026; part of the check of the units, after the role program). `fehler`: a line
+/// `halter.kette_fehler` (a refusal is missing in the chain); `rechte`: a start ended with `halter.kette_rechte`.
+pub const HALTER_KETTE: &[(&str, &str)] = &[
+    (
+        "rechte",
+        "pruef.halter_kette_rechte: Der Halter startete nicht, weil er seine Kette nicht schreiben kann (halter.kette_rechte); Ordner halter/protokoll pruefen.",
+    ),
+    (
+        "fehler",
+        "pruef.halter_kette_fehler: Der Halter konnte Zeilen seiner Kette nicht schreiben (halter.kette_fehler im Journal); Ablehnungen fehlen in der Kette.",
+    ),
+    (
+        "nicht_pruefbar",
+        "pruef.halter_kette_nicht_pruefbar: Das Journal des Halters war nicht pruefbar.",
+    ),
+];
+
 /// The state of the `AppArmor` profile and the sentence for it.
 pub const APPARMOR: &[(&str, &str)] = &[
     (
@@ -337,6 +355,8 @@ pub struct Lage {
     pub rollengruppe: String,
     /// State of the role program `werkbank-modellweg` (field `rollenprogramm`; absent gives `ok`).
     pub rollenprogramm: String,
+    /// State of the chain of the holder after its journal (field `halter_kette`, a state of [`HALTER_KETTE`]; absent gives `ok`).
+    pub halter_kette: String,
     /// State of the `AppArmor` profile.
     pub apparmor: String,
     /// The settings file.
@@ -388,6 +408,7 @@ impl Lage {
             || [
                 &self.rollengruppe,
                 &self.rollenprogramm,
+                &self.halter_kette,
                 &self.apparmor,
                 &self.einstellungen.zustand,
                 &self.nutzerordner,
@@ -648,6 +669,7 @@ impl Lage {
             dienste,
             rollengruppe: optional_aus(wert, "rollengruppe", ROLLENGRUPPE)?,
             rollenprogramm: optional_aus(wert, "rollenprogramm", ROLLENPROGRAMM)?,
+            halter_kette: optional_aus(wert, "halter_kette", HALTER_KETTE)?,
             apparmor: zustand_pruefen(APPARMOR, text(wert, "apparmor")?, "apparmor")?,
             einstellungen: Einstellungen {
                 zustand: ez.to_owned(),

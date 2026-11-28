@@ -153,7 +153,7 @@ fn dienst(rolle: &str, port: u16, heim: &Path, start_ms: i64) -> Arc<Dienst> {
         uid(),
         start_ms,
         eigene_gid_als(rolle),
-        Some(kette),
+        kette,
         uhr,
     ));
     if let Some(z) = ATTRAPPEN.lock().expect("lock").get(&port) {
@@ -756,7 +756,7 @@ fn n1_pfad_ausserhalb_der_regeln_geht_in_die_kette() {
     let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
     let d = dienst("bruecke", a.port, &heim, START);
     let mut c = verbinden(&d);
-    assert!(!d.kette_gemeldet());
+    assert_eq!(d.kette_fehler_zahl(), 0);
     c.senden(&aufruf("GET", "/user/repos", b""));
     assert_eq!(
         letzte_code(&c.bis_schluss()).as_deref(),
@@ -772,8 +772,7 @@ fn n1_pfad_ausserhalb_der_regeln_geht_in_die_kette() {
         .lines()
         .map(|z| serde_json::from_str::<Value>(z).expect("line"))
         .find(|z| z["aktionsname"] == "halter.pfad_verboten");
-    // the register of contract 5 holds the kind: the line is in the chain, and the fixed journal line "Kette nicht
-    // fortgeschrieben" does not come
+    // the register of contract 5 holds the kind: the line is in the chain, and no line `halter.kette_fehler` comes
     let z = zeile.expect("the chain line halter.pfad_verboten");
     let mut felder: Vec<&str> = z
         .as_object()
@@ -801,8 +800,9 @@ fn n1_pfad_ausserhalb_der_regeln_geht_in_die_kette() {
     assert_eq!(z["op"], "modell.aufruf");
     assert_eq!(z["pfad"], "/user/repos");
     assert_eq!(z["ziel"], "copilot");
-    assert!(
-        !d.kette_gemeldet(),
+    assert_eq!(
+        d.kette_fehler_zahl(),
+        0,
         "no journal line of a chain that cannot be continued"
     );
     let p = formate::kette::pruefe_quelle(
@@ -824,24 +824,79 @@ fn n1_pfad_ausserhalb_der_regeln_geht_in_die_kette() {
     assert_eq!(a.anfragen.lock().expect("lock").len(), 1);
 }
 
-/// Counter-check to `n1_pfad_ausserhalb_der_regeln_geht_in_die_kette`: with a broken anchor the chain cannot take the
-/// line of a refused path, and the server notes the fixed journal line (F16) once.
+/// Counter-check to `n1_pfad_ausserhalb_der_regeln_geht_in_die_kette` (decision of the operator, 28.11.2026): with a
+/// broken anchor the chain cannot take the line of a refused path; each refusal gives one journal line
+/// `halter.kette_fehler` with the kind of the lost line and the class `anker`, no path, and the answer stays the same.
 #[test]
-fn n1_kaputte_kette_meldet_die_feste_journalzeile() {
+fn n1_kaputte_kette_meldet_kette_fehler() {
     let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
     let d = dienst("bruecke", 9, &heim, START);
     std::fs::write(heim.join("kette").join("halter.anker.jsonl"), b"kaputt\n").expect("anchor");
     let mut c = verbinden(&d);
-    assert!(!d.kette_gemeldet());
-    c.senden(&aufruf("GET", "/user/repos", b""));
+    assert_eq!(d.kette_fehler_zahl(), 0);
+    for n in 1..=2 {
+        c.senden(&aufruf("GET", "/user/repos", b""));
+        assert_eq!(
+            letzte_code(&c.bis_schluss()).as_deref(),
+            Some("halter.pfad_verboten")
+        );
+        assert_eq!(d.kette_fehler_zahl(), n, "one line per failed append");
+    }
     assert_eq!(
-        letzte_code(&c.bis_schluss()).as_deref(),
-        Some("halter.pfad_verboten")
+        d.kette_fehler_letzte().as_deref(),
+        Some("halter.kette_fehler: {\"art\":\"halter.pfad_verboten\",\"klasse\":\"anker\"}\n")
     );
-    assert!(
-        d.kette_gemeldet(),
-        "the fixed journal line of a broken chain"
+}
+
+/// Each refused path of a run gives exactly one chain line or exactly one line `halter.kette_fehler`, never neither
+/// and never both (addendum to the decision of the operator, 28.11.2026): while the chain works, chain lines only; once
+/// the folder of the chain is gone, error lines only (class `ein_ausgabe`), one per refusal.
+#[test]
+fn gesperrter_pfad_gibt_kettenzeile_oder_fehlerzeile_nie_keine() {
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(9, &heim, &ERSTSTART, None);
+    let mut c = verbinden(&d);
+    let pfadzeilen = |heim: &Path| {
+        kette_text(heim)
+            .lines()
+            .filter(|z| z.contains(r#""aktionsname":"halter.pfad_verboten""#))
+            .count()
+    };
+    let gesperrt = |c: &mut Client| {
+        c.senden(&aufruf("POST", "/auto", b"{}"));
+        assert_eq!(
+            letzte_code(&c.bis_schluss()).as_deref(),
+            Some("halter.pfad_verboten")
+        );
+    };
+    for n in 1..=3 {
+        gesperrt(&mut c);
+        assert_eq!(pfadzeilen(&heim), n);
+        assert_eq!(d.kette_fehler_zahl(), 0);
+    }
+    // the folder of the chain goes away during the run: the next appends fail
+    let weg = heim.join("kette-weg");
+    std::fs::rename(heim.join("kette"), &weg).expect("rename");
+    for n in 1..=3 {
+        gesperrt(&mut c);
+        assert_eq!(
+            d.kette_fehler_zahl(),
+            n,
+            "exactly one error line per refusal"
+        );
+        assert!(!heim.join("kette").exists(), "no chain line anywhere");
+    }
+    let z = d.kette_fehler_letzte().expect("line");
+    assert_eq!(
+        z,
+        "halter.kette_fehler: {\"art\":\"halter.pfad_verboten\",\"klasse\":\"ein_ausgabe\"}\n"
     );
+    assert_eq!(zaehlen(z.as_bytes(), b"/auto"), 0, "no path in the line");
+    // back in place: chain lines again, the earlier three are still there
+    std::fs::rename(&weg, heim.join("kette")).expect("rename");
+    gesperrt(&mut c);
+    assert_eq!(pfadzeilen(&heim), 4);
+    assert_eq!(d.kette_fehler_zahl(), 3);
 }
 
 /// A server with the role `bruecke` and one target `copilot` at `port` with the rules `pfade` and, if given, the switch
@@ -868,7 +923,7 @@ fn dienst_erststart(
         uid(),
         START,
         eigene_gid_als("bruecke"),
-        Some(kette),
+        kette,
         uhr,
     ))
 }
@@ -925,7 +980,7 @@ fn erststart_sperrt_die_fuenf_pfade_mit_kettenzeile() {
         assert_eq!(z["ziel"], "copilot");
         assert_eq!(z["grund"], "pfad");
     }
-    assert!(!d.kette_gemeldet());
+    assert_eq!(d.kette_fehler_zahl(), 0);
     let p = formate::kette::pruefe_quelle(
         &heim.join("kette"),
         "halter",
@@ -1073,10 +1128,10 @@ fn antwortform_nennt_modellnamen_und_fehlercode() {
     .expect("line");
     assert_eq!(
         v["werte"],
-        json!({"anfrage.reasoning.effort": null, "anfrage.reasoning_effort": null,
+        json!({"anfrage.model": null, "anfrage.reasoning.effort": null, "anfrage.reasoning_effort": null,
             "data[].id": ["claude-sonnet-5.5", "gpt-6-luna"], "error.code": null,
-            "modelle": {"claude-sonnet-5.5": {"capabilities.supports.reasoning_effort": null, "policy.state": null},
-                "gpt-6-luna": {"capabilities.supports.reasoning_effort": null, "policy.state": null}}})
+            "modelle": {"claude-sonnet-5.5": {"capabilities.supports.reasoning_effort": null, "model_picker_enabled": null, "policy.state": null},
+                "gpt-6-luna": {"capabilities.supports.reasoning_effort": null, "model_picker_enabled": null, "policy.state": null}}})
     );
     assert_eq!(v["wert_verworfen"], 1);
     for fremd in ["name-wert", "tok-wert", "gpt 6"] {
@@ -1088,7 +1143,7 @@ fn antwortform_nennt_modellnamen_und_fehlercode() {
     assert_eq!(d.antwortform_zahl(), 2);
     let zeile = d.antwortform_letzte().expect("the journal line");
     assert!(
-        zeile.contains(r#""werte":{"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":[],"error.code":"model_not_supported","modelle":{}}"#),
+        zeile.contains(r#""werte":{"anfrage.model":null,"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":[],"error.code":"model_not_supported","modelle":{}}"#),
         "{zeile}"
     );
     assert!(zeile.contains(r#""status":400"#), "{zeile}");
@@ -1146,8 +1201,8 @@ fn antwortform_nennt_effort_und_stufen() {
     let v = letzte(&d);
     assert_eq!(
         v["werte"]["modelle"],
-        json!({"gpt-4.1": {"capabilities.supports.reasoning_effort": null, "policy.state": "enabled"},
-            "gpt-6-luna": {"capabilities.supports.reasoning_effort": ["none","low","medium","high","xhigh","max"], "policy.state": "enabled"}})
+        json!({"gpt-4.1": {"capabilities.supports.reasoning_effort": null, "model_picker_enabled": null, "policy.state": "enabled"},
+            "gpt-6-luna": {"capabilities.supports.reasoning_effort": ["none","low","medium","high","xhigh","max"], "model_picker_enabled": null, "policy.state": "enabled"}})
     );
     assert_eq!(v["werte"]["anfrage.reasoning_effort"], Value::Null);
     // an unknown effort: `anderer`, the text of the request stands nowhere
@@ -1196,6 +1251,67 @@ fn antwortform_nennt_effort_und_stufen() {
         "xhigh",
         "enabled",
     ] {
+        assert_eq!(
+            zaehlen(k.as_bytes(), wert.as_bytes()),
+            0,
+            "{wert} not in the chain"
+        );
+    }
+}
+
+/// The model of a chat request (decision of the operator, 28.11.2026): before a measured `GET /models` every model is
+/// `anderer`; after it a listed model stands as the entry of the list, an unlisted one as `anderer`, never its text; a
+/// request without `model` names `null`. The list holds for the later requests of the run; no model stands in the chain.
+#[test]
+fn antwortform_nennt_das_modell_der_anfrage() {
+    let modelle = br#"{"data":[{"id":"gpt-6-luna"},{"id":"gpt-4.1"}]}"#;
+    let json_kopf = "content-type: application/json\r\n";
+    let ok = || vec![http("200 OK", json_kopf, b"{}")];
+    let a = attrappe(vec![
+        ok(),
+        vec![http("200 OK", json_kopf, modelle)],
+        ok(),
+        ok(),
+        ok(),
+        ok(),
+    ]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(a.port, &heim, &ERSTSTART, Some(&ERSTSTART));
+    let mut c = verbinden(&d);
+    let mut modell = |methode: &str, pfad: &str, k: &[u8]| -> Value {
+        c.senden(&aufruf(methode, pfad, k));
+        assert_eq!(c.bis_schluss().last().expect("end")["ok"], json!(true));
+        let z = d.antwortform_letzte().expect("the journal line");
+        assert_eq!(zaehlen(z.as_bytes(), b"modell-wert-0815"), 0, "{z}");
+        let v: Value = serde_json::from_str(
+            z.strip_prefix("halter.antwortform: ")
+                .expect("prefix")
+                .trim_end(),
+        )
+        .expect("line");
+        v["werte"]["anfrage.model"].clone()
+    };
+    let luna = br#"{"model":"gpt-6-luna"}"#;
+    let fremd = br#"{"model":"modell-wert-0815"}"#;
+    // no list measured yet: a real name is `anderer`
+    assert_eq!(modell("POST", "/chat/completions", luna), "anderer");
+    assert_eq!(modell("GET", "/models", b""), Value::Null);
+    assert_eq!(modell("POST", "/chat/completions", luna), "gpt-6-luna");
+    assert_eq!(modell("POST", "/chat/completions", fremd), "anderer");
+    assert_eq!(modell("POST", "/chat/completions", b"{}"), Value::Null);
+    let v41 = br#"{"model":"gpt-4.1","messages":[]}"#;
+    assert_eq!(modell("POST", "/chat/completions", v41), "gpt-4.1");
+    assert_eq!(d.antwortform_zahl(), 6);
+    let anfragen = a.anfragen.lock().expect("lock");
+    assert_eq!(anfragen.len(), 6);
+    assert_eq!(
+        zaehlen(&anfragen[3], fremd),
+        1,
+        "the request reaches the target unchanged"
+    );
+    drop(anfragen);
+    let k = kette_text(&heim);
+    for wert in ["gpt-6-luna", "gpt-4.1", "modell-wert-0815"] {
         assert_eq!(
             zaehlen(k.as_bytes(), wert.as_bytes()),
             0,
@@ -1519,7 +1635,7 @@ fn l3_rolle_nur_mit_der_gid_der_rollengruppe() {
             konto,
             START,
             gruppen,
-            None,
+            heim.join("kette"),
             uhr,
         ))
     };
@@ -1608,7 +1724,7 @@ fn l3_gleicher_peer_mit_und_ohne_rollengruppe() {
         uid(),
         START,
         BTreeMap::from([(gruppe, Rolle::Bruecke)]),
-        None,
+        heim.join("kette"),
         uhr,
     ));
     let o = ordner();

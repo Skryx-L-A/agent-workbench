@@ -568,6 +568,9 @@ class Lauf:
                 st.fehler.append("json_vom_dienst")
                 continue
             if art == 0x06:
+                # Nachtrag 27.11.2026 (DI-E5): the service now opens every connection with the message Ereignisliste; it is no part of the cases of the bridge
+                if o.get("art") == "Ereignisliste":
+                    continue
                 st.nachrichten.append(o)
                 if o.get("art") == "Sitzungsliste":
                     st.liste = o

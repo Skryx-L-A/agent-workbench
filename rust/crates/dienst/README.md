@@ -57,7 +57,7 @@ the structure (`start::lesen_anfrage`, stages 1 to 13 of contract 1), settings f
 `start::pruefen` (stages 14 to 17), at most 8 running sessions, number, folder, child. A refusal of the check carries `grund` `start_pruefung`, `code`
 `start.<code>` and the fixed text of the stage, as the crate gives them (the service has no list of codes); the other refusals carry `grund`, `code` and
 `text` of the service. `Startwahl` carries per route `schluessel`, `art`, `klasse` and `modell` (the text of the route or `null`) and the harness table of
-contract 1 (`claude`, `copilot`, `pi`; a test holds it equal to the crate). `Beenden` sends SIGHUP and the loop sends SIGKILL after 1 s; at the end of the service every child gets SIGHUP, one second
+contract 1 (`claude`, `copilot`, `pi`, `opencode` (project decision, 27.11.2026); a test holds it equal to the crate). `Beenden` sends SIGHUP and the loop sends SIGKILL after 1 s; at the end of the service every child gets SIGHUP, one second
 together, then SIGKILL, and every folder the service made is removed. The error of one core builds only that core again (DI6).
 The frame `Kernfehler` of the test mode is not allowed with `lauf`.
 

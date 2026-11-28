@@ -1,7 +1,8 @@
 //! Reads the real machine into a [`Lage`]. Nothing here changes the machine.
 //!
 //! Every check has a time limit of [`FRIST`]; a check that could not be done reports `nicht_pruefbar` (fail closed, never
-//! a quiet green). The only commands that start are `systemctl` (read), `dpkg-query` (read), `id` (read) and `setpriv`
+//! a quiet green). The only commands that start are `systemctl` (read), `journalctl` (read, only the lines of
+//! `wb-halter.service` of the user since the boot), `dpkg-query` (read), `id` (read) and `setpriv`
 //! with `bwrap` as an unprivileged user (the two probes of the profile; they change nothing). The key file is never read:
 //! only its kind, owner, mode and size.
 //!
@@ -20,6 +21,23 @@ use formate::kette::sha256_hex;
 
 use crate::gruppe::{nss_nur_dateien, private_gruppe};
 use crate::lage::{Abweichung, DIENSTE, Einstellungen, HARNESS, Lage, OK, Paketstand, ordner_form};
+
+/// Most journal lines of the holder read for the check of its chain.
+pub const JOURNAL_ZEILEN: &str = "20000";
+
+/// The state of the chain of the holder after the text of its journal (one message per line): `rechte` if a line starts
+/// with `halter.kette_rechte:`, else `fehler` if a line starts with `halter.kette_fehler:`, else `ok`.
+#[must_use]
+pub fn halter_kette_aus(journal: &str) -> &'static str {
+    let hat = |p: &str| journal.lines().any(|z| z.starts_with(p));
+    if hat("halter.kette_rechte:") {
+        "rechte"
+    } else if hat("halter.kette_fehler:") {
+        "fehler"
+    } else {
+        OK
+    }
+}
 use crate::manifest::{self, Manifest, PROFIL_A, PROFIL_B, STARTER};
 use crate::ohne_doppel;
 use crate::programmordner;
@@ -388,6 +406,31 @@ impl Umgebung<'_> {
             (_, "active") => OK,
             (_, "failed") => "fehlgeschlagen",
             ("loaded" | "masked" | "error", _) => "inaktiv",
+            _ => "nicht_pruefbar",
+        }
+    }
+
+    /// The chain of the holder after its journal since the boot: the user unit `wb-halter.service` of the uid only, the
+    /// message text only (`-o cat`), read with `journalctl` (decision of the operator, 28.11.2026). No uid or a failed
+    /// read gives `nicht_pruefbar`.
+    fn halter_kette(&self, uid: Option<u32>) -> &'static str {
+        let Some(uid) = uid else {
+            return "nicht_pruefbar";
+        };
+        let nutzer = format!("_UID={uid}");
+        let args = [
+            "--no-pager",
+            "-q",
+            "-b",
+            "-o",
+            "cat",
+            "-n",
+            JOURNAL_ZEILEN,
+            "_SYSTEMD_USER_UNIT=wb-halter.service",
+            nutzer.as_str(),
+        ];
+        match self.system.befehl("journalctl", &args, FRIST) {
+            Some(a) if a.rc == Some(0) => halter_kette_aus(&a.stdout),
             _ => "nicht_pruefbar",
         }
     }
@@ -1142,6 +1185,7 @@ impl Umgebung<'_> {
                 .collect(),
             rollengruppe: rollengruppe.to_owned(),
             rollenprogramm: rollenprogramm.to_owned(),
+            halter_kette: self.halter_kette(uid).to_owned(),
             apparmor: apparmor.0.to_owned(),
             system_bwrap: if apparmor.1 { "ubuntu" } else { "gesperrt" }.to_owned(),
             einstellungen: self.einstellungen(),

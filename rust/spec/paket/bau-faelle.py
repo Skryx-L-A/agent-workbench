@@ -1029,6 +1029,25 @@ fall_pruef("linux-rolle-ohne-root-nicht-pruefbar-mit-hinweis", "Nachtrag Rolle a
            [RG["nicht_pruefbar"], HINWEIS_SUDO, "pruef.rot: 1 Befunde."], lx(lambda o: o.update(ohne_root=True, rollengruppe="nicht_pruefbar")))
 fall_pruef("linux-rolle-vor-entfernen-still", "Nachtrag Rolle aus der Gruppe: `prerm` sagt zu Gruppe und Programm nichts", 0, [],
            lx(lambda o: o.update(schluessel="fehlt", copilot="fehlt", rollengruppe="mitglied", rollenprogramm="modus")), aufruf=["--vor-entfernen"])
+# Entscheid des Betreibers, 28.11.2026: die Kette des Halters nach seinem Journal, Teil der Prüfung `dienste`, nach dem Rollenprogramm.
+HK = {"rechte": "pruef.halter_kette_rechte: Der Halter startete nicht, weil er seine Kette nicht schreiben kann (halter.kette_rechte); "
+                "Ordner halter/protokoll pruefen.",
+      "fehler": "pruef.halter_kette_fehler: Der Halter konnte Zeilen seiner Kette nicht schreiben (halter.kette_fehler im Journal); "
+                "Ablehnungen fehlen in der Kette.",
+      "nicht_pruefbar": "pruef.halter_kette_nicht_pruefbar: Das Journal des Halters war nicht pruefbar."}
+for z in ("rechte", "fehler", "nicht_pruefbar"):
+    fall_pruef("linux-halter-kette-" + z.replace("_", "-"), f"Entscheid 28.11.2026: Kette des Halters im Zustand {z}", 1, rot([HK[z]]),
+               lx(lambda o, z=z: o.update(halter_kette=z)))
+fall_pruef("linux-halter-kette-ohne-feld", "Entscheid 28.11.2026: ohne Lagefeld halter_kette gilt ok: grün, acht Prüfungen", 0, [OK7], lx())
+fall_pruef("linux-halter-kette-ok", "Entscheid 28.11.2026: halter_kette ausdrücklich ok: grün, acht Prüfungen", 0, [OK7],
+           lx(lambda o: o.update(halter_kette="ok")))
+fall_pruef("linux-halter-kette-nach-dem-rollenprogramm", "Entscheid 28.11.2026: Rollenprogramm, Kette und AppArmor rot: erst das Programm, dann die Kette, dann AppArmor", 1,
+           rot([RP["modus"], HK["fehler"], "pruef.apparmor_nicht_geladen: Das AppArmor-Profil ist nicht geladen."]),
+           lx(lambda o: o.update(rollenprogramm="modus", halter_kette="fehler", apparmor="nicht_geladen")))
+fall_pruef("linux-halter-kette-ohne-root-mit-hinweis", "Entscheid 28.11.2026: ohne root ist das Journal nicht lesbar: nicht_pruefbar und der Hinweis auf sudo", 1,
+           [HK["nicht_pruefbar"], HINWEIS_SUDO, "pruef.rot: 1 Befunde."], lx(lambda o: o.update(ohne_root=True, halter_kette="nicht_pruefbar")))
+fall_pruef("linux-halter-kette-vor-entfernen-still", "Entscheid 28.11.2026: `prerm` sagt zur Kette nichts", 0, [],
+           lx(lambda o: o.update(schluessel="fehlt", copilot="fehlt", halter_kette="fehler")), aufruf=["--vor-entfernen"])
 ALTER_ORT = "pruef.copilot_alter_ort: Am frueheren Ort liegt noch eine Anmeldedatei der Copilot CLI; sie wird nicht mehr gelesen und muss weg."
 fall_pruef("linux-copilot-alter-ort", "Nachtrag Halter: anmeldung.copilot ist in Ordnung, die Datei am früheren Ort liegt noch da: ein eigener Befund", 1,
            rot([ALTER_ORT]), lx(lambda o: o.update(copilot_alt=True)))

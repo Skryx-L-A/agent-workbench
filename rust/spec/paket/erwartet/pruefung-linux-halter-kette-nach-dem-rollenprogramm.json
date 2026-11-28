@@ -1,0 +1,10 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.rollenprogramm_modus: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg hat nicht root:wb-bruecke mit Modus 2755.",
+  "pruef.halter_kette_fehler: Der Halter konnte Zeilen seiner Kette nicht schreiben (halter.kette_fehler im Journal); Ablehnungen fehlen in der Kette.",
+  "pruef.apparmor_nicht_geladen: Das AppArmor-Profil ist nicht geladen.",
+  "pruef.rot: 3 Befunde."
+ ]
+}

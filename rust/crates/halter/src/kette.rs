@@ -14,16 +14,45 @@ use serde_json::json;
 use crate::code::Code;
 use crate::pruefung::{PfadAbgelehnt, ScheinAbgelehnt};
 
-/// The fixed line of the journal when the chain cannot be continued (finding F16): no path, no content.
-pub const ANKER_ZEILE: &str = "halter.kette_anker: Anker der Kette beschaedigt";
-/// See [`ANKER_ZEILE`]: any other failure of the chain.
-pub const KETTE_ZEILE: &str = "halter.kette: Kette nicht fortgeschrieben";
+/// The start of the journal line when a line cannot be appended to the chain (decision of the operator, 28.11.2026; it
+/// takes the place of the two fixed lines of finding F16).
+pub const FEHLER_PRAEFIX: &str = "halter.kette_fehler: ";
+
+/// The classes of a failed append, as fixed words: `anker` (the anchor is unreadable or does not fit, formerly the line
+/// `halter.kette_anker`), `ein_ausgabe` (open, lock, read or write failed), `bruch` (the last line is incomplete, another
+/// line came under the lock, or the chain is broken), `zeit` (the time is invalid or its month is closed) and `zeile`
+/// (the line itself was refused).
+pub const KLASSEN: [&str; 5] = ["anker", "ein_ausgabe", "bruch", "zeit", "zeile"];
+
+/// The class of [`KLASSEN`] of an error of `formate`; never its text.
+#[must_use]
+pub fn klasse(f: &formate::kette::Fehler) -> &'static str {
+    use formate::kette::Fehler as F;
+    match f {
+        F::AnkerFalsch => KLASSEN[0],
+        F::EinAusgabe(_) => KLASSEN[1],
+        F::LetzteZeileUnvollstaendig | F::VorherAbweichend | F::KetteBruch(_) => KLASSEN[2],
+        F::ZeitUngueltig | F::ZeitRueckwaerts | F::AbschnittVorhanden => KLASSEN[3],
+        F::NichtEndlich | F::FeldUngueltig(_) | F::ZeileUngueltig(_) => KLASSEN[4],
+    }
+}
+
+/// The journal line of a failed append: [`FEHLER_PRAEFIX`] and the canonical JSON object with exactly `art` (the
+/// `aktionsname` of the lost line) and `klasse` (a word of [`KLASSEN`]), then LF. No path, no content, no value.
+#[must_use]
+pub fn fehler_zeile(art: &str, klasse: &str) -> String {
+    let w = json!({ "art": art, "klasse": klasse });
+    format!(
+        "{FEHLER_PRAEFIX}{}\n",
+        crate::json::kanonisch(&w).unwrap_or_default()
+    )
+}
 
 /// Appends the line `mcp.schein_abgelehnt` for `code`, if the fixed list has a reason for it. `Ok(true)` if a line was
 /// written, `Ok(false)` if the list has no reason.
 ///
 /// # Errors
-/// The fixed line for the journal ([`ANKER_ZEILE`] or [`KETTE_ZEILE`]) when the chain cannot be continued.
+/// The class of [`klasse`] when the chain cannot be continued.
 pub fn schein_abgelehnt(
     ordner: &Path,
     zeit_ms: i64,
@@ -44,8 +73,7 @@ pub fn schein_abgelehnt(
     });
     match formate::kette::anhaengen_zeile(ordner, "halter", zeit_ms, &zeile) {
         Ok(_) => Ok(true),
-        Err(formate::kette::Fehler::AnkerFalsch) => Err(ANKER_ZEILE),
-        Err(_) => Err(KETTE_ZEILE),
+        Err(e) => Err(klasse(&e)),
     }
 }
 
@@ -54,7 +82,7 @@ pub fn schein_abgelehnt(
 /// `vorher` and `zeit` come from `formate`. Never a value, a path, a head, a body, an `id`, a `lauf` or a part of the hit.
 ///
 /// # Errors
-/// The fixed line for the journal ([`ANKER_ZEILE`] or [`KETTE_ZEILE`]) when the chain cannot be continued.
+/// The class of [`klasse`] when the chain cannot be continued.
 pub fn leck_zeile(ordner: &Path, zeit_ms: i64, op: &str, ziel: &str) -> Result<(), &'static str> {
     let zeile = json!({
         "aktionsname": "halter.leck_gesperrt",
@@ -65,8 +93,7 @@ pub fn leck_zeile(ordner: &Path, zeit_ms: i64, op: &str, ziel: &str) -> Result<(
     });
     match formate::kette::anhaengen_zeile(ordner, "halter", zeit_ms, &zeile) {
         Ok(_) => Ok(()),
-        Err(formate::kette::Fehler::AnkerFalsch) => Err(ANKER_ZEILE),
-        Err(_) => Err(KETTE_ZEILE),
+        Err(e) => Err(klasse(&e)),
     }
 }
 
@@ -89,12 +116,11 @@ pub fn pfad_wert(p: &PfadAbgelehnt) -> serde_json::Value {
 /// Appends [`pfad_wert`] to the chain (the kind is in the register of contract 5, `REGISTER_FREMD`).
 ///
 /// # Errors
-/// The fixed line for the journal ([`ANKER_ZEILE`] or [`KETTE_ZEILE`]) when the chain cannot be continued.
+/// The class of [`klasse`] when the chain cannot be continued.
 pub fn pfad_zeile(ordner: &Path, zeit_ms: i64, p: &PfadAbgelehnt) -> Result<(), &'static str> {
     match formate::kette::anhaengen_zeile(ordner, "halter", zeit_ms, &pfad_wert(p)) {
         Ok(_) => Ok(()),
-        Err(formate::kette::Fehler::AnkerFalsch) => Err(ANKER_ZEILE),
-        Err(_) => Err(KETTE_ZEILE),
+        Err(e) => Err(klasse(&e)),
     }
 }
 
@@ -117,7 +143,7 @@ mod tests {
                 "methode": "POST", "op": "modell.aufruf", "pfad": "/v1/fremd", "ziel": "copilot"})
         );
         let weg = std::env::temp_dir().join(format!("halter-pfad-fehlt-{}", std::process::id()));
-        assert_eq!(pfad_zeile(&weg, 1_795_000_000_000, &p), Err(KETTE_ZEILE));
+        assert_eq!(pfad_zeile(&weg, 1_795_000_000_000, &p), Err("ein_ausgabe"));
         // the register holds the kind: the line goes into the chain, and the chain stays whole
         let o = ordner("pfad");
         assert_eq!(pfad_zeile(&o, 1_795_000_000_000, &p), Ok(()));
@@ -127,10 +153,45 @@ mod tests {
         assert_eq!(geprueft.zeilen, 1);
         let anker = ordner("pfad-anker");
         std::fs::write(anker.join("halter.anker.jsonl"), b"kaputt\n").expect("anchor");
-        assert_eq!(pfad_zeile(&anker, 1_795_000_000_000, &p), Err(ANKER_ZEILE));
+        assert_eq!(pfad_zeile(&anker, 1_795_000_000_000, &p), Err("anker"));
         for d in [o, anker] {
             let _ = std::fs::remove_dir_all(d);
         }
+    }
+
+    /// Every error of `formate` has a class of the fixed list; the line names only the kind and the class.
+    #[test]
+    fn klasse_und_zeile_des_fehlers() {
+        use formate::kette::Fehler as F;
+        let faelle = [
+            (F::AnkerFalsch, "anker"),
+            (
+                F::EinAusgabe("/heim/beispiel/geheim".to_owned()),
+                "ein_ausgabe",
+            ),
+            (F::LetzteZeileUnvollstaendig, "bruch"),
+            (F::VorherAbweichend, "bruch"),
+            (F::ZeitUngueltig, "zeit"),
+            (F::ZeitRueckwaerts, "zeit"),
+            (F::AbschnittVorhanden, "zeit"),
+            (F::NichtEndlich, "zeile"),
+            (F::FeldUngueltig("pfad"), "zeile"),
+            (F::ZeileUngueltig("inhalt-wert".to_owned()), "zeile"),
+        ];
+        for (f, k) in &faelle {
+            assert_eq!(klasse(f), *k, "{f:?}");
+            assert!(KLASSEN.contains(&klasse(f)));
+        }
+        assert_eq!(
+            fehler_zeile("halter.pfad_verboten", "ein_ausgabe"),
+            "halter.kette_fehler: {\"art\":\"halter.pfad_verboten\",\"klasse\":\"ein_ausgabe\"}\n"
+        );
+        // a missing folder is `ein_ausgabe`, and the line of a refused ticket gives the same class
+        let weg = std::env::temp_dir().join(format!("halter-klasse-fehlt-{}", std::process::id()));
+        assert_eq!(
+            schein_abgelehnt(&weg, 1_795_000_000_000, Code::ScheinBenutzt, &schein()),
+            Err("ein_ausgabe")
+        );
     }
 
     fn schein() -> ScheinAbgelehnt {
@@ -165,11 +226,11 @@ mod tests {
         let anker = ordner("anker");
         std::fs::write(anker.join("halter.anker.jsonl"), b"kaputt\n").expect("anchor");
         let r = schein_abgelehnt(&anker, 1_795_000_000_000, Code::ScheinBenutzt, &schein());
-        assert_eq!(r, Err(ANKER_ZEILE));
+        assert_eq!(r, Err("anker"));
         let weg = gut.join("fehlt");
         assert_eq!(
             schein_abgelehnt(&weg, 1_795_000_000_000, Code::ScheinBenutzt, &schein()),
-            Err(KETTE_ZEILE)
+            Err("ein_ausgabe")
         );
         for o in [gut, anker] {
             let _ = std::fs::remove_dir_all(o);
@@ -268,7 +329,7 @@ mod leck_tests {
         std::fs::write(anker.join("halter.anker.jsonl"), b"kaputt\n").expect("anchor");
         assert_eq!(
             leck_zeile(&anker, 1_795_000_000_000, "modell.aufruf", "copilot"),
-            Err(ANKER_ZEILE)
+            Err("anker")
         );
         assert_eq!(
             leck_zeile(
@@ -277,7 +338,7 @@ mod leck_tests {
                 "modell.aufruf",
                 "copilot"
             ),
-            Err(KETTE_ZEILE)
+            Err("ein_ausgabe")
         );
         let _ = std::fs::remove_dir_all(&o);
     }

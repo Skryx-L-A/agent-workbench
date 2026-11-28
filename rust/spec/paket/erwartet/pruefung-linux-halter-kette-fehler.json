@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.halter_kette_fehler: Der Halter konnte Zeilen seiner Kette nicht schreiben (halter.kette_fehler im Journal); Ablehnungen fehlen in der Kette.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

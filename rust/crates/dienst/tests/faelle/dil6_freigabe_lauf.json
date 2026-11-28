@@ -68,7 +68,8 @@
      "a-1"
     ],
     "art": "Freigabe",
-    "begruendung": "passt"
+    "begruendung": "passt",
+    "entscheidung": "erteilen"
    }
   },
   {
@@ -91,7 +92,8 @@
      "a-1",
      "a-2"
     ],
-    "art": "Freigabe"
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
    }
   },
   {
@@ -101,7 +103,8 @@
     "anfragen": [
      "a-1"
     ],
-    "art": "Freigabe"
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
    }
   },
   {
@@ -111,7 +114,8 @@
     "anfragen": [
      "a-1"
     ],
-    "art": "Freigabe"
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
    }
   },
   {
@@ -134,6 +138,7 @@
      "a-1"
     ],
     "art": "Freigabe",
+    "entscheidung": "erteilen",
     "sitzung": "s-1"
    }
   },
@@ -144,7 +149,8 @@
     "anfragen": [
      "a-1"
     ],
-    "art": "Freigabe"
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
    }
   },
   {

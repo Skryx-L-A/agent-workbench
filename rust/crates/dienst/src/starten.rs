@@ -11,7 +11,9 @@
 use std::fs::File;
 #[cfg(unix)]
 use std::fs::{DirBuilder, OpenOptions};
-use std::io::{Read, Write};
+use std::io::Read;
+#[cfg(unix)]
+use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 
@@ -133,12 +135,13 @@ pub(crate) fn starten_form(ereignis: &Map<String, Value>) -> Result<&Value, Abge
     }
 }
 
-/// The harness table of contract 1 (fassung 1 with the addendum of 20 November): name, kind and allowed kind of route. The crate `start` checks the
+/// The harness table of contract 1 (fassung 1 with the addenda of 20 and 27 November): name, kind and allowed kind of route. The crate `start` checks the
 /// harness itself; this table only feeds `Startwahl`. The test `harness_tabelle_gleicht_dem_crate` holds it equal to the crate.
-pub(crate) const HARNESS: [(&str, &str, Routenart); 3] = [
+pub(crate) const HARNESS: [(&str, &str, Routenart); 4] = [
     ("claude", "cloud", Routenart::Cloud),
     ("copilot", "cloud", Routenart::Cloud),
     ("pi", "lokal", Routenart::Lokal),
+    ("opencode", "lokal", Routenart::Lokal),
 ];
 
 /// Reads the settings file (path from the start file only): a regular file of at most [`EINST_MAX`] bytes that the crate `einstellungen` reads
@@ -643,7 +646,8 @@ mod tests {
             json!([
                 {"name": "claude", "art": "cloud", "routenart": "cloud"},
                 {"name": "copilot", "art": "cloud", "routenart": "cloud"},
-                {"name": "pi", "art": "lokal", "routenart": "lokal"}
+                {"name": "pi", "art": "lokal", "routenart": "lokal"},
+                {"name": "opencode", "art": "lokal", "routenart": "lokal"}
             ])
         );
         let text = w.to_string();

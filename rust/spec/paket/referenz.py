@@ -984,6 +984,15 @@ ROLLENPROGRAMM_SATZ = {
     "modus": "pruef.rollenprogramm_modus: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg hat nicht root:wb-bruecke mit Modus 2755.",
     "nicht_pruefbar": "pruef.rollenprogramm_nicht_pruefbar: Das Rollenprogramm war nicht pruefbar.",
 }
+# Entscheid des Betreibers, 28.11.2026: die Kette des Halters nach dem Journal von wb-halter.service seit dem Start des Rechners.
+# Lagefeld optional (fehlt es, gilt `ok`); die Zeile steht nach der des Rollenprogramms, noch in der Prüfung `dienste`.
+HALTER_KETTE_SATZ = {
+    "rechte": "pruef.halter_kette_rechte: Der Halter startete nicht, weil er seine Kette nicht schreiben kann (halter.kette_rechte); "
+              "Ordner halter/protokoll pruefen.",
+    "fehler": "pruef.halter_kette_fehler: Der Halter konnte Zeilen seiner Kette nicht schreiben (halter.kette_fehler im Journal); "
+              "Ablehnungen fehlen in der Kette.",
+    "nicht_pruefbar": "pruef.halter_kette_nicht_pruefbar: Das Journal des Halters war nicht pruefbar.",
+}
 SCHLUESSEL_SATZ = {
     "fehlt": "pruef.schluessel_fehlt: Die Schluesseldatei fehlt.",
     "art": "pruef.schluessel_art: Die Schluesseldatei ist keine gewoehnliche Datei.",
@@ -999,7 +1008,7 @@ HINWEIS_SUDO = "pruef.hinweis_sudo: Ohne root waren nicht alle Pruefungen moegli
 
 def _nicht_pruefbar(lage):
     """Ubuntu: meldet irgendeine der acht Prüfungen `nicht_pruefbar`?"""
-    zustaende = [d["zustand"] for d in lage["dienste"]] + [lage.get("rollengruppe", "ok"), lage.get("rollenprogramm", "ok"), lage["apparmor"], lage["einstellungen"]["zustand"], lage["nutzerordner"],
+    zustaende = [d["zustand"] for d in lage["dienste"]] + [lage.get("rollengruppe", "ok"), lage.get("rollenprogramm", "ok"), lage.get("halter_kette", "ok"), lage["apparmor"], lage["einstellungen"]["zustand"], lage["nutzerordner"],
                                                            lage["schluessel"], lage["copilot"], lage["vault"], lage["paketstand"]["manifest"]]
     return "nicht_pruefbar" in zustaende
 
@@ -1034,7 +1043,7 @@ def pruefbefehl(aufruf, lage):
             if z == "ok":
                 continue
             befunde.append(DIENST_SATZ[z].format(n=n))
-        for feld, tabelle in (("rollengruppe", ROLLENGRUPPE_SATZ), ("rollenprogramm", ROLLENPROGRAMM_SATZ)):
+        for feld, tabelle in (("rollengruppe", ROLLENGRUPPE_SATZ), ("rollenprogramm", ROLLENPROGRAMM_SATZ), ("halter_kette", HALTER_KETTE_SATZ)):
             if lage.get(feld, "ok") != "ok":
                 befunde.append(tabelle[lage[feld]])
         if lage["apparmor"] != "ok":

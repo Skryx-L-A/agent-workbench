@@ -23,6 +23,7 @@ import hashlib
 import fcntl
 import json
 import os
+import pwd
 import stat as stat_mod
 import re
 import selectors
@@ -43,6 +44,25 @@ import zk_ref  # noqa: E402
 MUT = os.environ.get("REF_GEGENPROBE", "")
 
 MUTANTEN = [
+    # Nachtrag 26.11.2026: DI-L1, DI-L3, DI-L5, DI-L11
+    "worker_orchestrator_ungeprueft", "worker_fremder_kunde", "agenten_vom_raumkern",
+    "umbenennen_ohne_pruefung", "loeschen_laufend", "loeschen_ohne_bestaetigung", "loeschen_kennung_wieder",
+    "fortsetzen_laufend", "fortsetzen_ohne_verweis", "wiederbeleben_ohne_absturz",
+    "liste_ohne_ordner", "projekt_ganzer_pfad", "bestand_vergessen", "bestand_laeuft_bleibt",
+    "konto_aus_ereignis", "lokal_ohne_peerpruefung", "lokal_ohne_starten",
+    # Nachtrag 27.11.2026: Loeschen with the conversation, Firmenvorgabe at the start
+    "loeschen_gespraech_bleibt", "loeschen_folgt_verweis", "loeschen_gespraeche_ganz", "loeschen_fortgesetzt_gespraech",
+    "vorgabe_start_ungeprueft", "vorgabe_neu_geladen",
+    # Nachtrag 27.11.2026: the list of events of a connection (DI-E5)
+    "ereignisliste_fehlt", "ereignisliste_nicht_zuerst", "ereignisliste_wiederholt", "ereignisliste_mit_abgelehnter",
+    "ereignisliste_ohne_angenommene", "ereignisliste_ohne_lauf_arten", "ereignisliste_je_dienst", "ereignisliste_unsortiert",
+    "freigabe_ueber_bruecke", "freigabe_grund_falsch", "freigabe_lokal_ohne_stelle",
+    # Nachtrag 27.11.2026: a continuation that lauf ends before any child leaves the old session free (DI-L3 point 2)
+    "fortgesetzt_bleibt_ohne_kind",
+    # Nachtrag 27.11.2026, DI12 Punkt 15: a conversation under lauf.gespraeche takes its number
+    "gespraeche_vergabe_ungeprueft",
+    # Nachtrag 27.11.2026, DI-L3 point 2: a session of version 1 is nicht_fortsetzbar
+    "fortsetzen_fassung1_ok",
     # DI1 Startdatei
     "start_unbekannter_schluessel_ok", "start_groesse_1001_ok", "start_ruecklauf_ohne_grenze", "start_mehrere_sitzungen_ok",
     "start_relativer_pfad_ok", "start_datei_ohne_grenze", "start_socketname_pfad_ok", "start_traegerfeld_ok",
@@ -147,8 +167,15 @@ SOCKET_PFAD_MAX = 100
 
 A_EREIGNIS, A_UHR, A_STUMM, A_ZUSTAND, A_KERNFEHLER = 0x01, 0x10, 0x11, 0x12, 0x13
 A_RASTER, A_NACHRICHT, A_ABLEHNUNG, A_FEHLER = 0x05, 0x06, 0x07, 0x08
-ERLAUBT = {"Abo", "Groesse", "Text", "Taste", "Einfuegen", "Antwort", "Freigabe", "RouteWaehlen", "EinstellungSetzen", "RaumWechsel"}
-TOP_SCHLUESSEL = {"socket", "betrachter", "kind", "groesse", "ruecklauf", "deflate", "pruefmodus", "anfang", "warteschlange_max", "lauf"}
+ERLAUBT = {"Abo", "Groesse", "Text", "Taste", "Einfuegen", "Antwort", "Freigabe", "RouteWaehlen", "EinstellungSetzen", "RaumWechsel",
+           "OrdnerLesen", "InhaltSuchen"}        # OrdnerLesen, InhaltSuchen: Nachtrag 26.11.2026 (L9)
+EIGENE_LAUF = ("Starten", "Beenden", "Umbenennen", "Loeschen", "Fortsetzen", "Wiederbeleben")
+# Nachtrag 27.11.2026 (DI-E5): the catalogue of all modes in the order of the contract (DI3, then the events of the service in the run)
+KATALOG = ("Abo", "Groesse", "Text", "Taste", "Einfuegen", "Antwort", "Freigabe", "RouteWaehlen", "EinstellungSetzen", "RaumWechsel",
+           "OrdnerLesen", "InhaltSuchen") + EIGENE_LAUF
+L9_GRENZE_PFAD, L9_GRENZE_GLIEDER, L9_GRENZE_MUSTER = 4096, 64, 256
+TOP_SCHLUESSEL = {"socket", "betrachter", "kind", "groesse", "ruecklauf", "deflate", "pruefmodus", "anfang", "warteschlange_max", "lauf",
+                  "lokal"}       # lokal: Nachtrag 26.11.2026, DI-L11
 LAUF_SCHLUESSEL = {"programm", "env", "groesse", "einstellungen"}      # einstellungen: addendum of 20.11.2026, Pflicht
 START_MAX = 4096              # Nachtrag vom 20.11.2026: die Start-Struktur hat hoechstens 4096 Byte (kanonische Form, vor dem Einsetzen von `sitzung`)
 SITZUNGEN_MAX = 8             # gleichzeitig laufende Sitzungen (decision of 20.11.2026 (a))
@@ -157,12 +184,26 @@ NUMMER_MAX = 255              # die Sitzungsnummer im Rasterrahmen ist ein Byte 
 KENNUNG_MAX = 999_999_999     # Nachtrag P25: die meisten Kennungen s-<n> je Lauf (neun Ziffern, ^s-[0-9]{1,9}$); eine Kennung wird nie wiederverwendet
 KILL_FRIST = 1.0              # Beenden und Dienstende: SIGHUP, bis zu 1 s, SIGKILL
 START_EREIGNIS = {"art", "start"}
+START_WORKER = {"orchestrator", "rolle"}       # Nachtrag 26.11.2026, DI-L1: the keys of Starten beside `start`
+FELD_VERBOTEN = ("konto", "wer", "person", "uid", "sid")     # Nachtrag 26.11.2026, DI-L11 point 7: never an account from the view
+KENNUNG = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+BESTAND_MAX = 4194304          # Nachtrag 26.11.2026, DI-L5: the largest Bestand file
+HALLO = b"pk1\n"               # peerkanal, Fassung 1: the hello of the local way (DI-L11)
+HALLO_FRIST = 2.0
+LOKAL_INSTANZEN = 8
 # addendum of 20.11.2026: the harness table of version 1 (contract 1) and the fixed texts of the refusals of Starten
 HARNESS_TABELLE = [{"name": "claude", "art": "cloud", "routenart": "cloud"}, {"name": "copilot", "art": "cloud", "routenart": "cloud"},
-                   {"name": "pi", "art": "lokal", "routenart": "lokal"}]
+                   {"name": "pi", "art": "lokal", "routenart": "lokal"},
+                   {"name": "opencode", "art": "lokal", "routenart": "lokal"}]       # Nachtrag 27.11.2026 (Projektentscheid): opencode, the third harness, local
 HARNESS_ART = {h["name"]: h["routenart"] for h in HARNESS_TABELLE}
 TEXTE = {"start_form": "Start hat falsche Form", "einst_unlesbar": "Einstellungsdatei nicht lesbar", "zu_viele_sitzungen": "Zu viele Sitzungen",
-         "nummern_erschoepft": "Keine Sitzungsnummer frei", "start_ordner": "Ordner der Sitzung nicht anlegbar", "programm_nicht_startbar": "Programm nicht startbar"}
+         "nummern_erschoepft": "Keine Sitzungsnummer frei", "start_ordner": "Ordner der Sitzung nicht anlegbar", "programm_nicht_startbar": "Programm nicht startbar",
+         # Nachtrag 26.11.2026 (DI-L1, DI-L3)
+         "orchestrator_unbekannt": "Orchestrator unbekannt", "orchestrator_beendet": "Orchestrator ist beendet",
+         "orchestrator_ist_worker": "Orchestrator ist selbst ein Worker", "orchestrator_fremder_kunde": "Kunde weicht vom Orchestrator ab",
+         "fortsetzen_form": "Fortsetzen hat falsche Form", "wiederbeleben_form": "Wiederbeleben hat falsche Form",
+         "sitzung_unbekannt": "Sitzung unbekannt", "sitzung_laeuft": "Sitzung läuft", "schon_fortgesetzt": "Sitzung ist schon fortgesetzt",
+         "nicht_fortsetzbar": "Sitzung lässt sich nicht fortsetzen", "nicht_abgestuerzt": "Sitzung ist nicht abgestürzt"}
 FILTER_ENV = ("CPATH", "LIBRARY_PATH", "MANPATH", "SDKROOT", "__CF_USER_TEXT_ENCODING")
 
 
@@ -251,7 +292,8 @@ def start_pruefen(o):
         L = o["lauf"]
         if not isinstance(L, dict):
             bad("lauf")
-        fremd = set(L) - LAUF_SCHLUESSEL - {"nummer_max", "rahmen_max", "sitzungen", "ziellisten", "laufzeit", "marker_datei", "marker_ordner"}
+        fremd = set(L) - LAUF_SCHLUESSEL - {"nummer_max", "rahmen_max", "sitzungen", "ziellisten", "laufzeit", "marker_datei", "marker_ordner",
+                                            "bestand", "stelle", "gespraeche", "firmenvorgabe", "vorgabe_helfer"}
         pflicht = LAUF_SCHLUESSEL - ({"einstellungen"} if m("lauf_einstellungen_nicht_pflicht") else set())
         if (fremd and not m("lauf_unbekannter_schluessel_ok")) or not pflicht <= set(L):
             bad("lauf")
@@ -265,6 +307,23 @@ def start_pruefen(o):
             if not (isinstance(sz, str) and 0 < len(sz.encode()) <= 4096 and "\x00" not in sz
                     and (sz.startswith("/") or m("sitzungen_relativ_ok"))):
                 bad("lauf.sitzungen muss ein absoluter Pfad sein")
+        if "bestand" in L:         # Nachtrag 26.11.2026, DI-L5 point 3: like lauf.einstellungen
+            bs = L["bestand"]
+            if not (isinstance(bs, str) and 0 < len(bs.encode()) <= 4096 and "\x00" not in bs and bs.startswith("/")):
+                bad("lauf.bestand muss ein absoluter Pfad sein")
+        for k_ in ("gespraeche", "firmenvorgabe", "vorgabe_helfer"):      # Nachtrag 27.11.2026: like lauf.bestand
+            if k_ in L:
+                v_ = L[k_]
+                if not (isinstance(v_, str) and 0 < len(v_.encode()) <= 4096 and "\x00" not in v_ and v_.startswith("/")):
+                    bad("lauf.%s muss ein absoluter Pfad sein" % k_)
+        if "stelle" in L:          # Nachtrag 26.11.2026, DI-L6 point 2: the form only (the reference has no channel to a decision point)
+            st_ = L["stelle"]
+            # Nachtrag 27.11.2026, Kanal zur Stelle point 2: the only form carries `erwartet` (Unix: ordner and uid)
+            er_ = st_.get("erwartet") if isinstance(st_, dict) else None
+            if not (isinstance(st_, dict) and set(st_) <= {"ordner", "erwartet", "nachweis"} and isinstance(st_.get("ordner"), str)
+                    and st_["ordner"].startswith("/") and isinstance(er_, dict) and set(er_) == {"uid"}
+                    and isinstance(er_["uid"], int) and not isinstance(er_["uid"], bool) and er_["uid"] >= 0):
+                bad("lauf.stelle")
         global MARKER_DIENST, MARKER_PFAD
         MARKER_DIENST, MARKER_PFAD = None, None
         if "laufzeit" in L:        # Nachtrag 2 (Entscheidung vom 21.11.2026): wie lauf.sitzungen
@@ -311,7 +370,10 @@ def start_pruefen(o):
                 **({"ziellisten": L["ziellisten"]} if "ziellisten" in L else {}),
                 **({"laufzeit": L["laufzeit"]} if "laufzeit" in L else {}),
                 **({"marker_datei": L["marker_datei"]} if "marker_datei" in L else {}),
-                **({"marker_ordner": L["marker_ordner"]} if "marker_ordner" in L else {})}
+                **({"marker_ordner": L["marker_ordner"]} if "marker_ordner" in L else {}),
+                **({"bestand": L["bestand"]} if "bestand" in L else {}),
+                **({"stelle": L["stelle"]} if "stelle" in L else {}),
+                **{k_: L[k_] for k_ in ("gespraeche", "firmenvorgabe", "vorgabe_helfer") if k_ in L}}
     s = o["socket"]
     if not (isinstance(s, dict) and set(s) <= {"ordner", "name"} and isinstance(s.get("ordner"), str)):
         bad("socket")
@@ -326,6 +388,15 @@ def start_pruefen(o):
     pfad = ordner.rstrip("/") + "/" + name
     if len(pfad.encode()) > SOCKET_PFAD_MAX:
         bad("Socket-Pfad ist laenger als %d Byte" % SOCKET_PFAD_MAX)
+    lokal = None
+    if "lokal" in o:               # Nachtrag 26.11.2026, DI-L11 point 1
+        lo = o["lokal"]
+        if not (isinstance(lo, dict) and set(lo) == {"kanal"} and isinstance(lo["kanal"], str) and KENNUNG.fullmatch(lo["kanal"])):
+            bad("lokal")
+        lp = ordner.rstrip("/") + "/" + lo["kanal"] + ".sock"
+        if len(lp.encode()) > SOCKET_PFAD_MAX or lo["kanal"] + ".sock" == name:
+            bad("lokal.kanal")
+        lokal = {"kanal": lo["kanal"], "pfad": lp}
     b = o["betrachter"]
     if not (isinstance(b, dict) and set(b) == {"person", "raum", "ansicht"} and all(isinstance(b[k], str) for k in b)
             and b["ansicht"] in ("fenster", "browser")):
@@ -400,7 +471,7 @@ def start_pruefen(o):
         bad("anfang: %r" % e)
     return {"ordner": ordner, "name": name, "pfad": pfad, "betrachter": b, "argv": argv, "env": env, "cwd": cwd,
             "groesse": list(g) if g else None, "ruecklauf": rl, "deflate": de, "pruefmodus": pm, "anfang": a, "sid": s0["id"] if s0 else None,
-            "wmax": wmax, "lauf": lauf,
+            "wmax": wmax, "lauf": lauf, "lokal": lokal,
             **({"wmax_gesetzt": True} if "warteschlange_max" in o else {})}
 
 
@@ -440,6 +511,21 @@ def rechte_pruefen(cfg):
         os.unlink(cfg["pfad"])
     except FileNotFoundError:
         pass
+    if cfg.get("lokal"):           # Nachtrag 26.11.2026, DI-L11 point 3: the path of the local way must not exist (pk.name_belegt)
+        try:
+            os.lstat(cfg["lokal"]["pfad"])
+            raise StartFehler(3, "Pfad des lokalen Wegs besteht schon")
+        except FileNotFoundError:
+            pass
+    L = cfg.get("lauf") or {}
+    if L.get("bestand"):           # Nachtrag 26.11.2026, DI-L5 point 3: the folder of the Bestand like DI2 points 1 to 3
+        eltern = os.path.dirname(L["bestand"]) or "/"
+        try:
+            st = os.lstat(eltern)
+        except OSError:
+            raise StartFehler(3, "Ordner des Bestands fehlt")
+        if stat.S_ISLNK(st.st_mode) or not stat.S_ISDIR(st.st_mode) or st.st_uid != os.geteuid() or stat.S_IMODE(st.st_mode) != 0o700:
+            raise StartFehler(3, "Ordner des Bestands hat falsche Rechte")
 
 
 # ---------------------------------------------------------------------------------------------- Traeger (Stand-in)
@@ -681,6 +767,7 @@ class Client:
         self.gesperrt = False
         self.tot = False
         self.zuletzt = 0
+        self.wer = None                 # DI-L11 point 4: the account of the partner, only on the local way
 
 
 def proz_stand(pid):
@@ -747,6 +834,53 @@ class Sitzung:
         self.kind_pid = None            # pid and start time of the child at the start of the session (for the pid protection at the end)
         self.kind_start = None
         self.beendet_als = None         # P25: the place of this session in the order of the ends of the run (1 for the first end); None while it runs
+        # Nachtrag 26.11.2026
+        self.name = ""                  # DI-L3 Umbenennen, DI-L5
+        self.arbeitsordner = ""         # DI-L5 `ordner`
+        self.start = None               # the start structure of the request (DI-L3 Fortsetzen, DI-L5 Bestand)
+        self.orchestrator = None        # DI-L1
+        self.rolle = None
+        self.fortsetzung_von = None     # DI-L3
+        self.fortgesetzt_als = None
+        self.ende_art = None            # "beenden", "selbst" or "neustart" (DI-L5 point 2)
+        self.grund = None
+
+    def abgestuerzt(self):
+        """DI-L5 point 2: ended by itself with a code other than 0, or still running at the end of the last run of the service."""
+        if self.zustand != "beendet":
+            return False
+        if m("wiederbeleben_ohne_absturz"):
+            return True
+        return self.ende_art == "neustart" or (self.ende_art == "selbst" and self.kind_ende not in (0, None))
+
+
+def projekt_von(ordner):
+    """DI-L5 point 1: the display name is the last part of the working folder; "" for "" and "/"."""
+    if m("projekt_ganzer_pfad"):
+        return ordner
+    teil = ordner.rstrip("/").rsplit("/", 1)[-1] if ordner else ""
+    return teil
+
+
+def name_ok(n):
+    """DI-L3 point 1: 1 to 64 characters, no control character, no white space at the start or the end."""
+    if m("umbenennen_ohne_pruefung"):
+        return isinstance(n, str)
+    return (isinstance(n, str) and 1 <= len(n) <= 64 and not any(ord(c) < 0x20 or 0x7f <= ord(c) <= 0x9f for c in n)
+            and n == n.strip())
+
+
+def begruendung_form(o, ablehnen):
+    """zustandskern R-L6 point 2: the form of `entscheidung` and `begruendung`; None when the form holds, else the reason."""
+    if "begruendung" in o and not isinstance(o["begruendung"], str):
+        return "ereignis_ungueltig"
+    if "begruendung" in o and not ablehnen:
+        return "begruendung_nur_bei_ablehnen"
+    if "begruendung" in o:
+        b = o["begruendung"]
+        if not b or len(b) > 500 or any(ord(c) < 0x20 or 0x7f <= ord(c) <= 0x9f for c in b):
+            return "begruendung_ungueltig"
+    return None
 
 
 def rahmennummer(n, rmax, vergeben, frei):
@@ -996,11 +1130,15 @@ def start_lesen_roh(roh):
         else:
             return "json_ungueltig", None
     v = set()
+    # contract `start`, version 2 (Nachtrag 26.11.2026): two more keys, `effort` and `name`, each a text or null. The reference checks only
+    # their presence and type (stages 5 to 7); the forms of stages 11a, 11b and 13a are the crate's (the cases of the service use null)
+    f2 = isinstance(o.get("fassung"), Ganz) and o["fassung"].t == "2"
+    schluessel = ANFRAGE_SCHLUESSEL + (("effort", "name") if f2 else ())
     if "sitzung" in o and not m("starten_sitzung_ok"):
         v.add(3)
     if "marker" in o and not m("stufe_04_marker_ok") and not (m("marker_anfrage_ersetzt") and MARKER_DIENST is not None):
         v.add(4)
-    if any(k not in ANFRAGE_SCHLUESSEL for k in o) and not m("stufe_05_unbekannt_ok") and not (m("starten_sitzung_ok") and set(o) - set(ANFRAGE_SCHLUESSEL) == {"sitzung"}):
+    if any(k not in schluessel for k in o) and not m("stufe_05_unbekannt_ok") and not (m("starten_sitzung_ok") and set(o) - set(schluessel) == {"sitzung"}):
         v.add(5)
 
     def pflicht(name):
@@ -1029,12 +1167,17 @@ def start_lesen_roh(roh):
     f = pflicht("fassung")
     if f is not KEIN:
         if isinstance(f, Ganz):
-            if f.t != "1" and not m("starten_fassung_nicht_geprueft"):
+            if f.t not in ("1", "2") and not m("starten_fassung_nicht_geprueft"):
                 v.add(8)
         elif f is True and m("starten_fassung_bool_ok"):
             pass
         elif not m("stufe_07_typ_ok"):
             v.add(7)
+    if f2:
+        for name in ("effort", "name"):
+            w = pflicht(name)
+            if w is not KEIN and w is not None and not isinstance(w, str) and not m("stufe_07_typ_ok"):
+                v.add(7)
     harness = kennung("harness")
     route = kennung("route")
     k = pflicht("kunde")
@@ -1174,6 +1317,12 @@ class Dienst:
         self.fehler_naechster = False
         self.neu_nach_riss = False
         self.riss_nr = 0
+        # Nachtrag 26.11.2026
+        self.agenten_letzt = []         # DI-L1 point 4: the list of workers last sent to everyone
+        self.frei_geloescht = []        # DI-L3 point 5: (place of the end, number) of deleted sessions; their raster numbers are free
+        self.fortsetzung = None         # DI-L3: the session that Fortsetzen or Wiederbeleben continues, during `starten`
+        self.lokal_hoerer = None        # DI-L11
+        self.lokal_warten = {}          # socket -> [bytes of the hello, deadline, uid]
 
     # ---------- time (DI6)
     def jetzt(self):
@@ -1296,6 +1445,8 @@ class Dienst:
                         if s is not self.basis or m("liste_beim_verbinden_fehlt"):
                             continue
                         msg = self.liste_msg()
+                    elif art == "Agenten" and s is self.basis and not m("agenten_vom_raumkern"):
+                        msg = {"t": self.jetzt(), "art": "Agenten", "agenten": self.agenten_liste()}     # DI-L1 point 3
                     elif s is not self.basis and art in ("Einstellungen", "Routen", "Anfragen", "Agenten", "Leeren"):
                         continue
                 self.nachricht_an(c, msg, s)
@@ -1345,10 +1496,144 @@ class Dienst:
             x = {"id": s.sid, "zustand": s.zustand, "nr": s.nr}     # P25: nr is the raster number, null once a later session took it
             for k in ("harness", "modell", "route", "kunde"):
                 x[k] = "" if m("liste_felder_leer") else s.meta[k]
-            if s.zustand == "beendet" and not m("liste_ohne_code"):
+            if s.zustand == "beendet" and not m("liste_ohne_code") and s.kind_ende is not None:
                 x["code"] = s.kind_ende
+            # Nachtrag 26.11.2026, DI-L5 point 1
+            x["name"] = s.name
+            if not m("liste_ohne_ordner"):
+                x["ordner"] = s.arbeitsordner
+                x["projekt"] = projekt_von(s.arbeitsordner)
+            if s.zustand == "beendet":
+                x["abgestuerzt"] = s.abgestuerzt()
+            if s.grund is not None:
+                x["grund"] = s.grund
+            if s.fortsetzung_von is not None:
+                x["fortsetzung_von"] = s.fortsetzung_von
+            if s.fortgesetzt_als is not None:
+                x["fortgesetzt_als"] = s.fortgesetzt_als
             aus.append(x)
         return {"t": self.jetzt(), "art": "Sitzungsliste", "sitzungen": aus}
+
+    def agenten_liste(self):
+        """DI-L1 point 3: the workers in the order of the start."""
+        aus = []
+        for s in self.sitz.values():
+            if s.orchestrator is None:
+                continue
+            x = {"worker": s.sid, "sitzung": s.orchestrator, "rolle": s.rolle, "modell": s.meta["modell"], "zustand": s.zustand, "nr": s.nr}
+            if s.zustand == "beendet" and s.kind_ende is not None:
+                x["code"] = s.kind_ende
+            aus.append(x)
+        return aus
+
+    def liste_und_agenten(self):
+        """After a change: the list to everyone, then the workers when their list changed (DI-L1 point 4), then the Bestand (DI-L5)."""
+        self.liste_senden()
+        neu = self.agenten_liste()
+        if neu != self.agenten_letzt:
+            self.agenten_letzt = neu
+            for c in sorted(self.clients.values(), key=lambda x: x.nr):
+                if not c.tot and not c.schliessen:
+                    self.nachricht_an(c, {"t": self.jetzt(), "art": "Agenten", "agenten": neu}, None)
+        self.bestand_schreiben()
+
+    def bestand_schreiben(self):
+        """DI-L5 point 3: a new file next to the Bestand, exclusive, 0600, fsync, rename, fsync of the folder."""
+        pfad = (self.lauf or {}).get("bestand")
+        if not pfad or m("bestand_vergessen"):
+            return
+        eintraege = []
+        for s in self.sitz.values():
+            if s.eintrag is None or s.start is None:
+                continue
+            x = {"id": s.sid, "harness": s.meta["harness"], "modell": s.meta["modell"], "route": s.meta["route"], "kunde": s.meta["kunde"],
+                 "name": s.name, "ordner": s.arbeitsordner, "projekt": projekt_von(s.arbeitsordner), "zustand": s.zustand, "start": s.start}
+            for k, v in (("code", s.kind_ende), ("grund", s.grund), ("orchestrator", s.orchestrator), ("rolle", s.rolle),
+                         ("fortsetzung_von", s.fortsetzung_von), ("fortgesetzt_als", s.fortgesetzt_als)):
+                if v is not None:
+                    x[k] = v
+            if s.zustand == "beendet":
+                x["abgestuerzt"] = s.abgestuerzt()
+            eintraege.append(x)
+        roh = json.dumps({"fassung": 1, "gestartet": self.naechste, "sitzungen": eintraege}, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        neu = "%s.neu.%d" % (pfad, os.getpid())
+        try:
+            fd = os.open(neu, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            try:
+                os.write(fd, roh)
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            os.rename(neu, pfad)
+            dfd = os.open(os.path.dirname(pfad) or "/", os.O_RDONLY)
+            try:
+                os.fsync(dfd)
+            finally:
+                os.close(dfd)
+        except OSError as e:
+            sys.stderr.write("wb-dienst: bestand nicht geschrieben: %s\n" % (e.errno,))
+
+    def vorgabe_laden(self):
+        """Nachtrag 27.11.2026: the only load of the Firmenvorgabe in a run of the service. Invalid: the service runs, but without a gate."""
+        pfad = (self.lauf or {}).get("firmenvorgabe")
+        self.vorgabe = None
+        if not pfad:
+            return
+        sha, code = vorgabe_pruefen(pfad)
+        self.vorgabe = {"sha256": sha, "code": code, "gesperrt": False}
+        if code is not None:
+            sys.stderr.write("wb-dienst: firmenvorgabe nicht geladen: %s\n" % code)
+            sys.stderr.flush()
+
+    def bestand_lesen(self):
+        """DI-L5 point 4: once at the start. Missing: empty. Invalid: exit code 2 (the service never replaces a file it cannot read)."""
+        pfad = (self.lauf or {}).get("bestand")
+        if not pfad:
+            return
+        try:
+            st = os.lstat(pfad)
+        except FileNotFoundError:
+            return
+        except OSError:
+            raise StartFehler(2, "lauf.bestand nicht lesbar")
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != os.geteuid() or stat.S_IMODE(st.st_mode) != 0o600 or st.st_size > BESTAND_MAX:
+            raise StartFehler(2, "lauf.bestand ungueltig")
+        try:
+            with open(pfad, "rb") as f:
+                o = json.loads(f.read(BESTAND_MAX + 1).decode("utf-8"), parse_constant=_konstante)
+        except (OSError, ValueError, UnicodeDecodeError):
+            raise StartFehler(2, "lauf.bestand ungueltig")
+        texte = ("harness", "modell", "route", "kunde", "name", "ordner", "projekt")
+        if not (isinstance(o, dict) and o.get("fassung") == 1 and ganz(o.get("gestartet")) and o["gestartet"] >= 0
+                and isinstance(o.get("sitzungen"), list) and len(o["sitzungen"]) <= 264):
+            raise StartFehler(2, "lauf.bestand ungueltig")
+        hoechste = 0
+        for x in o["sitzungen"]:
+            if not (isinstance(x, dict) and isinstance(x.get("id"), str) and re.fullmatch(r"s-[1-9][0-9]{0,8}", x["id"])
+                    and all(isinstance(x.get(k), str) for k in texte) and x.get("zustand") in ("laeuft", "beendet")
+                    and isinstance(x.get("start"), dict) and x["id"] not in self.sitz):
+                raise StartFehler(2, "lauf.bestand ungueltig")
+            hoechste = max(hoechste, int(x["id"][2:]))
+            s = Sitzung(x["id"], None, list(self.lauf["groesse"]), {k: x[k] for k in ("harness", "modell", "route", "kunde")},
+                        {"id": x["id"], "titel": "", "route": x["route"] or None, "kundenraum": self.cfg["betrachter"]["raum"],
+                         "person": self.cfg["betrachter"]["person"], "groesse": list(self.lauf["groesse"])})
+            s.name, s.arbeitsordner, s.start = x["name"], x["ordner"], x["start"]
+            s.orchestrator, s.rolle = x.get("orchestrator"), x.get("rolle")
+            s.fortsetzung_von, s.fortgesetzt_als = x.get("fortsetzung_von"), x.get("fortgesetzt_als")
+            s.zustand = "beendet"
+            if x["zustand"] == "laeuft" and not m("bestand_laeuft_bleibt"):
+                s.ende_art, s.grund, s.kind_ende = "neustart", "dienst.neustart", None
+            elif x["zustand"] == "laeuft":
+                s.zustand = "laeuft"
+            else:
+                s.ende_art = "selbst" if x.get("abgestuerzt") else "beenden"
+                s.kind_ende = x.get("code") if ganz(x.get("code")) else None
+                s.grund = x.get("grund") if isinstance(x.get("grund"), str) else None
+            self.enden += 1
+            s.beendet_als = self.enden
+            self.sitz[s.sid] = s
+        self.naechste = max(o["gestartet"], hoechste)
+        self.agenten_letzt = self.agenten_liste()
 
     def liste_senden(self, nur=None):
         if self.lauf is None:
@@ -1357,6 +1642,8 @@ class Dienst:
             if c.tot or c.schliessen or (nur is not None and c is not nur):
                 continue
             self.nachricht_an(c, self.liste_msg(), None)
+            if m("ereignisliste_wiederholt"):
+                self.senden(c, rahmen(A_NACHRICHT, jbytes(self.ereignisliste(c))))
 
     # ---------- sending, queue, report (DI4)
     def grenze(self):
@@ -1480,10 +1767,92 @@ class Dienst:
         self.clients[c.name] = c
         self.sel.register(s, selectors.EVENT_READ, ("c", c))
         b = self.cfg["betrachter"]
+        self.ereignisliste_senden(c, zuerst=True)
         self.ereignis_alle({"t": self.jetzt(), "art": "Verbinden", "betrachter": c.name, "person": b["person"], "raum": b["raum"],
                             "ansicht": b["ansicht"]})
         if not m("startwahl_nicht_beim_verbinden"):
             self.startwahl_senden(nur=c)          # the last message of the connect set: Einstellungen, Routen, Sitzungsliste, Anfragen, Agenten, Startwahl
+        self.ereignisliste_senden(c, zuerst=False)
+
+    def lokal_annehmen(self):
+        """DI-L11 points 2 and 4: the uid of the partner comes from the kernel (SO_PEERCRED, LOCAL_PEERCRED) at connect; then the hello."""
+        try:
+            hs, _ = self.lokal_hoerer.accept()
+        except (BlockingIOError, InterruptedError):
+            return
+        uid = None
+        if not m("lokal_ohne_peerpruefung"):
+            try:
+                if sys.platform.startswith("linux"):
+                    _, uid, _ = struct.unpack("3i", hs.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+                else:
+                    roh = hs.getsockopt(0, 1, 76)          # SOL_LOCAL, LOCAL_PEERCRED: struct xucred
+                    _, uid = struct.unpack("<Ii", roh[:8])
+            except OSError:
+                uid = None
+            if uid is None:
+                hs.close()
+                sys.stderr.write("wb-dienst: lokal abgewiesen: pk.peer_unmessbar\n")
+                return
+        hs.setblocking(False)
+        self.lokal_warten[hs] = [b"", time.monotonic() + HALLO_FRIST, uid]
+        self.sel.register(hs, selectors.EVENT_READ, ("H", hs))
+
+    def lokal_abweisen(self, hs, grund):
+        self.lokal_warten.pop(hs, None)
+        try:
+            self.sel.unregister(hs)
+        except (KeyError, ValueError):
+            pass
+        hs.close()
+        sys.stderr.write("wb-dienst: lokal abgewiesen: %s\n" % grund)
+
+    def lokal_hallo(self, hs):
+        """peerkanal stages 3 to 7: exactly the four bytes of the hello, the uid of the service, a name for the uid; then the answer."""
+        w = self.lokal_warten.get(hs)
+        if w is None:
+            return
+        try:
+            d = hs.recv(4 - len(w[0]))
+        except (BlockingIOError, InterruptedError):
+            return
+        except OSError:
+            d = b""
+        w[0] += d
+        if not HALLO.startswith(w[0]):
+            return self.lokal_abweisen(hs, "pk.hallo_falsch")
+        if not d:
+            return self.lokal_abweisen(hs, "pk.hallo_fehlt")
+        if len(w[0]) < 4:
+            return
+        uid = w[2]
+        if uid is not None and uid != os.geteuid():
+            return self.lokal_abweisen(hs, "pk.uid_nicht_erlaubt")
+        try:
+            name = pwd.getpwuid(uid).pw_name if uid is not None else None
+        except KeyError:
+            return self.lokal_abweisen(hs, "aufrufer:konto-unbekannt")
+        self.lokal_warten.pop(hs, None)
+        self.sel.unregister(hs)
+        hs.setblocking(True)
+        try:
+            hs.sendall(HALLO)
+        except OSError:
+            hs.close()
+            return
+        hs.setblocking(False)
+        self.folge += 1
+        c = Client(hs, "b%d" % self.folge, self.folge, self.cfg["deflate"])
+        c.wer = {"system": "linux" if sys.platform.startswith("linux") else "macos", "uid": uid, "sid": None, "name": name}
+        self.clients[c.name] = c
+        self.sel.register(hs, selectors.EVENT_READ, ("c", c))
+        b = self.cfg["betrachter"]
+        self.ereignisliste_senden(c, zuerst=True)
+        self.ereignis_alle({"t": self.jetzt(), "art": "Verbinden", "betrachter": c.name, "person": b["person"], "raum": b["raum"],
+                            "ansicht": "fenster"})
+        if not m("startwahl_nicht_beim_verbinden"):
+            self.startwahl_senden(nur=c)
+        self.ereignisliste_senden(c, zuerst=False)
 
     def getrennt(self, c):
         if c.tot:
@@ -1565,8 +1934,7 @@ class Dienst:
                 return
             if not isinstance(o, dict) or not isinstance(o.get("art"), str):
                 return self.fehler(c, "ereignis_ungueltig")
-            erlaubt = ERLAUBT | ({"Starten", "Beenden"} if self.lauf is not None else set())
-            if o["art"] not in erlaubt:
+            if self.weiche(c, o["art"])[0] == "fehler":
                 if not (m("proto_traegerereignis_ok") and o["art"] in ("Ausgabe", "Kindende", "Socket", "Modus", "Titel", "Zwischenablage", "Takt")) \
                         and not (m("proto_verbinden_ok") and o["art"] in ("Verbinden", "Trennen")):
                     if m("lauf_starten_ohne_lauf_ablehnung") and o["art"] in ("Starten", "Beenden"):
@@ -1576,17 +1944,35 @@ class Dienst:
                 return self.fehler(c, "feld_verboten")
             if "betrachter" in o and not m("proto_betrachter_vom_client"):
                 return self.fehler(c, "feld_verboten")
+            # Nachtrag 26.11.2026, DI-L11 point 7: no account from the view, on both ways
+            if any(k in o for k in FELD_VERBOTEN if not (k == "konto" and m("konto_aus_ereignis"))):
+                return self.fehler(c, "feld_verboten")
+            # Nachtrag 27.11.2026, Kanal zur Stelle: `nachweis` in a Freigabe is a field of DI3, the service builds the proof itself
+            if o["art"] == "Freigabe" and "nachweis" in o:
+                return self.fehler(c, "feld_verboten")
+            # Nachtrag 27.11.2026 (DI-E5 point 4.2): the fixed refusals of the switch, right after feld_verboten
+            w_ = self.weiche(c, o["art"])
+            if w_[0] == "ab":
+                return self.ablehnen(c, w_[1])
+            if o["art"] in ("OrdnerLesen", "InhaltSuchen"):     # Nachtrag 26.11.2026 (L9): events of the service in both modes
+                return self.e_l9(c, o)
             e = dict(o)
             if not (m("proto_t_vom_client") and "t" in o):
                 e["t"] = self.jetzt()
             if not (m("proto_betrachter_vom_client") and "betrachter" in o):
                 e["betrachter"] = c.name
             if self.lauf is not None and e["art"] == "Starten":
+                if m("lokal_ohne_starten") and c.wer:
+                    return self.fehler(c, "art_nicht_erlaubt")
                 self.starten(c, o)
                 self.flush_alle()
                 return
             if self.lauf is not None and e["art"] == "Beenden":
                 self.beenden_ereignis(c, o)
+                self.flush_alle()
+                return
+            if self.lauf is not None and e["art"] in ("Umbenennen", "Loeschen", "Fortsetzen", "Wiederbeleben", "Freigabe"):
+                getattr(self, "e_" + e["art"].lower())(c, o)       # Nachtrag 26.11.2026: DI-L3 and DI-L6, events of the service
                 self.flush_alle()
                 return
             if e["art"] in ("Abo", "Groesse") and ganz(e.get("spalten")) and not spalten_ok(e["spalten"]) and not m("groesse_eine_spalte_durchlassen"):
@@ -1682,7 +2068,8 @@ class Dienst:
                 for s in z["sitzungen"]]
         betr = {n: {k: b[k] for k in ("person", "raum", "abos", "ausstehend", "verfallen", "rueckstand")} for n, b in z["betrachter"].items()}
         return {"kern": {"sitzungen": sitz, "betrachter": betr},
-                "dienst": {"betrachter": {n: {"warteschlange": c.qlen, "stumm": c.stumm} for n, c in sorted(self.clients.items())},
+                "dienst": {"betrachter": {n: dict({"warteschlange": c.qlen, "stumm": c.stumm}, **({"wer": c.wer} if c.wer else {}))
+                                          for n, c in sorted(self.clients.items())},     # DI-L11 point 4: `wer` in both modes
                            "kind": {"ende": self.s0.kind_ende is not None, "code": self.s0.kind_ende},
                            "kernbau": self.s0.kern_zaehler, "traeger_zeilen": list(self.s0.traeger.gemeldet),
                            "warteschlange_max": self.grenze()}}
@@ -1704,11 +2091,22 @@ class Dienst:
                     betr[n]["verfallen"] += b["verfallen"]
                     betr[n]["rueckstand"].update(b["rueckstand"])
         return {"kern": {"sitzungen": sitz, "betrachter": betr},
-                "dienst": {"betrachter": {n: {"warteschlange": c.qlen, "stumm": c.stumm} for n, c in sorted(self.clients.items())},
+                "dienst": {"betrachter": {n: dict({"warteschlange": c.qlen, "stumm": c.stumm}, **({"wer": c.wer} if c.wer else {}))
+                                          for n, c in sorted(self.clients.items())},
                            "kind": {s.sid: {"ende": s.kind_ende is not None, "code": s.kind_ende} for s in self.sitz.values()},
                            "kernbau": self.kernbau(), "traeger_zeilen": {s.sid: list(s.traeger.gemeldet) for s in self.sitz.values()},
                            "nummern": {s.sid: s.nr for s in self.sitz.values()}, "gestartet": self.naechste,
-                           "warteschlange_max": self.grenze()}}
+                           "warteschlange_max": self.grenze(), **self.vorgabe_zustand()}}
+
+    def vorgabe_zustand(self):
+        """Nachtrag 27.11.2026: `firmenvorgabe` in the answer to Zustand, only with lauf.firmenvorgabe."""
+        v = getattr(self, "vorgabe", None)
+        if v is None:
+            return {}
+        if m("vorgabe_neu_geladen"):
+            sha, code = vorgabe_pruefen(self.lauf["firmenvorgabe"])
+            v = dict(v, sha256=sha, code=code)
+        return {"firmenvorgabe": dict(v)}
 
     def kern_neu(self):
         """An error of the core (DI5): build it again from the state of the carrier; every viewer gets a full Abzug (single mode only)."""
@@ -1823,7 +2221,7 @@ class Dienst:
     def starten(self, c, o):
         L = self.lauf
         self.sender = c
-        if (set(o) - START_EREIGNIS or "start" not in o) and not (m("starten_fremdfeld_ok") and "start" in o):
+        if (set(o) - START_EREIGNIS - START_WORKER or "start" not in o) and not (m("starten_fremdfeld_ok") and "start" in o):
             return self.ablehnen_start(c, "start_form")
         start = o["start"]
         if m("einst_vor_form") and self.einst_lesen() is None:
@@ -1831,6 +2229,26 @@ class Dienst:
         code, felder = start_pruefung(start)      # DI12: the one place of the check of the structure, stages 1 to 13 (`start::lesen_anfrage`)
         if code:
             return self.ablehnen_pruefung(c, code)
+        # Nachtrag 26.11.2026, DI-L1 point 2: the orchestrator, after the form and before the settings file
+        orch = o.get("orchestrator")
+        rolle = o.get("rolle")
+        if "orchestrator" in o or "rolle" in o:
+            if not (isinstance(orch, str) and KENNUNG.fullmatch(orch)) or ("rolle" in o and not (isinstance(rolle, str) and KENNUNG.fullmatch(rolle))):
+                return self.ablehnen_start(c, "start_form")
+            os_ = self.sitz.get(orch)
+            if os_ is None or os_.eintrag is None:
+                if not m("worker_orchestrator_ungeprueft"):
+                    return self.ablehnen_start(c, "orchestrator_unbekannt")
+            elif os_.zustand != "laeuft":
+                return self.ablehnen_start(c, "orchestrator_beendet")
+            elif os_.orchestrator is not None:
+                return self.ablehnen_start(c, "orchestrator_ist_worker")
+            else:
+                kunde = start.get("kunde") if isinstance(start.get("kunde"), str) else ""
+                if kunde != os_.meta["kunde"] and not m("worker_fremder_kunde"):
+                    return self.ablehnen_start(c, "orchestrator_fremder_kunde")
+            if rolle is None:
+                rolle = "worker"
         if not m("starten_einst_nicht_gelesen"):
             einst = self.einst_lesen()
             if einst is None:
@@ -1861,9 +2279,10 @@ class Dienst:
         zl = None if m("ziellisten_pruefung_fehlt") else L.get("ziellisten")
         lz = None if m("laufzeit_nicht_geprueft") else L.get("laufzeit")
         mo = L.get("marker_ordner")
+        gs = None if m("gespraeche_vergabe_ungeprueft") else L.get("gespraeche")
         if m("zaehldatei_ohne_marker_ordner") and mo is not None:
             mo = sd if sd is not None else zl          # the count files are looked for in a wrong folder
-        if sd is None and zl is None and lz is None and mo is None:
+        if sd is None and zl is None and lz is None and mo is None and gs is None:
             if n > nmax and not m("sitzung_nr_zu_gross_ok"):
                 return self.ablehnen_start(c, "nummern_erschoepft")
         else:
@@ -1887,6 +2306,8 @@ class Dienst:
                     pfade.append(("zaehl", os.path.join(mo, "s-%d.suche.json" % n)))
                     if not m("zaehldatei_nur_suche"):
                         pfade.append(("zaehl", os.path.join(mo, "s-%d.modellweg.json" % n)))
+                if gs is not None:
+                    pfade.append(("gespraech", os.path.join(gs, "s-%d" % n)))      # Nachtrag 27.11.2026: the conversation of the number
                 da, fehlt = False, False                # an entry that is there / an entry that is missing
                 for art, pf in pfade:
                     stat_statt = m("sitzungen_stat_statt_lstat") if art == "sitzung" else m("ziellisten_stat_statt_lstat")
@@ -1949,6 +2370,10 @@ class Dienst:
                 if mk is not None and not m("marker_nie_gesetzt") and not (m("marker_nur_erste_sitzung") and self.naechste > 0) \
                         and not (m("marker_anfrage_ersetzt") and "marker" in ganz_start):
                     ganz_start["marker"] = mk
+                if self.fortsetzung is not None and not m("fortsetzen_ohne_verweis"):
+                    ganz_start["fortsetzung_von"] = self.fortsetzung.sid      # DI-L3 point 2
+                elif isinstance(ganz_start.get("fassung"), Ganz) and ganz_start["fassung"].t == "2" or ganz_start.get("fassung") == 2:
+                    ganz_start["fortsetzung_von"] = None                       # version 2 always carries the field (contract `start`)
             fd = os.open(datei, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             try:
                 os.fchmod(fd, 0o644 if m("starten_datei_modus_offen") else 0o600)
@@ -1986,6 +2411,14 @@ class Dienst:
                    "person": self.cfg["betrachter"]["person"], "groesse": groesse}
         s = Sitzung(sid, nummer, groesse, meta, eintrag)
         s.ordner = ordner
+        # Nachtrag 26.11.2026: the fields of the list and of the Bestand
+        s.start = copy.deepcopy(start)
+        s.arbeitsordner = start.get("arbeitsordner") if isinstance(start.get("arbeitsordner"), str) else ""
+        s.orchestrator, s.rolle = orch, (rolle if orch is not None else None)
+        if self.fortsetzung is not None:
+            alt = self.fortsetzung
+            s.fortsetzung_von, s.name = alt.sid, alt.name
+            alt.fortgesetzt_als = sid
         s.pid, s.master = pid, master
         s.kind_pid = pid
         st0 = proz_stand(pid)
@@ -2005,7 +2438,9 @@ class Dienst:
         def liste():
             if m("liste_nicht_nach_aenderung"):
                 return
-            self.liste_senden(nur=c if m("liste_nur_sender") else None)
+            if m("liste_nur_sender"):
+                return self.liste_senden(nur=c)
+            self.liste_und_agenten()
 
         def antwort():
             if m("gestartet_an_alle"):
@@ -2064,6 +2499,7 @@ class Dienst:
             if any(s.sid in cc.abos for cc in self.clients.values()):
                 continue
             frei.append((s.beendet_als, s.nr))
+        frei += self.frei_geloescht
         return rahmennummer(n, rmax, self.vergeben, frei)
 
     def rahmen_nehmen(self, nummer):
@@ -2074,6 +2510,7 @@ class Dienst:
         for cc in self.clients.values():
             cc.ver.vergessen(nummer)
         self.vergeben.add(nummer)
+        self.frei_geloescht = [x for x in self.frei_geloescht if x[1] != nummer]
 
     def pid_pruefen(self, pid, s):
         """The protection against a reused or foreign pid; in doubt False."""
@@ -2140,6 +2577,209 @@ class Dienst:
         else:
             signale()
             loeschen()
+
+    def e_umbenennen(self, c, o):
+        """DI-L3 point 1."""
+        if set(o) != {"art", "sitzung", "name"} or not isinstance(o.get("sitzung"), str):
+            return self.ablehnen(c, "umbenennen_form")
+        s = self.sitz.get(o["sitzung"])
+        if s is None:
+            return self.ablehnen(c, "sitzung_unbekannt")
+        if not name_ok(o["name"]):
+            return self.ablehnen(c, "name_ungueltig")
+        s.name = o["name"]
+        self.liste_und_agenten()
+
+    def e_loeschen(self, c, o):
+        """DI-L3 points 4 and 5: only an ended session, with the identifier as confirmation; never a file outside the service's folder."""
+        if set(o) - {"art", "sitzung", "bestaetigung"} or not isinstance(o.get("sitzung"), str):
+            return self.ablehnen(c, "loeschen_form")
+        s = self.sitz.get(o["sitzung"])
+        if s is None:
+            return self.ablehnen(c, "sitzung_unbekannt")
+        if s.eintrag is None:
+            return self.ablehnen(c, "nicht_loeschbar")       # the session of `kind` (DI-L3 point 4)
+        if s.zustand == "laeuft" and not m("loeschen_laufend"):
+            return self.ablehnen(c, "sitzung_laeuft")
+        if o.get("bestaetigung") != s.sid and not m("loeschen_ohne_bestaetigung"):
+            return self.ablehnen(c, "bestaetigung_fehlt")
+        worker = [x for x in self.sitz.values() if x.orchestrator == s.sid]
+        if any(x.zustand == "laeuft" for x in worker):
+            return self.ablehnen(c, "worker_laeuft")
+        wurzel = (self.lauf or {}).get("gespraeche")
+        if wurzel and not m("loeschen_gespraech_bleibt"):
+            # Nachtrag 27.11.2026, DI-L3 point 5: first the conversations; an error leaves every entry as it is
+            for x in [s] + worker:
+                if x.fortgesetzt_als is not None and not m("loeschen_fortgesetzt_gespraech"):
+                    continue        # the conversation belongs to the session that continues it
+                fehler = gespraech_entfernen(wurzel, x.sid)
+                if fehler is not None:
+                    sys.stderr.write("wb-dienst: gespraech nicht geloescht: %s\n" % fehler)
+                    sys.stderr.flush()
+                    return self.ablehnen(c, "gespraech_nicht_geloescht")
+        for x in [s] + worker:
+            if x.nr is not None and x.beendet_als is not None:
+                self.frei_geloescht.append((x.beendet_als, x.nr))
+            for cc in self.clients.values():
+                cc.abos.pop(x.sid, None)
+                if x.nr is not None:
+                    cc.ver.vergessen(x.nr)
+            if x.master is not None:
+                try:
+                    os.close(x.master)
+                except OSError:
+                    pass
+                x.master = None
+            del self.sitz[x.sid]
+        if m("loeschen_kennung_wieder") and s.sid == "s-%d" % self.naechste:
+            self.naechste -= 1
+        self.liste_und_agenten()
+
+    def e_fortsetzen(self, c, o, art="fortsetzen"):
+        """DI-L3 points 2 and 3: the way of Starten with the stored start structure, a new identifier and `fortsetzung_von`."""
+        if set(o) != {"art", "sitzung"} or not isinstance(o.get("sitzung"), str):
+            return self.ablehnen_start(c, art + "_form")
+        s = self.sitz.get(o["sitzung"])
+        if s is None:
+            return self.ablehnen_start(c, "sitzung_unbekannt")
+        if s.zustand == "laeuft" and not m("fortsetzen_laufend"):
+            return self.ablehnen_start(c, "sitzung_laeuft")
+        if art == "wiederbeleben" and not s.abgestuerzt():
+            return self.ablehnen_start(c, "nicht_abgestuerzt")
+        if s.fortgesetzt_als is not None:
+            return self.ablehnen_start(c, "schon_fortgesetzt")
+        if s.start is None:
+            return self.ablehnen_start(c, "nicht_fortsetzbar")
+        if s.start.get("fassung") in (1,) and not m("fortsetzen_fassung1_ok"):
+            # Nachtrag 27.11.2026, DI-L3 point 2: a session of version 1 has no conversation to continue (contract `start`); before any folder
+            return self.ablehnen_start(c, "nicht_fortsetzbar")
+        o2 = {"art": "Starten", "start": copy.deepcopy(s.start)}
+        if s.orchestrator is not None:
+            o2["orchestrator"], o2["rolle"] = s.orchestrator, s.rolle
+        self.fortsetzung = s
+        try:
+            self.starten(c, o2)
+        finally:
+            self.fortsetzung = None
+
+    def grund_aus_plan(self, s, code):
+        """Section 18 in the model: the plan `melden` of the fixed child stands for a valid line `<code> <grund>` of lauf (the reference
+        has no report socket). Only a reason of the form of the line and the code of the plan count, as a line would."""
+        try:
+            plan = json.loads(dict(self.lauf.get("env", {})).get("KIND_PLAN", "{}")) if self.lauf is not None else {}
+        except ValueError:
+            return None
+        p = plan.get(s.sid) or plan.get("*") or {}
+        g = p.get("grund", "lauf.fehler")
+        if p.get("modus") != "melden" or p.get("code") != code or not (isinstance(g, str) and re.fullmatch(r"[a-z0-9_.]{1,64}", g)):
+            return None
+        return g
+
+    def e_wiederbeleben(self, c, o):
+        return self.e_fortsetzen(c, o, "wiederbeleben")
+
+    def weiche(self, c, art):
+        """Nachtrag 27.11.2026 (DI-E5 point 4): the one answer of the switch for an art on this connection:
+        ("fehler", "art_nicht_erlaubt"), ("ab", <fixed reason>) or ("an", None). The list of the connection is built from it."""
+        lauf = self.lauf is not None
+        lokal = c.wer is not None
+        katalog = ERLAUBT | (set(EIGENE_LAUF) if lauf else set())
+        if art not in katalog:
+            return ("fehler", "art_nicht_erlaubt")
+        if lauf and art in ("RaumWechsel", "EinstellungSetzen") and not m("lauf_raumwechsel_ok"):
+            return ("ab", "nicht_im_lauf")
+        if art == "Freigabe":
+            if not lokal and not m("freigabe_ueber_bruecke"):
+                return ("ab", "stelle_nicht_erreichbar" if m("freigabe_grund_falsch") else "freigabe_nur_lokal")
+            if lokal and not (lauf and "stelle" in self.lauf) and not m("freigabe_lokal_ohne_stelle"):
+                return ("ab", "stelle_nicht_erreichbar")
+        return ("an", None)
+
+    def ereignisliste(self, c):
+        """DI-E5 points 1 and 3: the arts the switch of this connection takes, in byte order."""
+        wer = c.wer
+        if m("ereignisliste_je_dienst"):
+            c.wer = None
+        try:
+            liste = [a for a in KATALOG if self.weiche(c, a)[0] == "an"]
+        finally:
+            c.wer = wer
+        if m("ereignisliste_mit_abgelehnter") and c.wer is None and "Freigabe" not in liste:
+            liste.append("Freigabe")
+        if m("ereignisliste_ohne_angenommene"):
+            liste = [a for a in liste if a != "OrdnerLesen"]
+        if m("ereignisliste_ohne_lauf_arten"):
+            liste = [a for a in liste if a in ERLAUBT]
+        if not m("ereignisliste_unsortiert"):
+            liste = sorted(liste, key=lambda a: a.encode())
+        return {"art": "Ereignisliste", "fassung": 1, "ereignisse": liste}
+
+    def ereignisliste_senden(self, c, zuerst):
+        """DI-E5 point 2: once per connection, the first frame to the viewer, before Verbinden; no report Socket (no core knows the viewer yet)."""
+        if m("ereignisliste_fehlt") or zuerst == m("ereignisliste_nicht_zuerst"):
+            return
+        if c.tot or c.schliessen:
+            return
+        self.senden(c, rahmen(A_NACHRICHT, jbytes(self.ereignisliste(c))))
+
+    def e_l9(self, c, o):
+        """Nachtrag 26.11.2026 (L9) point 3, up to klasse_gesperrt: every read and every search ends there (point 6), so the reference
+        never touches the file system. Order: form, session, room, limit and text, class."""
+        feld = "pfad" if o["art"] == "OrdnerLesen" else "muster"
+        sid, wert = o.get("sitzung"), o.get(feld)
+        if len(o) != 3 or not isinstance(sid, str) or not isinstance(wert, str):
+            return self.ablehnen(c, "form_ungueltig")
+        s = self.sitz.get(sid)
+        if s is None or s.kern is None:
+            return self.ablehnen(c, "sitzung_unbekannt")
+        z = s.kern.zustand()
+        raum = (z.get("betrachter", {}).get(c.name) or {}).get("raum")
+        kr = next((x.get("kundenraum") for x in z.get("sitzungen", []) if x.get("id") == sid), None)
+        if not (isinstance(raum, str) and raum == kr):
+            return self.ablehnen(c, "fremder_kundenraum")
+        if feld == "pfad":
+            if len(wert.encode()) > L9_GRENZE_PFAD:
+                return self.ablehnen(c, "grenze")
+            if wert:
+                glieder = wert.split("/")
+                if wert.startswith("/") or "\x00" in wert or "\\" in wert or any(
+                        g == "" or g in (".", "..") or (len(g) >= 2 and g[0].isascii() and g[0].isalpha() and g[1] == ":") for g in glieder):
+                    return self.ablehnen(c, "pfad_ungueltig")
+                if len(glieder) > L9_GRENZE_GLIEDER:
+                    return self.ablehnen(c, "grenze")
+        else:
+            if len(wert.encode()) > L9_GRENZE_MUSTER:
+                return self.ablehnen(c, "grenze")
+            if wert == "" or any(x in wert for x in ("\x00", "\n", "\r")):
+                return self.ablehnen(c, "muster_ungueltig")
+        return self.ablehnen(c, "klasse_gesperrt")
+
+    def e_freigabe(self, c, o):
+        """DI-L6 point 4: in the multi-session mode a decision goes to the decision point, never to a core. The reference has no
+        channel to a decision point (DI-L6 point 6 needs its transport), so no core knows an open request: `anfrage_unbekannt`."""
+        ids = o.get("anfragen")
+        if set(o) - {"art", "anfragen", "nachweis", "entscheidung", "begruendung"} or not isinstance(ids, list) \
+                or not all(isinstance(x, str) for x in ids):
+            return self.ablehnen(c, "ereignis_ungueltig")
+        ent = o.get("entscheidung")
+        if ent is None:
+            # zustandskern R-L6 point 1 (Projektentscheid, 27.11.2026): a missing field never leads to a release
+            return self.ablehnen(c, "entscheidung_fehlt")
+        if not isinstance(ent, str) or ent not in ("erteilen", "ablehnen"):
+            return self.ablehnen(c, "ereignis_ungueltig")
+        g = begruendung_form(o, ent == "ablehnen")
+        if g:
+            return self.ablehnen(c, g)
+        if len(ids) != 1:
+            return self.ablehnen(c, "sammelfreigabe")
+        person = (self.cfg["anfang"].get("personen") or {}).get(self.cfg["betrachter"]["person"]) or {}
+        if person.get("art") != "mensch":
+            return self.ablehnen(c, "agent_kennung")
+        if "nachweis" not in o or o["nachweis"] is None:
+            return self.ablehnen(c, "nachweis_fehlt")
+        if not isinstance(o["nachweis"], str):
+            return self.ablehnen(c, "nachweis_ungueltig")
+        return self.ablehnen(c, "anfrage_unbekannt")
 
     def beenden_ereignis(self, c, o):
         if set(o) - {"art", "sitzung"} or not isinstance(o.get("sitzung"), str):
@@ -2252,14 +2892,22 @@ class Dienst:
             code += 1
         s.pid = None
         s.kill_ab = None
+        g_ = self.grund_aus_plan(s, code)
+        if g_ is not None:
+            s.grund = g_
+            # Nachtrag 27.11.2026 (DI-L3 point 2): lauf ended before any child, the conversation is still that of the old session
+            alt = self.sitz.get(s.fortsetzung_von) if s.fortsetzung_von is not None else None
+            if alt is not None and alt.fortgesetzt_als == s.sid and not m("fortgesetzt_bleibt_ohne_kind"):
+                alt.fortgesetzt_als = None
         s.kind_ende = code
         s.zustand = "beendet"
+        s.ende_art = "beenden" if s.beendet_von_uns else "selbst"
         self.enden += 1
         s.beendet_als = self.enden
         self.sitzung_ende(s)           # DI12 point 12: before the list shows `beendet`
         self.traeger_ereignis({"art": "Kindende", "code": code}, s)
         if not m("liste_nicht_nach_aenderung"):
-            self.liste_senden()
+            self.liste_und_agenten()
         self.flush_alle()
 
     # ---------- main loop
@@ -2267,6 +2915,10 @@ class Dienst:
         cfg = self.cfg
         for s in self.kerne():
             self.kern_bauen(s)
+        for s in self.sitz.values():
+            if s.eintrag is not None and s.master is None and s.zustand == "beendet":
+                # DI-L5 point 4: a session of the Bestand has ended; its core rejects every input with sitzung_beendet
+                self.traeger_ereignis({"art": "Kindende", "code": s.kind_ende if s.kind_ende is not None else 0}, s)
         if self.s0 is not None:
             self.kind_starten()          # Exitcode 4 before anything listens; a later error kills the child again
         try:
@@ -2294,6 +2946,21 @@ class Dienst:
             self.tcp.bind(("127.0.0.1", 0))
             self.tcp.listen(1)
         self.sel.register(ls, selectors.EVENT_READ, ("l", None))
+        if cfg.get("lokal"):
+            old = os.umask(0o177)
+            lh = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                lh.bind(cfg["lokal"]["pfad"])
+            except OSError as e:
+                os.umask(old)
+                self.aufraeumen()
+                raise StartFehler(1, "bind lokal: %s" % e.strerror)
+            os.umask(old)
+            os.chmod(cfg["lokal"]["pfad"], 0o600)
+            lh.listen(LOKAL_INSTANZEN)
+            lh.setblocking(False)
+            self.lokal_hoerer = lh
+            self.sel.register(lh, selectors.EVENT_READ, ("L", None))
         rd, wr = os.pipe()
         os.set_blocking(rd, False)
         os.set_blocking(wr, False)
@@ -2329,6 +2996,10 @@ class Dienst:
                 art, c = key.data
                 if art == "l":
                     self.annehmen()
+                elif art == "L":
+                    self.lokal_annehmen()
+                elif art == "H":
+                    self.lokal_hallo(c)
                 elif art == "p":
                     self.kind_gelesen(c)
                 elif art == "s":
@@ -2354,6 +3025,9 @@ class Dienst:
                     except OSError:
                         pass
                     s.kill_ab = None
+            for hs, w in list(self.lokal_warten.items()):
+                if time.monotonic() >= w[1]:
+                    self.lokal_abweisen(hs, "pk.hallo_fehlt")
             if not cfg["pruefmodus"] and not m("monoton_ohne_takt"):
                 f = self.frist()
                 if f is not None and f <= self.jetzt():
@@ -2362,6 +3036,11 @@ class Dienst:
         self.aufraeumen()
 
     def aufraeumen(self):
+        if (self.lauf or {}).get("bestand"):
+            for s in self.sitz.values():
+                if s.zustand == "laeuft" and s.eintrag is not None:
+                    s.zustand, s.ende_art, s.grund = "beendet", "dienstende", "dienst.ende"
+            self.bestand_schreiben()
         for c in list(self.clients.values()):
             try:
                 c.sock.close()
@@ -2376,6 +3055,14 @@ class Dienst:
                 os.unlink(self.cfg["pfad"])
             except OSError:
                 pass
+        if self.lokal_hoerer is not None:       # DI-L11: the local way goes with the service
+            try:
+                self.lokal_hoerer.close()
+                os.unlink(self.cfg["lokal"]["pfad"])
+            except OSError:
+                pass
+        for hs in list(self.lokal_warten):
+            hs.close()
         pids = [s.pid for s in self.sitz.values() if s.pid]
         if m("ende_kinder_bleiben") and self.lauf is not None:
             pids = [s.pid for s in self.sitz.values() if s.pid and s is self.s0]
@@ -2511,6 +3198,11 @@ def kind_main(argv):
             time.sleep(float(p.get("sek", 30)))
         elif modus == "ende":
             os._exit(int(p.get("code", 0)))
+        elif modus == "melden":
+            # Nachtrag 27.11.2026 (DI-L3 point 2): lauf ends with its own reason before the harness; the reference has no report socket
+            # (section 18 point 7), its service takes the line from the same plan (`grund_aus_plan`)
+            c_ = p.get("code")
+            os._exit(c_ if isinstance(c_, int) and 1 <= c_ <= 255 else 1)
         elif modus == "scheitern":
             # DI12 point 12: the child writes the files of the session and ends with 78
             ordner = os.path.dirname(args[1])
@@ -2643,6 +3335,144 @@ def kind_main(argv):
     os._exit(0)
 
 
+VORGABE_MAX = 1048576           # Nachtrag 27.11.2026: the largest Firmenvorgabe (the limit of a request to the helper)
+
+
+def vorgabe_form_gut(o):
+    """The form the reference checks (regelebenen 15.12.3 H4): an object, admins a list of accounts, leseklassen a list of entries."""
+    if not isinstance(o, dict) or not isinstance(o.get("admins"), list) or not isinstance(o.get("leseklassen"), list):
+        return False
+    if not all(isinstance(a, str) and a for a in o["admins"]):
+        return False
+    return all(isinstance(e, dict) and set(e) == {"ebene", "wer", "klasse"} and all(isinstance(e[k], str) and e[k] for k in e)
+               for e in o["leseklassen"])
+
+
+def vorgabe_pruefen(pfad):
+    """Nachtrag 27.11.2026: the whole check at the start. The folder and the file through descriptors, never a link, not writable for group or
+    others, a regular file of at most VORGABE_MAX bytes with the form. Returns (sha256, None) or (None, code). The owner (helper user) and the
+    parents up to / are part of the contract but not of the reference (a case cannot make a file of another account)."""
+    try:
+        roh = None
+        if m("vorgabe_start_ungeprueft"):
+            with open(pfad, "rb") as h:
+                return hashlib.sha256(h.read()).hexdigest(), None
+        try:
+            fo = os.open(os.path.dirname(pfad) or "/", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        except OSError:
+            return None, "firmenvorgabe.datei_unsicher"
+        try:
+            if os.fstat(fo).st_mode & 0o022:
+                return None, "firmenvorgabe.datei_unsicher"
+            try:
+                fd = os.open(os.path.basename(pfad), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=fo)
+            except OSError:
+                return None, "firmenvorgabe.datei_unsicher"
+            try:
+                st = os.fstat(fd)
+                if not stat.S_ISREG(st.st_mode) or st.st_mode & 0o022:
+                    return None, "firmenvorgabe.datei_unsicher"
+                if st.st_size > VORGABE_MAX:
+                    return None, "firmenvorgabe.ladefehler"
+                with os.fdopen(os.dup(fd), "rb") as h:
+                    roh = h.read(VORGABE_MAX + 1)
+            finally:
+                os.close(fd)
+        finally:
+            os.close(fo)
+        if len(roh) > VORGABE_MAX:
+            return None, "firmenvorgabe.ladefehler"
+        try:
+            o = json.loads(roh.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            return None, "firmenvorgabe.ladefehler"
+        if not vorgabe_form_gut(o):
+            return None, "firmenvorgabe.ladefehler"
+        return hashlib.sha256(roh).hexdigest(), None
+    except OSError:
+        return None, "firmenvorgabe.datei_unsicher"
+
+
+def gespraech_baum_entfernen(eltern, name, tiefe=0):
+    """Nachtrag 27.11.2026, DI-E4: like `loeschen::sitzung_entfernen` (DI12 point 12): below the open folder `eltern`, through descriptors only.
+    A link or a file is removed itself, never followed; a folder is entered only when the opened folder is the one `stat` saw; errors leave the
+    rest (the caller checks afterwards whether the entry is gone)."""
+    try:
+        st = os.stat(name, dir_fd=eltern, follow_symlinks=False)
+    except OSError:
+        return
+    if stat.S_ISLNK(st.st_mode) and m("loeschen_folgt_verweis"):
+        try:
+            ziel = os.path.realpath(os.readlink(name, dir_fd=eltern))
+            if os.path.isdir(ziel):
+                for w, ds, fs in os.walk(ziel, topdown=False):
+                    for x in fs:
+                        os.unlink(os.path.join(w, x))
+                    for x in ds:
+                        os.rmdir(os.path.join(w, x))
+            elif os.path.isfile(ziel):
+                os.unlink(ziel)
+        except OSError:
+            pass
+    if not stat.S_ISDIR(st.st_mode):
+        try:
+            os.unlink(name, dir_fd=eltern)
+        except OSError:
+            pass
+        return
+    if tiefe > GESPRAECH_TIEFE_MAX:
+        return
+    try:
+        fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=eltern)
+    except OSError:
+        return
+    try:
+        st2 = os.fstat(fd)
+        if (st2.st_dev, st2.st_ino) != (st.st_dev, st.st_ino):
+            return
+        for e in sorted(os.listdir(fd)):
+            gespraech_baum_entfernen(fd, e, tiefe + 1)
+    except OSError:
+        return
+    finally:
+        os.close(fd)
+    try:
+        os.rmdir(name, dir_fd=eltern)
+    except OSError:
+        pass
+
+
+GESPRAECH_TIEFE_MAX = 64        # like loeschen::TIEFE_MAX
+
+
+def gespraech_entfernen(wurzel, sid):
+    """Nachtrag 27.11.2026, DI-E4 point 4: the conversation `<lauf.gespraeche>/<sid>`. Missing (the folder or the entry): nothing, no error.
+    The folder lauf.gespraeche must be a folder of the own account with mode 0700 (opened without following a link); else nothing is removed.
+    Afterwards the entry must be gone (`rest` otherwise)."""
+    try:
+        g = os.open(wurzel, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    except FileNotFoundError:
+        return None
+    except OSError as e:
+        return "gespraeche_unsicher" if e.errno in (errno.ELOOP, errno.ENOTDIR) else "oeffnen"
+    try:
+        st = os.fstat(g)
+        if st.st_uid != os.geteuid() or stat.S_IMODE(st.st_mode) != 0o700:
+            return "gespraeche_unsicher"
+        namen = sorted(os.listdir(g)) if m("loeschen_gespraeche_ganz") else [sid]
+        for n in namen:
+            gespraech_baum_entfernen(g, n)
+        try:
+            os.stat(sid, dir_fd=g, follow_symlinks=False)
+            return "rest"
+        except FileNotFoundError:
+            return None
+    except OSError:
+        return "oeffnen"
+    finally:
+        os.close(g)
+
+
 def main(argv):
     if argv[1:2] == ["--kind"]:
         return kind_main(argv[2:])
@@ -2659,6 +3489,8 @@ def main(argv):
         cfg = start_lesen(argv[1])
         rechte_pruefen(cfg)
         d = Dienst(cfg)
+        d.bestand_lesen()          # Nachtrag 26.11.2026, DI-L5 point 4
+        d.vorgabe_laden()          # Nachtrag 27.11.2026: the whole check of the Firmenvorgabe, once at the start
         d.laufen()
     except StartFehler as e:
         print("wb-dienst: " + e.text, file=sys.stderr)

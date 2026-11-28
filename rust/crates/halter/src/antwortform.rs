@@ -11,8 +11,13 @@
 //!
 //! Effort and model list (decision of the operator, 27.11.2026): the line names the reasoning effort of the request
 //! (`reasoning_effort` and `reasoning.effort` at the root of a JSON body) and, for `GET /models`, `policy.state` and
-//! `capabilities.supports.reasoning_effort` of each named model. These values are never copied: each is mapped onto a
+//! `capabilities.supports.reasoning_effort` of each named model, and `model_picker_enabled` only as `true`, `false` or `null`
+//! (decision of the operator, 28.11.2026). These values are never copied: each is mapped onto a
 //! fixed list ([`STUFEN`], [`ZUSTAENDE`]), and every other present value becomes [`ANDERER`].
+//!
+//! Model of the request (decision of the operator, 28.11.2026): the line names `model` at the root of a JSON request
+//! body only as an entry of the model list of the last measured answer of `GET /models` of the same target in this
+//! run ([`anfrage_mit`]), else [`ANDERER`]; never the text of the request.
 //!
 //! Without the switch there is no diagnosis, in every build. The answer itself goes on through the leak lock as before;
 //! this module only reads a copy of the body.
@@ -91,25 +96,46 @@ fn fest_bei(v: &Value, teile: &[&str], liste: &[&'static str]) -> Option<&'stati
     }
 }
 
-/// The reasoning effort of one request body.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+/// The reasoning effort and the model of one request body.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Anfrage {
     /// `reasoning_effort` at the root: a level of [`STUFEN`], [`ANDERER`], or `None` if missing.
     pub oben: Option<&'static str>,
     /// `reasoning.effort`: a level of [`STUFEN`], [`ANDERER`], or `None` if missing.
     pub unter: Option<&'static str>,
+    /// `model` at the root: a name of the model list given to [`anfrage_mit`], [`ANDERER`], or `None` if missing.
+    pub modell: Option<String>,
 }
 
-/// The reasoning effort of the request body `koerper`. A body that is no JSON object names nothing.
+/// The reasoning effort of the request body `koerper`, without a model list (a present `model` is [`ANDERER`]).
 #[must_use]
 pub fn anfrage(koerper: &[u8]) -> Anfrage {
+    anfrage_mit(koerper, &[], &[])
+}
+
+/// The reasoning effort and the model of the request body `koerper`. A body that is no JSON object names nothing.
+/// `liste` is the model list (`data[].id`) of the last measured answer of `GET /models` of the same target in this
+/// run, empty if none was measured (decision of the operator, 28.11.2026). The model is the entry of `liste` that
+/// equals `model` exactly and passes [`tokenaehnlich`] and [`wortform`] again; every other present value is
+/// [`ANDERER`]. The text of the request itself never stands in the line, only the entry of the list.
+#[must_use]
+pub fn anfrage_mit(koerper: &[u8], liste: &[String], geheim: &[Geheim]) -> Anfrage {
     match serde_json::from_slice::<Value>(koerper) {
         Ok(v) if v.is_object() => Anfrage {
             oben: fest_bei(&v, &["reasoning_effort"], &STUFEN),
             unter: fest_bei(&v, &["reasoning", "effort"], &STUFEN),
+            modell: v.get("model").map(|m| modell_aus_liste(m, liste, geheim)),
         },
         _ => Anfrage::default(),
     }
+}
+
+/// The entry of `liste` that `wert` equals and that may stand in the line, else [`ANDERER`].
+fn modell_aus_liste(wert: &Value, liste: &[String], geheim: &[Geheim]) -> String {
+    wert.as_str()
+        .and_then(|w| liste.iter().find(|l| l.as_str() == w))
+        .filter(|l| !tokenaehnlich(geheim, l) && wortform(l))
+        .map_or_else(|| ANDERER.to_owned(), Clone::clone)
 }
 
 /// The levels of `capabilities.supports.reasoning_effort` of one model.
@@ -130,6 +156,8 @@ pub struct Modell {
     pub zustand: Option<&'static str>,
     /// `capabilities.supports.reasoning_effort`.
     pub stufen: Stufen,
+    /// `model_picker_enabled`: `true` or `false`, `None` if missing or no boolean (decision of the operator, 28.11.2026).
+    pub picker: Option<bool>,
 }
 
 /// The values of one element of `data`.
@@ -152,6 +180,7 @@ fn modell(e: &Value) -> Modell {
     Modell {
         zustand: fest_bei(e, &["policy", "state"], &ZUSTAENDE),
         stufen,
+        picker: e.get("model_picker_enabled").and_then(Value::as_bool),
     }
 }
 
@@ -332,8 +361,8 @@ impl Sammler {
 
     /// The journal line for the answer of `methode` `pfad` at `ziel` with `status`: [`PRAEFIX`] and the canonical JSON
     /// object with `abgeschnitten`, `form` (`json`, `kein_json`, `zu_gross` or `geheimnis`), `methode`, `namen`,
-    /// `pfad`, `status`, `wert_verworfen`, `werte` (exactly `anfrage.reasoning.effort`, `anfrage.reasoning_effort`, `data[].id`,
-    /// `error.code` and `modelle`), `ziel` and `zu`, then LF. The two values of the request stand in every form.
+    /// `pfad`, `status`, `wert_verworfen`, `werte` (exactly `anfrage.model`, `anfrage.reasoning.effort`, `anfrage.reasoning_effort`, `data[].id`,
+    /// `error.code` and `modelle`), `ziel` and `zu`, then LF. The three values of the request stand in every form.
     /// `zu` is `true` for every form but `json`, for a cut list and for a name after [`bleibt_zu`]. A held secret in the
     /// names (in any form of the leak lock) gives the form `geheimnis`, no names and no values of the answer. Values of the
     /// answer only for the form `json`: `data[].id` only for `GET /models`, `error.code` only for a status of 400 or above.
@@ -346,6 +375,21 @@ impl Sammler {
         pfad: &str,
         status: u16,
     ) -> String {
+        self.messen(werte, ziel, methode, pfad, status).0
+    }
+
+    /// The line of [`Sammler::zeile`] and, only for `GET /models`, the model list of this answer: the names of
+    /// `data[].id` in the line, empty for every form but `json` or an answer without such names. The holder keeps the
+    /// list per target until the next measured answer of `GET /models` (the model of a later request, [`anfrage_mit`]).
+    #[must_use]
+    pub fn messen(
+        &self,
+        werte: &[Geheim],
+        ziel: &str,
+        methode: &str,
+        pfad: &str,
+        status: u16,
+    ) -> (String, Option<Vec<String>>) {
         let (form, liste, ab, w) = if self.zu_gross {
             ("zu_gross", Vec::new(), false, Werte::default())
         } else {
@@ -374,6 +418,7 @@ impl Sammler {
             "status": status,
             "wert_verworfen": w.verworfen,
             "werte": {
+                "anfrage.model": self.anfrage.modell,
                 "anfrage.reasoning.effort": self.anfrage.unter,
                 "anfrage.reasoning_effort": self.anfrage.oben,
                 "data[].id": w.ids,
@@ -384,12 +429,13 @@ impl Sammler {
             "zu": zu,
         });
         let text = json::kanonisch(&wert).unwrap_or_default();
-        format!("{PRAEFIX}{text}\n")
+        let gemessen = (methode == "GET" && pfad == "/models").then_some(w.ids);
+        (format!("{PRAEFIX}{text}\n"), gemessen)
     }
 }
 
 /// The object `modelle` of the line: each name with exactly `capabilities.supports.reasoning_effort` (a list, `null` or
-/// [`ANDERER`]) and `policy.state` (a state, `null` or [`ANDERER`]).
+/// [`ANDERER`]), `model_picker_enabled` (`true`, `false` or `null`) and `policy.state` (a state, `null` or [`ANDERER`]).
 fn modelle_json(modelle: &BTreeMap<String, Modell>) -> Value {
     let mut m = serde_json::Map::new();
     for (id, e) in modelle {
@@ -402,6 +448,7 @@ fn modelle_json(modelle: &BTreeMap<String, Modell>) -> Value {
             id.clone(),
             json!({
                 "capabilities.supports.reasoning_effort": stufen,
+                "model_picker_enabled": e.picker,
                 "policy.state": e.zustand,
             }),
         );
@@ -637,10 +684,11 @@ mod tests {
         let mut m = modelle;
         for (_, e) in m.as_object_mut().expect("object").iter_mut() {
             if e.is_null() {
-                *e = json!({"capabilities.supports.reasoning_effort": null, "policy.state": null});
+                *e = json!({"capabilities.supports.reasoning_effort": null, "model_picker_enabled": null, "policy.state": null});
             }
         }
         let mut w = serde_json::Map::new();
+        w.insert("anfrage.model".into(), Value::Null);
         w.insert("anfrage.reasoning.effort".into(), Value::Null);
         w.insert("anfrage.reasoning_effort".into(), Value::Null);
         w.insert("data[].id".into(), ids);
@@ -688,7 +736,7 @@ mod tests {
                 "object"
             ])
         );
-        assert_eq!(z["werte"].as_object().expect("object").len(), 5);
+        assert_eq!(z["werte"].as_object().expect("object").len(), 6);
     }
 
     /// Case: a value in another field (`data[].name`, `access_token`, `error.message`, `id` at the root) gives no
@@ -940,7 +988,8 @@ mod tests {
             anfrage(br#"{"reasoning_effort":"low","reasoning":{"effort":"max"}}"#),
             Anfrage {
                 oben: Some("low"),
-                unter: Some("max")
+                unter: Some("max"),
+                modell: None
             }
         );
         // the 400 of the first start becomes readable: the effort of the request and the code of the answer in one line
@@ -1008,7 +1057,8 @@ mod tests {
             b"kein json",
             b"",
         ] {
-            assert_eq!(anfrage(b), Anfrage::default(), "{}", String::from_utf8_lossy(b));
+            let a = anfrage(b);
+            assert_eq!((a.oben, a.unter), (None, None), "{}", String::from_utf8_lossy(b));
         }
         let (z, _) = zeile_mit_anfrage(br#"{"model":"m"}"#, b"{}", 200);
         assert_eq!(z["werte"]["anfrage.reasoning_effort"], Value::Null);
@@ -1039,11 +1089,11 @@ mod tests {
         assert_eq!(
             z["werte"]["modelle"],
             json!({
-                "claude-opus-5.5": {"capabilities.supports.reasoning_effort": ["low","medium","high","xhigh","max"], "policy.state": "disabled"},
-                "gemini-4-argon": {"capabilities.supports.reasoning_effort": ["low","medium","high"], "policy.state": null},
-                "gpt-4.1": {"capabilities.supports.reasoning_effort": null, "policy.state": "enabled"},
-                "gpt-4o": {"capabilities.supports.reasoning_effort": null, "policy.state": null},
-                "gpt-6-luna": {"capabilities.supports.reasoning_effort": ["none","low","medium","high","xhigh","max"], "policy.state": "enabled"},
+                "claude-opus-5.5": {"capabilities.supports.reasoning_effort": ["low","medium","high","xhigh","max"], "model_picker_enabled": null, "policy.state": "disabled"},
+                "gemini-4-argon": {"capabilities.supports.reasoning_effort": ["low","medium","high"], "model_picker_enabled": null, "policy.state": null},
+                "gpt-4.1": {"capabilities.supports.reasoning_effort": null, "model_picker_enabled": null, "policy.state": "enabled"},
+                "gpt-4o": {"capabilities.supports.reasoning_effort": null, "model_picker_enabled": null, "policy.state": null},
+                "gpt-6-luna": {"capabilities.supports.reasoning_effort": ["none","low","medium","high","xhigh","max"], "model_picker_enabled": null, "policy.state": "enabled"},
             })
         );
         assert_eq!(z["wert_verworfen"], 0);
@@ -1080,11 +1130,11 @@ mod tests {
         assert_eq!(
             z["werte"]["modelle"],
             json!({
-                "m-1": {"capabilities.supports.reasoning_effort": "anderer", "policy.state": "anderer"},
-                "m-2": {"capabilities.supports.reasoning_effort": "anderer", "policy.state": "anderer"},
-                "m-3": {"capabilities.supports.reasoning_effort": "anderer", "policy.state": "anderer"},
-                "m-4": {"capabilities.supports.reasoning_effort": ["high", "anderer"], "policy.state": "anderer"},
-                "m-5": {"capabilities.supports.reasoning_effort": [], "policy.state": "anderer"},
+                "m-1": {"capabilities.supports.reasoning_effort": "anderer", "model_picker_enabled": null, "policy.state": "anderer"},
+                "m-2": {"capabilities.supports.reasoning_effort": "anderer", "model_picker_enabled": null, "policy.state": "anderer"},
+                "m-3": {"capabilities.supports.reasoning_effort": "anderer", "model_picker_enabled": null, "policy.state": "anderer"},
+                "m-4": {"capabilities.supports.reasoning_effort": ["high", "anderer"], "model_picker_enabled": null, "policy.state": "anderer"},
+                "m-5": {"capabilities.supports.reasoning_effort": [], "model_picker_enabled": null, "policy.state": "anderer"},
             })
         );
         assert_eq!(z["wert_verworfen"], 2);
@@ -1117,5 +1167,191 @@ mod tests {
         assert_eq!(m.len(), WERTE_MAX);
         assert!(m.contains_key("m-199") && !m.contains_key("m-200"));
         assert!(!text.contains("m-200"), "{text}");
+    }
+
+    /// Case (decision of the operator, 28.11.2026): `model_picker_enabled` stands as `true` or `false` only; missing, a
+    /// text `"true"`, a number, `null`, a list and an object give `null`. `policy.state` is `enabled`, `disabled`, `null`
+    /// for a missing field, else `anderer`. No other field of the element gives a value.
+    #[test]
+    fn modellliste_mit_auswahl_und_zustand() {
+        let body = br#"{"data":[
+            {"id":"m-wahr","model_picker_enabled":true,"policy":{"state":"enabled"}},
+            {"id":"m-falsch","model_picker_enabled":false,"policy":{"state":"disabled"}},
+            {"id":"m-fehlt","policy":{}},
+            {"id":"m-text","model_picker_enabled":"true","policy":{"state":"ENABLED"}},
+            {"id":"m-zahl","model_picker_enabled":1,"policy":{"state":null}},
+            {"id":"m-null","model_picker_enabled":null,"policy":{"state":"x-wert"}},
+            {"id":"m-liste","model_picker_enabled":[true],"policy":{"state":4}},
+            {"id":"m-objekt","model_picker_enabled":{"a":true},"policy":{"state":["enabled"]},"vendor":"v-wert"}
+        ]}"#;
+        let (z, text) = zeile_bei(body, &[], "GET", "/models", 200);
+        let m = &z["werte"]["modelle"];
+        let soll = [
+            ("m-wahr", json!(true), json!("enabled")),
+            ("m-falsch", json!(false), json!("disabled")),
+            ("m-fehlt", Value::Null, Value::Null),
+            ("m-text", Value::Null, json!(ANDERER)),
+            ("m-zahl", Value::Null, json!(ANDERER)),
+            ("m-null", Value::Null, json!(ANDERER)),
+            ("m-liste", Value::Null, json!(ANDERER)),
+            ("m-objekt", Value::Null, json!(ANDERER)),
+        ];
+        for (id, picker, zustand) in soll {
+            assert_eq!(m[id]["model_picker_enabled"], picker, "{id}");
+            assert_eq!(m[id]["policy.state"], zustand, "{id}");
+            let mut schluessel: Vec<&String> = m[id].as_object().expect("object").keys().collect();
+            schluessel.sort();
+            assert_eq!(
+                schluessel,
+                [
+                    "capabilities.supports.reasoning_effort",
+                    "model_picker_enabled",
+                    "policy.state"
+                ],
+                "{id}"
+            );
+        }
+        for fremd in ["ENABLED", "x-wert", "v-wert", "\"a\""] {
+            assert!(!text.contains(fremd), "{fremd}: {text}");
+        }
+    }
+
+    /// The line of `POST /chat/completions` for the request body `anfrage` with the model list `liste`.
+    fn zeile_mit_liste(anfrage: &[u8], liste: &[&str], geheim: &[Geheim]) -> (Value, String) {
+        let liste: Vec<String> = liste.iter().map(|l| (*l).to_owned()).collect();
+        let mut s = Sammler::mit_anfrage(anfrage_mit(anfrage, &liste, geheim));
+        s.schieben(b"{}");
+        let z = s.zeile(geheim, "copilot", "POST", "/chat/completions", 200);
+        let json = z.strip_prefix(PRAEFIX).expect("prefix");
+        (
+            serde_json::from_str(json.trim_end()).expect("line is JSON"),
+            z,
+        )
+    }
+
+    /// Case: a model of the list stands in the line, as the entry of the list; the line of every form names it.
+    #[test]
+    fn modell_aus_der_liste() {
+        let liste = ["claude-sonnet-5.5", "gpt-6-luna"];
+        let (z, _) = zeile_mit_liste(
+            br#"{"model":"gpt-6-luna","reasoning_effort":"medium"}"#,
+            &liste,
+            &[],
+        );
+        assert_eq!(z["werte"]["anfrage.model"], "gpt-6-luna");
+        assert_eq!(z["werte"]["anfrage.reasoning_effort"], "medium");
+        let a = anfrage_mit(br#"{"model":"claude-sonnet-5.5"}"#, &[liste[0].into()], &[]);
+        assert_eq!(a.modell.as_deref(), Some("claude-sonnet-5.5"));
+        // the model also stands for an answer that is no JSON
+        let l: Vec<String> = liste.iter().map(|l| (*l).to_owned()).collect();
+        let mut s = Sammler::mit_anfrage(anfrage_mit(br#"{"model":"gpt-6-luna"}"#, &l, &[]));
+        s.schieben(b"kein json");
+        let z = s.zeile(&[], "copilot", "POST", "/chat/completions", 502);
+        assert!(z.contains(r#""anfrage.model":"gpt-6-luna""#), "{z}");
+    }
+
+    /// Case: a model that is not on the list is `anderer`, also a name in another case, with a space, a prefix of a
+    /// listed name, a number, `null`, a list and an object; its text stands nowhere in the line.
+    #[test]
+    fn modell_nicht_in_der_liste() {
+        let liste = ["gpt-6-luna"];
+        for m in [
+            r#""gpt-4.1""#,
+            r#""GPT-6-LUNA""#,
+            r#""gpt-6-luna ""#,
+            r#""gpt-6""#,
+            r#""modell-wert-4711""#,
+            "3",
+            "null",
+            r#"["gpt-6-luna"]"#,
+            r#"{"id":"gpt-6-luna"}"#,
+        ] {
+            let b = format!(r#"{{"model":{m}}}"#);
+            let (z, text) = zeile_mit_liste(b.as_bytes(), &liste, &[]);
+            assert_eq!(z["werte"]["anfrage.model"], ANDERER, "{b}");
+            for t in ["gpt-4.1", "GPT", "gpt-6\"", "modell-wert"] {
+                assert!(!text.contains(t), "{t}: {text}");
+            }
+            assert!(!text.contains("gpt-6-luna"), "{text}");
+        }
+    }
+
+    /// Case: without a measured list every present model is `anderer`, also a real name.
+    #[test]
+    fn modell_ohne_gemessene_liste() {
+        let (z, text) = zeile_mit_liste(br#"{"model":"gpt-6-luna"}"#, &[], &[]);
+        assert_eq!(z["werte"]["anfrage.model"], ANDERER);
+        assert!(!text.contains("gpt-6-luna"), "{text}");
+        assert_eq!(
+            anfrage(br#"{"model":"gpt-6-luna"}"#).modell.as_deref(),
+            Some(ANDERER)
+        );
+        // `Sammler::neu` (no request) names `null`
+        let (z, _) = zeile_bei(b"{}", &[], "POST", "/chat/completions", 200);
+        assert_eq!(z["werte"]["anfrage.model"], Value::Null);
+    }
+
+    /// Case: a name of the list that is token-like or fails the word form, or holds a held secret, is `anderer`; the
+    /// check runs again on the entry, not only when the list was measured.
+    #[test]
+    fn modell_mit_tokenform_wird_anderer() {
+        let g = Geheim::neu(b"geheim-wert-0815".to_vec());
+        let lang = "a".repeat(WERT_MAX + 1);
+        for name in [
+            "gho_abc",
+            "GHU_model",
+            "github_pat_x",
+            "sk-proj",
+            "api-key-model",
+            "a-abcdefghijklmnopqrstu",
+            "gpt 6",
+            lang.as_str(),
+            "x-geheim-wert-0815",
+        ] {
+            let b = json!({ "model": name }).to_string();
+            let (z, text) = zeile_mit_liste(b.as_bytes(), &[name], std::slice::from_ref(&g));
+            assert_eq!(z["werte"]["anfrage.model"], ANDERER, "{name}");
+            assert!(!text.contains(name), "{name}: {text}");
+        }
+    }
+
+    /// Case: a body without `model`, with `model` below another key, and a body that is no JSON object name `null`.
+    #[test]
+    fn modell_fehlt_oder_kein_json() {
+        let liste = ["gpt-6-luna"];
+        for b in [
+            &br#"{"messages":[{"role":"user","content":"gpt-6-luna"}]}"#[..],
+            br#"{"x":{"model":"gpt-6-luna"}}"#,
+            br#"[{"model":"gpt-6-luna"}]"#,
+            br#""gpt-6-luna""#,
+            b"kein json",
+            b"",
+        ] {
+            let (z, text) = zeile_mit_liste(b, &liste, &[]);
+            assert_eq!(
+                z["werte"]["anfrage.model"],
+                Value::Null,
+                "{}",
+                String::from_utf8_lossy(b)
+            );
+            assert!(!text.contains("gpt-6-luna"), "{text}");
+        }
+    }
+
+    /// The list of `messen`: only for `GET /models`, the names of the line, empty for another form.
+    #[test]
+    fn messen_gibt_die_liste_nur_fuer_models() {
+        let mut s = Sammler::neu();
+        s.schieben(&modelle(&["b", "a", "gho_x"]));
+        let (_, l) = s.messen(&[], "copilot", "GET", "/models", 200);
+        assert_eq!(l, Some(vec!["a".to_owned(), "b".to_owned()]));
+        let (_, l) = s.messen(&[], "copilot", "POST", "/models", 200);
+        assert_eq!(l, None);
+        let (_, l) = s.messen(&[], "copilot", "GET", "/models/x", 200);
+        assert_eq!(l, None);
+        let mut s = Sammler::neu();
+        s.schieben(b"kein json");
+        let (_, l) = s.messen(&[], "copilot", "GET", "/models", 200);
+        assert_eq!(l, Some(Vec::new()));
     }
 }

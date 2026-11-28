@@ -57,18 +57,22 @@ pub struct Dienst {
     pub start_ms: i64,
     /// The role groups: effective gid of a peer to its role (section 2.3a).
     pub rollen: BTreeMap<u32, Rolle>,
-    /// Folder of the chain, `None` if it could not be made (then no line is written).
-    pub kette: Option<PathBuf>,
+    /// Folder of the chain; the start checked it (`start::kette_pruefen`), the holder never runs without it.
+    pub kette: PathBuf,
     /// The clock (ms since 1970); [`jetzt_ms`] in the delivered build.
     pub uhr: fn() -> i64,
     benutzt: Mutex<BTreeMap<String, i64>>,
     leck_treffer: AtomicU64,
-    /// Set after the first fixed line on a chain that cannot be continued (one line per run, F16).
-    kette_gemeldet: AtomicBool,
+    /// How many lines `halter.kette_fehler` were written in this run (one per failed append).
+    kette_fehler_zahl: AtomicU64,
+    /// The last of them.
+    kette_fehler_letzte: Mutex<Option<String>>,
     /// How many journal lines of the answer form of the first start were written in this run.
     antwortform_zahl: AtomicU64,
     /// The last of them.
     antwortform_letzte: Mutex<Option<String>>,
+    /// Per target: the model list of the last measured answer of `GET /models` in this run (answer form, section 4).
+    modelllisten: Mutex<BTreeMap<String, Vec<String>>>,
 }
 
 enum Zeile {
@@ -174,7 +178,7 @@ impl Dienst {
         konto: u32,
         start_ms: i64,
         rollen: BTreeMap<u32, Rolle>,
-        kette: Option<PathBuf>,
+        kette: PathBuf,
         uhr: fn() -> i64,
     ) -> Self {
         Dienst {
@@ -187,9 +191,11 @@ impl Dienst {
             uhr,
             benutzt: Mutex::new(BTreeMap::new()),
             leck_treffer: AtomicU64::new(0),
-            kette_gemeldet: AtomicBool::new(false),
+            kette_fehler_zahl: AtomicU64::new(0),
+            kette_fehler_letzte: Mutex::new(None),
             antwortform_zahl: AtomicU64::new(0),
             antwortform_letzte: Mutex::new(None),
+            modelllisten: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -199,20 +205,14 @@ impl Dienst {
     fn leck(&self, g: &Geprueft) {
         self.leck_treffer.fetch_add(1, Ordering::Relaxed);
         kette::leck_gesperrt(&mut io::stderr());
-        let Some(k) = &self.kette else {
-            return;
-        };
         let o = &g.anfrage;
         let ziel = o
             .get("ziel")
             .or_else(|| o.get("server"))
             .and_then(Value::as_str)
             .unwrap_or("");
-        if let Err(z) = kette::leck_zeile(k, (self.uhr)(), s(o, "op"), ziel)
-            && self.erste_meldung()
-        {
-            let mut e = io::stderr();
-            let _ = writeln!(e, "{z}");
+        if let Err(k) = kette::leck_zeile(&self.kette, (self.uhr)(), s(o, "op"), ziel) {
+            self.kette_fehler("halter.leck_gesperrt", k);
         }
     }
 
@@ -307,6 +307,15 @@ impl Dienst {
         self.antwortform_letzte.lock().ok().and_then(|z| z.clone())
     }
 
+    /// The model list of the last measured answer of `GET /models` of `ziel` in this run, empty before the first.
+    fn modellliste(&self, ziel: &str) -> Vec<String> {
+        self.modelllisten
+            .lock()
+            .ok()
+            .and_then(|m| m.get(ziel).cloned())
+            .unwrap_or_default()
+    }
+
     /// Writes the journal line of the answer form to stderr, counts it and keeps it as the last one.
     fn antwortform_schreiben(&self, zeile: String) {
         let mut e = io::stderr();
@@ -317,42 +326,42 @@ impl Dienst {
         }
     }
 
-    /// Whether the fixed journal line of a chain that cannot be continued was written in this run (F16).
+    /// How many lines `halter.kette_fehler` were written in this run.
     #[must_use]
-    pub fn kette_gemeldet(&self) -> bool {
-        self.kette_gemeldet.load(Ordering::Relaxed)
+    pub fn kette_fehler_zahl(&self) -> u64 {
+        self.kette_fehler_zahl.load(Ordering::Relaxed)
     }
 
-    /// `true` only the first time in a run: the fixed line of a chain that cannot be continued is written once (F16).
-    fn erste_meldung(&self) -> bool {
-        !self.kette_gemeldet.swap(true, Ordering::Relaxed)
+    /// The last line `halter.kette_fehler` of this run, `None` before the first.
+    #[must_use]
+    pub fn kette_fehler_letzte(&self) -> Option<String> {
+        self.kette_fehler_letzte.lock().ok().and_then(|z| z.clone())
     }
 
-    /// Writes the line of a refused ticket to the chain. When the chain cannot be continued (a broken anchor or any
-    /// other failure), the first such failure of the run writes one fixed line to the journal (F16), no path, no content.
-    fn kette_schreiben(&self, code: Code, sch: &pruefung::ScheinAbgelehnt) {
-        let Some(k) = &self.kette else {
-            return;
-        };
-        if let Err(z) = kette::schein_abgelehnt(k, (self.uhr)(), code, sch)
-            && self.erste_meldung()
-        {
-            let mut e = io::stderr();
-            let _ = writeln!(e, "{z}");
+    /// A line of the kind `art` could not be appended (class `klasse`): one journal line `halter.kette_fehler` for each
+    /// failed append, never a quiet return (decision of the operator, 28.11.2026). No path, no content.
+    fn kette_fehler(&self, art: &str, klasse: &str) {
+        let zeile = kette::fehler_zeile(art, klasse);
+        let mut e = io::stderr();
+        let _ = e.write_all(zeile.as_bytes());
+        self.kette_fehler_zahl.fetch_add(1, Ordering::Relaxed);
+        if let Ok(mut z) = self.kette_fehler_letzte.lock() {
+            *z = Some(zeile);
         }
     }
 
-    /// Writes the line `halter.pfad_verboten` of a refused path to the chain (section 9); a chain that cannot be
-    /// continued gives the fixed journal line once per run, as for a refused ticket.
+    /// Writes the line of a refused ticket to the chain; a failed append gives `halter.kette_fehler`.
+    fn kette_schreiben(&self, code: Code, sch: &pruefung::ScheinAbgelehnt) {
+        if let Err(k) = kette::schein_abgelehnt(&self.kette, (self.uhr)(), code, sch) {
+            self.kette_fehler("mcp.schein_abgelehnt", k);
+        }
+    }
+
+    /// Writes the line `halter.pfad_verboten` of a refused path to the chain (section 9); a failed append gives
+    /// `halter.kette_fehler`.
     fn pfad_schreiben(&self, p: &pruefung::PfadAbgelehnt) {
-        let Some(k) = &self.kette else {
-            return;
-        };
-        if let Err(z) = kette::pfad_zeile(k, (self.uhr)(), p)
-            && self.erste_meldung()
-        {
-            let mut e = io::stderr();
-            let _ = writeln!(e, "{z}");
+        if let Err(k) = kette::pfad_zeile(&self.kette, (self.uhr)(), p) {
+            self.kette_fehler("halter.pfad_verboten", k);
         }
     }
 
@@ -573,10 +582,11 @@ impl Dienst {
         // the body is dropped; the copy of the answer follows below (section 4)
         let regel = format!("{methode} {}", s(o, "pfad"));
         let form = z.antwortform.contains(&regel).then(|| {
+            let liste = self.modellliste(s(o, "ziel"));
             Sammler::mit_anfrage(
                 koerper
                     .as_deref()
-                    .map(antwortform::anfrage)
+                    .map(|k| antwortform::anfrage_mit(k, &liste, werte))
                     .unwrap_or_default(),
             )
         });
@@ -676,13 +686,14 @@ impl Dienst {
                 Ok(None) => {
                     if let Some(f) = &form {
                         // only `modell.aufruf` reaches a body (a 101 opens the stream before)
-                        self.antwortform_schreiben(f.zeile(
-                            werte,
-                            s(o, "ziel"),
-                            s(o, "methode"),
-                            s(o, "pfad"),
-                            status,
-                        ));
+                        let (zeile, liste) =
+                            f.messen(werte, s(o, "ziel"), s(o, "methode"), s(o, "pfad"), status);
+                        self.antwortform_schreiben(zeile);
+                        if let Some(l) = liste
+                            && let Ok(mut m) = self.modelllisten.lock()
+                        {
+                            m.insert(s(o, "ziel").to_owned(), l);
+                        }
                     }
                     let rest = sperre.ende();
                     return teile_senden(strom, &g.id, &rest).is_ok()
@@ -1097,7 +1108,7 @@ mod tests {
             1000,
             0,
             std::collections::BTreeMap::new(),
-            None,
+            std::path::PathBuf::from("/srv/beispiel/heim/kette-fehlt"),
             uhr,
         )
     }
@@ -1115,12 +1126,28 @@ mod tests {
         assert!(d.einloesen("e-1", 3_000));
     }
 
+    /// Every failed append gives one line `halter.kette_fehler`, not only the first of the run.
     #[test]
-    fn die_kette_meldet_ihren_fehler_einmal() {
+    fn die_kette_meldet_jeden_fehler() {
         let d = dienst_ohne_ziele();
-        assert!(d.erste_meldung());
-        assert!(!d.erste_meldung());
-        assert!(!d.erste_meldung());
+        assert_eq!(d.kette_fehler_zahl(), 0);
+        assert_eq!(d.kette_fehler_letzte(), None);
+        let p = crate::pruefung::PfadAbgelehnt {
+            op: "modell.aufruf".to_owned(),
+            ziel: "copilot".to_owned(),
+            methode: "POST".to_owned(),
+            pfad: "/auto".to_owned(),
+        };
+        for n in 1..=3 {
+            d.pfad_schreiben(&p);
+            assert_eq!(d.kette_fehler_zahl(), n);
+        }
+        assert_eq!(
+            d.kette_fehler_letzte().as_deref(),
+            Some(
+                "halter.kette_fehler: {\"art\":\"halter.pfad_verboten\",\"klasse\":\"ein_ausgabe\"}\n"
+            )
+        );
     }
 
     #[test]
