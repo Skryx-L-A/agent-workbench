@@ -151,6 +151,7 @@ Dieser Teil legt fest, **wie die Oberfläche aussieht, welche Bedienwege sie hat
    - Je Seite ein Symbol.
    - Gruppen mit Überschrift.
    - Je Einstellung eine Zeile mit Name, Schalter oder Wahl und einer Beschreibung von höchstens einer Zeile.
+   - Eine Wahl mit bis zu vier Werten ist in beiden Ansichten eine Segmentwahl, eine Wahl ab fünf Werten ein Ausklapper (Projektentscheid, 28.11.2026).
    - Keine Textabsätze.
    - Was gesperrt ist, nennt den Grund kurz, etwa „Vorgabe der Firma“.
    - Hier weicht die Gestalt ausdrücklich von der heutigen App ab.

@@ -22,7 +22,7 @@ mod kreuz {
 
     use serde_json::{Value, json};
 
-    use crate::gemeinsam::{HAENGESPERRE_MS, Welt, datei, lebt, prozesse_unter};
+    use crate::gemeinsam::{Gesperrt, HAENGESPERRE_MS, Welt, datei, lebt, prozesse_unter};
 
     /// A viewer that speaks the frames of the service (as the viewer of the tests of `dienst`); pictures are not read.
     struct Betrachter {
@@ -120,15 +120,20 @@ mod kreuz {
             }
         }
 
-        /// The entry of the session `id` in the last list.
-        fn eintrag(&mut self, id: &str) -> Option<Value> {
+        /// The sessions of the last list, after a barrier (empty when no list came).
+        fn sitzungen(&mut self) -> Vec<Value> {
             self.zustand();
             self.nachrichten
                 .iter()
                 .rev()
                 .find(|m| m["art"] == "Sitzungsliste")
                 .and_then(|m| m["sitzungen"].as_array().cloned())
-                .and_then(|l| l.into_iter().find(|s| s["id"] == id))
+                .unwrap_or_default()
+        }
+
+        /// The entry of the session `id` in the last list.
+        fn eintrag(&mut self, id: &str) -> Option<Value> {
+            self.sitzungen().into_iter().find(|s| s["id"] == id)
         }
     }
 
@@ -411,6 +416,137 @@ mod kreuz {
         welt_leer(&w);
     }
 
+    /// The answer of stage 1 of the service to every valid request (contract `dienst`, section 18).
+    const ABLEHNUNG: &str = "abgelehnt stelle_nicht_erreichbar\n";
+
+    /// The answer of the holding process to a request while another is open.
+    const OFFEN: &str = "abgelehnt anfordern_offen\n";
+
+    /// The request line of the cases 5 and 6.
+    const ANFORDERUNG: &[u8] = b"anfordern worker pi qwen3:8b medium\n";
+
+    /// Runs the tool of the agent (`werkbank-lauf-kind --anfordern --an <socket> <fields>`, as inside the enclosure but at the host
+    /// path of the socket) and returns its standard output, standard error and exit code. The upper halt is only against hanging.
+    fn werkzeug_fragen(socket: &Path, felder: &[&str]) -> (String, String, Option<i32>) {
+        let mut kind = std::process::Command::new(crate::gemeinsam::KIND)
+            .args([lauf::anfordern::ANFORDERN, lauf::anfordern::AN])
+            .arg(socket)
+            .args(felder)
+            .env_clear()
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .gesperrt_spawn()
+            .expect("tool");
+        let ende = Instant::now() + Duration::from_secs(30);
+        let status = loop {
+            if let Some(s) = kind.try_wait().expect("try_wait") {
+                break s;
+            }
+            if Instant::now() >= ende {
+                let _ = kind.kill();
+                let _ = kind.wait();
+                panic!("the tool did not end");
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        };
+        let (mut aus, mut fehler) = (String::new(), String::new());
+        kind.stdout
+            .take()
+            .expect("stdout")
+            .read_to_string(&mut aus)
+            .expect("stdout");
+        kind.stderr
+            .take()
+            .expect("stderr")
+            .read_to_string(&mut fehler)
+            .expect("stderr");
+        (aus, fehler, status.code())
+    }
+
+    /// Everything one connection to the holding process gets until the holding process closes it.
+    fn bis_zum_ende(strom: &mut UnixStream) -> String {
+        strom
+            .set_read_timeout(Some(Duration::from_secs(30)))
+            .expect("timeout");
+        let mut antwort = Vec::new();
+        strom
+            .read_to_end(&mut antwort)
+            .expect("the holding process closes the connection");
+        String::from_utf8(antwort).expect("text")
+    }
+
+    /// A local session that runs: waits for the harness, so the report `laeuft` has gone to the service. Returns the identifier, the
+    /// socket of the worker request at its host path and the content of the PID file of the harness.
+    fn laufende_sitzung(b: &mut Betrachter, w: &Welt) -> (String, PathBuf, String) {
+        let id = starten(b, w);
+        let pid_datei = w.wurzel.join("harness.pid");
+        let ende = Instant::now() + Duration::from_secs(60);
+        while !pid_datei.exists() {
+            assert!(Instant::now() < ende, "no harness of {id}");
+            b.lesen(Duration::from_millis(50));
+        }
+        let e = b.eintrag(&id).expect("entry");
+        assert_eq!(e["zustand"], "laeuft", "{e}");
+        let socket = w.laufzeit.join(&id).join(lauf::ablauf::ANFORDERN_SOCKET);
+        assert!(socket.exists(), "the socket of the worker request");
+        let pid = std::fs::read_to_string(&pid_datei).expect("PID of the harness");
+        (id, socket, pid)
+    }
+
+    /// What is left of the world after the requests: the one session still runs, no other session was made, and the harness is the
+    /// one of before (nobody started a worker).
+    fn kein_worker_gestartet(b: &mut Betrachter, w: &Welt, id: &str, pid: &str) {
+        let liste = b.sitzungen();
+        let ids: Vec<&str> = liste.iter().filter_map(|s| s["id"].as_str()).collect();
+        assert_eq!(ids, [id], "no second session: {liste:?}");
+        assert_eq!(liste[0]["zustand"], "laeuft", "{liste:?}");
+        let jetzt = std::fs::read_to_string(w.wurzel.join("harness.pid")).expect("PID");
+        assert_eq!(jetzt, pid, "the harness is the one of before");
+    }
+
+    /// Case 5 (Entscheid des Betreibers, 28.11.2026): a worker request through the real service. After `laeuft` the tool of the agent
+    /// sends one valid line over the socket of the session; the holding process passes it to the real service over the report
+    /// connection. The agent gets exactly the answer `abgelehnt stelle_nicht_erreichbar` (exit code 1) and the service starts no worker.
+    /// Then a second request while the first is open: two agents connect, the second line is on its connection before the first agent
+    /// has sent its line, so the holding process reads the second while the first is open. The first gets the answer of the service,
+    /// the second `abgelehnt anfordern_offen`, each exactly once. At last a request after both answers gets the answer of the service
+    /// again: the holding process takes a new request once the open one is answered.
+    pub fn eine_anforderung_wird_vom_dienst_abgelehnt_und_startet_keinen_worker() {
+        let w = Welt::neu();
+        let _ = w.lokal();
+        schlafender_bwrap(&w);
+        let d = Dienst::starten(&w, &w.bin.join("werkbank-lauf"));
+        let mut b = Betrachter::neu(&d.socket);
+        let (id, socket, pid) = laufende_sitzung(&mut b, &w);
+        let felder = ["worker", "pi", "qwen3:8b", "medium"];
+        let (aus, fehler, code) = werkzeug_fragen(&socket, &felder);
+        assert_eq!(
+            aus, ABLEHNUNG,
+            "answer to the agent (standard error: {fehler:?})"
+        );
+        assert_eq!(fehler, "", "nothing on standard error");
+        assert_eq!(code, Some(lauf::anfordern::KLIENT_ABGELEHNT));
+        kein_worker_gestartet(&mut b, &w, &id, &pid);
+        let mut erster = UnixStream::connect(&socket).expect("first agent");
+        let mut zweiter = UnixStream::connect(&socket).expect("second agent");
+        zweiter.write_all(ANFORDERUNG).expect("second line");
+        // the holding process waits for the line of the first agent (up to its time of two seconds); the second is already there
+        erster.write_all(ANFORDERUNG).expect("first line");
+        assert_eq!(bis_zum_ende(&mut erster), ABLEHNUNG, "first agent");
+        assert_eq!(bis_zum_ende(&mut zweiter), OFFEN, "second agent");
+        let (aus, fehler, code) = werkzeug_fragen(&socket, &felder);
+        assert_eq!(
+            aus, ABLEHNUNG,
+            "request after both answers (standard error: {fehler:?})"
+        );
+        assert_eq!(code, Some(lauf::anfordern::KLIENT_ABGELEHNT));
+        kein_worker_gestartet(&mut b, &w, &id, &pid);
+        drop(b);
+        drop(d);
+        welt_leer(&w);
+    }
+
     /// Counter probe in the test: a `lauf` that does not know `--meldung` (its step 1 refuses the call, as step 1 of the version before
     /// `--meldung` refuses three arguments) does not start through the service. Case 1 fails, and the session ends with 64 and no
     /// reason (no connection, the code is the one of the child).
@@ -439,7 +575,7 @@ fn main() {
     if args.first().is_some_and(|a| a == "--exec") {
         std::process::exit(dienst::programm(&args));
     }
-    let faelle: [(&str, fn()); 4] = [
+    let faelle: [(&str, fn()); 5] = [
         ("der_start_gelingt", kreuz::der_start_gelingt),
         (
             "ein_fehler_vor_dem_starter_kommt_als_code_und_grund_an",
@@ -452,6 +588,10 @@ fn main() {
         (
             "zweihundertsechsundfuenfzig_cloud_sitzungen_ohne_laeufer",
             kreuz::zweihundertsechsundfuenfzig_cloud_sitzungen_ohne_laeufer,
+        ),
+        (
+            "eine_anforderung_wird_vom_dienst_abgelehnt_und_startet_keinen_worker",
+            kreuz::eine_anforderung_wird_vom_dienst_abgelehnt_und_startet_keinen_worker,
         ),
     ];
     let filter: Vec<String> = args

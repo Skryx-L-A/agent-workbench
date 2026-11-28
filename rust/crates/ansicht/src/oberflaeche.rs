@@ -129,6 +129,67 @@ pub(crate) fn fokus(id: &str) {
     }
 }
 
+/// The keys of operating by keyboard: after one of them fields and lists show their focus ring again.
+const BEDIENTASTEN: [&str; 13] = [
+    "Tab",
+    "F6",
+    "Escape",
+    "Enter",
+    " ",
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+    "Home",
+    "End",
+    "PageUp",
+    "PageDown",
+];
+
+/// Whether a key press is operating by keyboard (not typing a character), so that the focus ring shows.
+fn bedient_mit_tastatur(taste: &str) -> bool {
+    BEDIENTASTEN.contains(&taste)
+}
+
+/// Focus ring only after the keyboard (decision of 28.11.2026), also when a window opens and sets the focus: a pointer press
+/// marks the document with `data-zeiger`, a key of [`BEDIENTASTEN`] removes the mark. While it stands, the style hides the ring of
+/// fields and lists (`ansicht.css`); `:focus-visible` alone shows it for a text field after a click as well.
+fn eingabeart_verfolgen() {
+    use wasm_bindgen::closure::Closure;
+    let Some(d) = dokument() else {
+        return;
+    };
+    let marke = |an: bool| {
+        if let Some(h) = dokument().and_then(|d| d.document_element()) {
+            let _ = if an {
+                h.set_attribute("data-zeiger", "")
+            } else {
+                h.remove_attribute("data-zeiger")
+            };
+        }
+    };
+    let zeiger = Closure::<dyn FnMut(web_sys::Event)>::new(move |_: web_sys::Event| marke(true));
+    let taste =
+        Closure::<dyn FnMut(web_sys::KeyboardEvent)>::new(move |e: web_sys::KeyboardEvent| {
+            if bedient_mit_tastatur(&e.key()) {
+                marke(false);
+            }
+        });
+    let _ = d.add_event_listener_with_callback_and_bool(
+        "pointerdown",
+        zeiger.as_ref().unchecked_ref(),
+        true,
+    );
+    let _ = d.add_event_listener_with_callback_and_bool(
+        "keydown",
+        taste.as_ref().unchecked_ref(),
+        true,
+    );
+    // the listeners live as long as the page
+    zeiger.forget();
+    taste.forget();
+}
+
 fn fokus_auf(e: &HtmlElement) {
     let o = web_sys::FocusOptions::new();
     o.set_prevent_scroll(true);
@@ -475,6 +536,7 @@ pub fn app() -> Element {
     };
     use_hook(move || {
         a.aussehen.peek().anwenden();
+        eingabeart_verfolgen();
         spawn(async move {
             let hash = web_sys::window()
                 .and_then(|w| w.location().hash().ok())
@@ -1634,4 +1696,20 @@ pub(crate) fn symbol_zahnrad(groesse: u32) -> Element {
     rsx! { svg { width: "{groesse}", height: "{groesse}", "viewBox": "0 0 20 20", fill: "none", stroke: "currentColor", "stroke-width": "1.3", "stroke-linejoin": "round", "aria-hidden": "true",
     path { d: "M8.84 4.01 L9.03 2.06 L10.97 2.06 L11.16 4.01 L13.41 4.94 L14.93 3.70 L16.30 5.07 L15.06 6.59 L15.99 8.84 L17.94 9.03 L17.94 10.97 L15.99 11.16 L15.06 13.41 L16.30 14.93 L14.93 16.30 L13.41 15.06 L11.16 15.99 L10.97 17.94 L9.03 17.94 L8.84 15.99 L6.59 15.06 L5.07 16.30 L3.70 14.93 L4.94 13.41 L4.01 11.16 L2.06 10.97 L2.06 9.03 L4.01 8.84 L4.94 6.59 L3.70 5.07 L5.07 3.70 L6.59 4.94 Z" }
     circle { cx: "10", cy: "10", r: "2.6" } } }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::bedient_mit_tastatur;
+
+    /// Decision of 28.11.2026: keys of operating bring the focus ring back, typing a character or a shortcut does not.
+    #[test]
+    fn only_keys_of_operating_bring_the_focus_ring_back() {
+        for t in ["Tab", "F6", "Escape", "Enter", " ", "ArrowDown", "PageUp"] {
+            assert!(bedient_mit_tastatur(t), "{t}");
+        }
+        for t in ["a", "Ä", "Shift", "Control", "Meta", "Dead", "v"] {
+            assert!(!bedient_mit_tastatur(t), "{t}");
+        }
+    }
 }

@@ -273,7 +273,8 @@ impl Attrappe {
             ),
             e(
                 "effort.grenzen",
-                json!([{"harness": "copilot", "erlaubt": ["low", "medium", "high"]}]),
+                json!([{"harness": "copilot", "erlaubt": ["none", "low", "medium"]},
+                       {"harness": "pi", "klasse": "kundendaten", "erlaubt": ["off", "low"]}]),
                 "firma",
                 false,
                 Some("nur_admin"),
@@ -435,6 +436,24 @@ impl Stand {
             // L10: the allowed efforts per route and model and the default of the person
             n["efforts"] = json!({"cloud": ["low", "medium", "high"], "lokal": ["medium"]});
             n["effort_vorgabe"] = json!("medium");
+            // version 2 (contract `start`): the efforts of each route per program, as the service takes them from
+            // `effort.grenzen` of the settings (contract 2, block `effort`); the page "Sitzung" offers them as the thinking
+            // level
+            n["fassung"] = json!(2);
+            let e = |harness: &str, modell: &str, erlaubt: &[&str]| {
+                json!({"harness": harness, "modell": modell, "erlaubt": erlaubt,
+                       "vorgabe": if erlaubt.contains(&"medium") { json!("medium") } else { Value::Null }})
+            };
+            n["routen"][0]["efforts"] = json!([
+                e("copilot", "sonnet", &["none", "low", "medium"]),
+                e("pi", "sonnet", &[]),
+                e("opencode", "sonnet", &[]),
+            ]);
+            n["routen"][1]["efforts"] = json!([
+                e("copilot", "qwen3-coder", &["none", "low", "medium"]),
+                e("pi", "qwen3-coder", &[]),
+                e("opencode", "qwen3-coder", &[]),
+            ]);
         }
         self.nachricht(&n);
     }

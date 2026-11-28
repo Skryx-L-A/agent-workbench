@@ -508,10 +508,94 @@ fn wert_text(v: &Value) -> String {
     }
 }
 
-/// The choices of the user for model and effort when the catalog names none: the models of the routes and every effort the admins
-/// allow on a route (`Startwahl`); the effective value stays a choice even when no route names it. Program and model are
-/// then bound to the limit of the admins (`harnesses`, `modelle`; decision of the operator, 28.11.2026): only values of at
-/// least one class remain, also the effective value.
+/// The most values of a choice shown as a segment; from one more it is a drop-down (decision of 28.11.2026, both views).
+const SEGMENT_HOECHSTENS: usize = 4;
+
+/// Whether a choice of `n` values is a segment (else a drop-down).
+fn als_segment(n: usize) -> bool {
+    n <= SEGMENT_HOECHSTENS
+}
+
+fn wert_von<'a>(werte: &'a [Einstellung], schluessel: &str) -> Option<&'a Value> {
+    werte
+        .iter()
+        .find(|e| e.schluessel == schluessel)
+        .map(|e| &e.wert)
+}
+
+/// The efforts of a new session of the program `harness` with the model `modell` within the limits of the admins (`einstellungen`
+/// version 2, block `effort`, "Erlaubte Efforts eines Starts"): for each data class in which `harnesses` releases the program, the
+/// values that stand in every matching limit, in the order of the first; then the union over the classes. Without a release per
+/// class only the limits without a class count; without a program, every program of the limits.
+fn efforts_der_grenzen(
+    grenzen: &[Value],
+    harnesses: &Value,
+    harness: Option<&str>,
+    modell: Option<&str>,
+) -> Vec<String> {
+    let feld = |g: &Value, f: &str| g.get(f).and_then(Value::as_str).map(str::to_owned);
+    let mut programme: Vec<String> = Vec::new();
+    match harness {
+        Some(h) => programme.push(h.to_owned()),
+        None => {
+            for h in grenzen.iter().filter_map(|g| feld(g, "harness")) {
+                if !programme.contains(&h) {
+                    programme.push(h);
+                }
+            }
+        }
+    }
+    let mut aus: Vec<String> = Vec::new();
+    for h in &programme {
+        let klassen: Vec<Option<String>> = match harnesses.as_object() {
+            Some(o) if !o.is_empty() => o
+                .iter()
+                .filter(|(_, l)| {
+                    l.as_array()
+                        .is_some_and(|l| l.iter().any(|x| x.as_str() == Some(h.as_str())))
+                })
+                .map(|(k, _)| Some(k.clone()))
+                .collect(),
+            _ => vec![None],
+        };
+        for k in &klassen {
+            let passend: Vec<Vec<String>> = grenzen
+                .iter()
+                .filter(|g| {
+                    feld(g, "harness").as_deref() == Some(h.as_str())
+                        && feld(g, "klasse").is_none_or(|x| Some(&x) == k.as_ref())
+                        && feld(g, "modell").is_none_or(|x| Some(x.as_str()) == modell)
+                })
+                .map(|g| {
+                    g.get("erlaubt")
+                        .and_then(Value::as_array)
+                        .map(|l| {
+                            l.iter()
+                                .filter_map(Value::as_str)
+                                .map(str::to_owned)
+                                .collect()
+                        })
+                        .unwrap_or_default()
+                })
+                .collect();
+            let Some((erste, rest)) = passend.split_first() else {
+                continue;
+            };
+            for w in erste {
+                if rest.iter().all(|l| l.contains(w)) && !aus.contains(w) {
+                    aus.push(w.clone());
+                }
+            }
+        }
+    }
+    aus
+}
+
+/// The choices of the user for model and effort when the catalog names none: the models of the routes (`Startwahl`) and the
+/// efforts of the chosen program (`sitzung.harness`) within the limits of the admins (`effort.grenzen`, see
+/// [`efforts_der_grenzen`]); without the limits in the message, the efforts `Startwahl` allows the program on a route. Program
+/// and model are then bound to the limit of the admins (`harnesses`, `modelle`; decision of the operator, 28.11.2026): only
+/// values of at least one class remain, also the effective value.
 fn wahlen_ergaenzen(werte: &mut [Einstellung], start: &crate::start::Startform) {
     ergaenzen_ohne_grenze(werte, start);
     let grenzen: Vec<(String, Value)> = werte
@@ -533,14 +617,35 @@ fn ergaenzen_ohne_grenze(werte: &mut [Einstellung], start: &crate::start::Startf
         .iter()
         .filter_map(|(_, m)| m.clone())
         .collect();
-    let mut efforts: Vec<String> = Vec::new();
-    for e in start.efforts.iter().flat_map(|(_, l)| l.iter()) {
-        for x in &e.erlaubt {
-            if !efforts.contains(x) {
-                efforts.push(x.clone());
+    let harness = wert_von(werte, "sitzung.harness")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
+    let modell = wert_von(werte, "sitzung.modell")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
+    let efforts = if let Some(g) = wert_von(werte, "effort.grenzen").and_then(Value::as_array) {
+        efforts_der_grenzen(
+            g,
+            wert_von(werte, "harnesses").unwrap_or(&Value::Null),
+            harness.as_deref(),
+            modell.as_deref(),
+        )
+    } else {
+        let mut l: Vec<String> = Vec::new();
+        for e in start
+            .efforts
+            .iter()
+            .flat_map(|(_, l)| l.iter())
+            .filter(|e| harness.as_deref().is_none_or(|h| e.harness == h))
+        {
+            for x in &e.erlaubt {
+                if !l.contains(x) {
+                    l.push(x.clone());
+                }
             }
         }
-    }
+        l
+    };
     for e in werte.iter_mut().filter(|e| e.wahl.is_empty()) {
         let mut wahl = match e.schluessel.as_str() {
             "sitzung.modell" => std::mem::take(&mut modelle),
@@ -624,7 +729,19 @@ fn klartext(schluessel: &str, v: &Value) -> Vec<String> {
                     } else {
                         wer.join(crate::woerter::TRENNER)
                     };
-                    format!("{wer}: {}", namen_text(&o["erlaubt"]))
+                    let erlaubt: Vec<String> = o["erlaubt"]
+                        .as_array()
+                        .map(|l| {
+                            l.iter()
+                                .map(|x| crate::start::effort_text(&wert_text(x)).to_owned())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    if erlaubt.is_empty() {
+                        format!("{wer}: {}", namen_text(&o["erlaubt"]))
+                    } else {
+                        format!("{wer}: {}", erlaubt.join(", "))
+                    }
                 }
                 Value::Object(o) => o
                     .iter()
@@ -1089,9 +1206,7 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
     } else {
         "nutzer".to_owned()
     };
-    let (k1, k2) = (e.schluessel.clone(), e.schluessel.clone());
-    let (b1, b2) = (e.bereich.clone(), e.bereich.clone());
-    let (eb1, eb2) = (ebene.clone(), ebene.clone());
+    let (k1, b1, eb1) = (e.schluessel.clone(), e.bereich.clone(), ebene.clone());
     let steuerung = match &e.wert {
         Value::Bool(an) => {
             let an = *an;
@@ -1130,46 +1245,59 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
                 }
             }
         }
-        // the effort as a segment like in the window "Sitzungen" of the app window: the default of the program first (E2)
-        Value::String(_) | Value::Null
-            if e.schluessel == "sitzung.effort" && !e.wahl.is_empty() =>
-        {
+        // one rule for the form of a choice in both views (decision of 28.11.2026): up to four values a segment, from five a
+        // drop-down; the effort has the default of the program first (E2) and reads `off` and `none` as a word
+        Value::String(_) | Value::Null if !e.wahl.is_empty() => {
+            let effort = e.schluessel == "sitzung.effort";
             let w = e.wert.as_str().unwrap_or_default().to_owned();
-            let mut wahl: Vec<(String, String)> =
-                vec![(String::new(), woerter::VORGABE_DES_PROGRAMMS.to_owned())];
-            wahl.extend(e.wahl.iter().map(|x| (x.clone(), x.clone())));
+            let mut wahl: Vec<(String, String)> = Vec::new();
+            if effort {
+                wahl.push((String::new(), woerter::VORGABE_DES_PROGRAMMS.to_owned()));
+            }
+            wahl.extend(e.wahl.iter().map(|x| {
+                let t = if effort {
+                    crate::start::effort_text(x).to_owned()
+                } else {
+                    x.clone()
+                };
+                (x.clone(), t)
+            }));
+            // an effective value outside the choice (for instance outside the limit of the admins) shows as it is, but is no
+            // choice: no segment is marked, the drop-down shows it disabled; without it the browser would show the first choice
+            let ausserhalb = !wahl.iter().any(|(x, _)| *x == w);
             let (k3, b3, eb3) = (e.schluessel.clone(), e.bereich.clone(), ebene.clone());
-            rsx! {
-                div { class: "segment", role: "radiogroup", "aria-label": "{titel}", title: "{gesperrt_grund}",
-                    for (wert, text) in wahl {
-                        {
-                            let an = wert == w;
-                            let (k, b, eb) = (k3.clone(), b3.clone(), eb3.clone());
-                            let neu = if wert.is_empty() { Value::Null } else { json!(wert) };
-                            rsx! {
-                                button { key: "{wert}", r#type: "button", role: "radio", class: if an { "gewaehlt" } else { "" },
-                                    "aria-checked": if an { "true" } else { "false" }, disabled: !e.aenderbar,
-                                    onclick: move |_| senden(&ziel::einstellung_setzen(&k, &neu, &b, &eb)),
-                                    "{text}" }
+            if als_segment(wahl.len()) {
+                rsx! {
+                    div { class: "segment", role: "radiogroup", "aria-label": "{titel}", title: "{gesperrt_grund}",
+                        for (wert, text) in wahl {
+                            {
+                                let an = wert == w;
+                                let (k, b, eb) = (k3.clone(), b3.clone(), eb3.clone());
+                                let neu = if wert.is_empty() { Value::Null } else { json!(wert) };
+                                rsx! {
+                                    button { key: "{wert}", r#type: "button", role: "radio", class: if an { "gewaehlt" } else { "" },
+                                        "aria-checked": if an { "true" } else { "false" }, disabled: !e.aenderbar,
+                                        onclick: move |_| senden(&ziel::einstellung_setzen(&k, &neu, &b, &eb)),
+                                        "{text}" }
+                                }
                             }
                         }
                     }
                 }
-            }
-        }
-        Value::String(w) if !e.wahl.is_empty() => {
-            let w = w.clone();
-            // an effective value outside the choice (for instance outside the limit of the admins) shows as it is, but
-            // is no choice; without it the browser would show the first choice as the value
-            let ausserhalb = !e.wahl.contains(&w);
-            rsx! {
-                select { class: "feld", "aria-label": "{titel}", disabled: !e.aenderbar, title: "{gesperrt_grund}",
-                    onchange: move |x: FormEvent| senden(&ziel::einstellung_setzen(&k2, &json!(x.value()), &b2, &eb2)),
-                    if ausserhalb {
-                        option { key: "{w}", value: "{w}", selected: true, disabled: true, "{w}" }
-                    }
-                    for o in e.wahl.clone() {
-                        option { key: "{o}", value: "{o}", selected: o == w, "{o}" }
+            } else {
+                rsx! {
+                    select { class: "feld", "aria-label": "{titel}", disabled: !e.aenderbar, title: "{gesperrt_grund}",
+                        onchange: move |x: FormEvent| {
+                            let v = x.value();
+                            let neu = if v.is_empty() { Value::Null } else { json!(v) };
+                            senden(&ziel::einstellung_setzen(&k3, &neu, &b3, &eb3));
+                        },
+                        if ausserhalb {
+                            option { key: "{w}", value: "{w}", selected: true, disabled: true, "{w}" }
+                        }
+                        for (wert, text) in wahl {
+                            option { key: "{wert}", value: "{wert}", selected: wert == w, "{text}" }
+                        }
                     }
                 }
             }
@@ -1334,10 +1462,47 @@ mod tests {
                 &json!([{"harness": "copilot", "klasse": "kundendaten", "erlaubt": ["low"]},
                         {"harness": "pi", "modell": "qwen3:8b", "erlaubt": ["off", "low"]}])
             ),
-            ["copilot · kundendaten: low", "pi · qwen3:8b: off, low"]
+            ["copilot · kundendaten: low", "pi · qwen3:8b: aus, low"]
         );
         for z in klartext("leseklassen", &json!([{"a": 1}, "b"])) {
             assert!(!z.contains('{') && !z.contains('['), "{z}");
         }
+    }
+
+    /// Decision of 28.11.2026: up to four values a segment, from five a drop-down; the font size (six values) stays a drop-down.
+    #[test]
+    fn up_to_four_values_a_segment_from_five_a_drop_down() {
+        use super::als_segment;
+        assert!(als_segment(2) && als_segment(3) && als_segment(4));
+        assert!(!als_segment(5) && !als_segment(crate::aussehen::SCHRIFTGROESSEN.len()));
+    }
+
+    /// Decision of 28.11.2026: the thinking level of a session takes its values from the limit of the chosen program and of the
+    /// class in which it is released, like the window of the app.
+    #[test]
+    fn the_thinking_level_follows_the_limit_of_program_and_class() {
+        use super::efforts_der_grenzen;
+        let grenzen = json!([
+            {"harness": "copilot", "erlaubt": ["low", "medium", "high"]},
+            {"harness": "copilot", "klasse": "intern", "modell": "gpt-6-luna", "erlaubt": ["low", "medium"]},
+            {"harness": "pi", "klasse": "kundendaten", "erlaubt": ["off", "low"]}]);
+        let g = grenzen.as_array().expect("Liste");
+        let frei = json!({"intern": ["copilot", "pi", "opencode"], "kundendaten": ["pi"]});
+        let e = |h: Option<&str>, m: Option<&str>| efforts_der_grenzen(g, &frei, h, m);
+        assert_eq!(
+            e(Some("copilot"), Some("sonnet")),
+            ["low", "medium", "high"]
+        );
+        // a second matching limit can only narrow
+        assert_eq!(e(Some("copilot"), Some("gpt-6-luna")), ["low", "medium"]);
+        // pi is released for intern (no limit) and kundendaten (off, low)
+        assert_eq!(e(Some("pi"), None), ["off", "low"]);
+        assert_eq!(e(Some("opencode"), None), Vec::<String>::new());
+        // without a release per class only limits without a class count
+        assert_eq!(
+            efforts_der_grenzen(g, &json!({}), Some("pi"), None),
+            Vec::<String>::new()
+        );
+        assert_eq!(e(None, None), ["low", "medium", "high", "off"]);
     }
 }

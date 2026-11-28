@@ -102,6 +102,14 @@ impl Bild {
         }
         aus
     }
+
+    /// The children of `n` in the order of the tree.
+    fn kinder(&self, n: &Node) -> Vec<&Node> {
+        n.children()
+            .iter()
+            .filter_map(|id| self.baum.get(id))
+            .collect()
+    }
 }
 
 /// The situations of the settings: name, situation, whether the viewer is an admin.
@@ -203,8 +211,13 @@ fn the_page_of_supervision_shows_no_control_without_a_key_of_the_catalog() {
     {
         let bild = Bild::neu(Some(&szene), admin, false);
         for n in bild.unter(&["einstellungsseite"]) {
-            // a control: a switch, or a choice (a button that is chosen or not)
-            if n.role() != Role::Switch && !(n.role() == Role::Button && n.toggled().is_some()) {
+            // a control: a switch, a drop-down, or a segment of a choice (a button that is chosen or not)
+            let bedienbar = match n.role() {
+                Role::Switch | Role::ComboBox => true,
+                Role::Button => n.toggled().is_some(),
+                _ => false,
+            };
+            if !bedienbar {
                 continue;
             }
             let k = n.author_id().unwrap_or("");
@@ -222,44 +235,166 @@ fn the_page_of_supervision_shows_no_control_without_a_key_of_the_catalog() {
     );
 }
 
-/// The effective deadline for each MCP server (`regelebenen` 15.1.2): the mock-up sends the catalogue 120 s and the
-/// server `tickets` with 30 s; the page shows 30 s with the origin of the server and `wiki` with the catalogue, for a
-/// person and for an admin, without a control.
-#[test]
-fn the_page_of_supervision_shows_the_effective_deadline_for_each_server_with_its_origin() {
-    let mut seiten = 0;
-    for (name, szene, admin) in einstellungen()
+/// The situation of the settings named `name`, painted light.
+fn seite(name: &str) -> Bild {
+    let (_, szene, admin) = einstellungen()
         .into_iter()
-        .filter(|(n, ..)| n.contains("aufsicht"))
-    {
-        let bild = Bild::neu(Some(&szene), admin, false);
-        let texte: BTreeSet<String> = bild
-            .unter(&["einstellungsseite"])
-            .iter()
-            .flat_map(|n| [n.label(), n.value()])
-            .flatten()
-            .map(str::to_owned)
+        .find(|(n, ..)| *n == name)
+        .unwrap_or_else(|| panic!("keine Lage {name}"));
+    Bild::neu(Some(&szene), admin, false)
+}
+
+/// Decision of the operator, 28.11.2026: the deadlines per MCP server are one table like in the browser view, with the
+/// columns server, deadline of the decision and deadline to redeem, each value with its origin, every word from
+/// `ansicht::woerter`. The mock-up sends the catalogue 120 s and 5 min; `tickets` sets 30 s, `wiki` 1 min to redeem
+/// (`regelebenen` 15.1.2): the stricter server shows, the catalogue does not loosen it. For a person and for an admin.
+#[test]
+fn the_deadlines_per_server_are_one_table_with_the_origin_of_each_value() {
+    use ansicht::woerter as w;
+    let zelle = |sekunden: u32, herkunft: &str| {
+        format!("{sekunden} {}{}{herkunft}", w::EINHEIT_SEKUNDEN, w::TRENNER)
+    };
+    let soll = vec![
+        vec![
+            w::SERVER.to_owned(),
+            w::werte::FREIGABEFRIST.1.to_owned(),
+            w::werte::EINLOESEFRIST.1.to_owned(),
+        ],
+        vec![
+            "tickets".to_owned(),
+            zelle(30, w::HERKUNFT_FIRMENDATEI),
+            zelle(300, w::HERKUNFT_KATALOG),
+        ],
+        vec![
+            "wiki".to_owned(),
+            zelle(120, w::HERKUNFT_KATALOG),
+            zelle(60, w::HERKUNFT_FIRMENDATEI),
+        ],
+    ];
+    for name in [
+        "einstellungen-aufsicht-nutzer",
+        "einstellungen-aufsicht-admin",
+    ] {
+        let bild = seite(name);
+        let tabelle = bild
+            .unter(&["fristen-je-server"])
+            .into_iter()
+            .find(|n| n.role() == Role::Table)
+            .unwrap_or_else(|| panic!("{name}: keine Tabelle der Fristen je Server"));
+        assert_eq!(tabelle.label(), Some(w::FRISTEN_JE_SERVER), "{name}");
+        let zeilen: Vec<&Node> = bild
+            .kinder(tabelle)
+            .into_iter()
+            .filter(|z| z.role() == Role::Row)
             .collect();
-        for soll in [
-            "Frist der Entscheidung je MCP-Server",
-            "Frist zum Einlösen je MCP-Server",
-            "tickets: 30 s",
-            "wiki: 2 min",
-            "tickets: 5 min",
-            "wiki: 1 min",
-            "Firmendatei, Server tickets",
-            "Firmendatei, Server wiki",
-            "Katalog",
-        ] {
-            assert!(texte.contains(soll), "{name}: {soll:?} fehlt in {texte:?}");
-        }
-        assert!(
-            !texte.contains("tickets: 2 min"),
-            "{name}: der Katalog lockert den strengeren Server"
-        );
-        seiten += 1;
+        let texte: Vec<Vec<String>> = zeilen
+            .iter()
+            .map(|z| {
+                bild.kinder(z)
+                    .iter()
+                    .filter_map(|c| c.label())
+                    .map(str::to_owned)
+                    .collect()
+            })
+            .collect();
+        assert_eq!(texte, soll, "{name}");
+        let kopf: Vec<Role> = zeilen
+            .first()
+            .map(|z| bild.kinder(z).iter().map(|c| c.role()).collect())
+            .unwrap_or_default();
+        assert_eq!(kopf, [Role::ColumnHeader; 3], "{name}: Kopf der Tabelle");
+        // a table to read: no control in it
+        let bedienbar: Vec<&Node> = bild
+            .unter(&["fristen-je-server"])
+            .into_iter()
+            .filter(|n| matches!(n.role(), Role::Button | Role::Switch | Role::ComboBox))
+            .collect();
+        assert!(bedienbar.is_empty(), "{name}: {bedienbar:?}");
     }
-    assert_eq!(seiten, 2, "Aufsicht als Nutzer und als Admin");
+}
+
+/// Decision of the operator, 28.11.2026: up to four values a segmented choice, from five values a drop-down, for every
+/// choice of the window. Measured at the boundary on the page of supervision (deadline to redeem: four values; deadline
+/// of a decision: the four fixed ones and the effective 120 s, five), on the look (theme three, font size six) and on the
+/// page of a session (the programs and models the limit of the admins allows).
+#[test]
+fn up_to_four_values_are_segments_and_five_or_more_a_drop_down() {
+    // (segments, drop-downs) with the key of the row
+    let form = |bild: &Bild, schluessel: &str| -> (usize, usize) {
+        let n: Vec<&Node> = bild
+            .baum
+            .values()
+            .filter(|n| n.author_id() == Some(schluessel))
+            .collect();
+        (
+            n.iter()
+                .filter(|n| n.role() == Role::Button && n.toggled().is_some())
+                .count(),
+            n.iter().filter(|n| n.role() == Role::ComboBox).count(),
+        )
+    };
+    let aufsicht = seite("einstellungen-aufsicht-admin");
+    assert_eq!(
+        form(&aufsicht, "aufsicht.einloesefrist_ms"),
+        (4, 0),
+        "vier Werte"
+    );
+    assert_eq!(
+        form(&aufsicht, "aufsicht.freigabefrist_ms"),
+        (0, 1),
+        "fünf Werte"
+    );
+    let aussehen = seite("einstellungen-aussehen-nutzer");
+    assert_eq!(form(&aussehen, "aussehen.thema"), (3, 0), "drei Werte");
+    assert_eq!(
+        form(&aussehen, "terminal.schriftgroesse"),
+        (0, 1),
+        "sechs Werte, 11 bis 16"
+    );
+    let sitzung = seite("einstellungen-sitzung-nutzer");
+    assert_eq!(
+        form(&sitzung, "sitzung.harness"),
+        (3, 0),
+        "drei Programme in der Grenze"
+    );
+    assert_eq!(
+        form(&sitzung, "sitzung.modell"),
+        (2, 0),
+        "zwei Modelle in der Grenze"
+    );
+}
+
+/// Decision of the operator, 28.11.2026: the thinking level of a session offers „Vorgabe des Programms“ first, then the
+/// efforts the limit of the admins allows for the chosen program, from the source of the browser view (the efforts of
+/// the routes in `Startwahl`). The word for off comes from `ansicht::woerter`, never `none` or `off`. The mock-up allows
+/// copilot `none`, `low` and `medium`; the person chose `medium`.
+#[test]
+fn the_thinking_level_offers_the_default_of_the_program_and_the_allowed_efforts() {
+    use ansicht::woerter as w;
+    let bild = seite("einstellungen-sitzung-nutzer");
+    let mut wahl: Vec<(f64, String, bool)> = bild
+        .baum
+        .values()
+        .filter(|n| n.author_id() == Some("sitzung.effort") && n.toggled().is_some())
+        .map(|n| {
+            (
+                n.bounds().map_or(0.0, |b| b.x0),
+                n.label().unwrap_or_default().to_owned(),
+                n.toggled() == Some(Toggled::True),
+            )
+        })
+        .collect();
+    wahl.sort_by(|a, b| a.0.total_cmp(&b.0));
+    let wahl: Vec<(String, bool)> = wahl.into_iter().map(|(_, t, an)| (t, an)).collect();
+    assert_eq!(
+        wahl,
+        [
+            (w::VORGABE_DES_PROGRAMMS.to_owned(), false),
+            (w::AUS.to_owned(), false),
+            ("low".to_owned(), false),
+            ("medium".to_owned(), true),
+        ]
+    );
 }
 
 #[test]

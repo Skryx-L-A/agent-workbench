@@ -37,6 +37,7 @@
    "erwartet": {
     "im_terminal": false,
     "name": "Arbeitsordner",
+    "rahmen": false,
     "rolle": "textbox"
    }
   },

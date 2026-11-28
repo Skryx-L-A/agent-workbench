@@ -20,6 +20,8 @@ pub const MODELL: &str = "Modell";
 pub const DENKSTUFE: &str = "Denkstufe";
 /// The effort in the settings of the admins (limits); today's app has no word for them.
 pub const EFFORT: &str = "Effort";
+/// The thinking level `off` (pi) or `none` (copilot, opencode): the program does not think; never shown raw.
+pub const DENKSTUFE_AUS: &str = AUS;
 
 // ---- window "Sitzungen" ----
 

@@ -133,6 +133,16 @@ impl Default for Startform {
     }
 }
 
+/// The visible text of an effort value: `off` and `none` read as the word for "aus" ([`crate::woerter::DENKSTUFE_AUS`]), every
+/// other value as it is (`einstellungen` version 2, values per harness).
+#[must_use]
+pub fn effort_text(wert: &str) -> &str {
+    match wert {
+        "off" | "none" => crate::woerter::DENKSTUFE_AUS,
+        x => x,
+    }
+}
+
 fn ohne_kunde() -> Eintrag {
     Eintrag {
         wert: String::new(),
@@ -266,7 +276,10 @@ impl Startform {
                     wert: String::new(),
                     text: VORGABE_HARNESS.to_owned(),
                 }];
-                eintraege.extend(e.erlaubt.iter().map(|x| Eintrag::gleich(x)));
+                eintraege.extend(e.erlaubt.iter().map(|x| Eintrag {
+                    wert: x.clone(),
+                    text: effort_text(x).to_owned(),
+                }));
                 Wahlfeld::neu(eintraege, Some(e.vorgabe.as_deref().unwrap_or("")))
             }
             None => Wahlfeld::neu(Vec::new(), None),
@@ -416,6 +429,23 @@ mod tests {
         f.name.clear();
         let s = f.struktur();
         assert_eq!((&s["name"], &s["effort"]), (&Value::Null, &Value::Null));
+        // decision of 28.11.2026: `off` and `none` read as the word for "aus", the value stays
+        f.startwahl(&json!({"fassung": 2, "harness": [{"name": "pi"}],
+            "routen": [{"schluessel": "lokal", "modell": "q", "efforts": [{"harness": "pi", "modell": "q", "erlaubt": ["off", "low"], "vorgabe": null}]}],
+            "kunden": []}));
+        assert_eq!(
+            f.effort
+                .eintraege
+                .iter()
+                .map(|e| (e.wert.as_str(), e.text.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                ("", VORGABE_HARNESS),
+                ("off", crate::woerter::DENKSTUFE_AUS),
+                ("low", "low")
+            ]
+        );
+        assert_eq!((effort_text("none"), effort_text("high")), ("aus", "high"));
         // back to version 1: no name, no effort, version 1
         f.startwahl(&json!({"fassung": 1, "harness": [{"name": "claude"}], "routen": [{"schluessel": "r"}], "kunden": []}));
         assert!(!f.mit_name() && !f.mit_effort());

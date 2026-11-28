@@ -120,6 +120,7 @@ pub mod aussehen {
 
 /// The rows of the values of the service (`regelebenen` 15.1), in the order of the pages.
 pub mod werte {
+    // the names of the two deadlines are also the heads of the columns of the table of deadlines per server
     pub use ansicht::woerter::werte::{
         EFFORT, EFFORT_GRENZEN, EINLOESEFRIST, FREIGABEFRIST, HARNESS, HARNESSES, HERSTELLERZUGANG,
         LOKALE_CA, MODELL, MODELLE, OHNE_RUECKFRAGE, TELEMETRIE, TOKEN,
@@ -152,16 +153,31 @@ pub mod schutz {
     pub const UTC: &str = "UTC";
 }
 
-/// The effective deadline of a release for each MCP server, read only (`regelebenen` 15.1.2; decision of the operator,
-/// 27.11.2026). The table of words holds one heading for a single table („Fristen je MCP-Server“) and the origins „Firma“
-/// and „Vorgabe“ beside a column of servers; the window shows one group per deadline with the server in the origin, so
-/// these words stay its own until both views take one form.
+/// The effective deadline of a release for each MCP server, read only (`regelebenen` 15.1.2): one table like in the
+/// browser view, one row per server, each deadline with its origin (decision of the operator, 28.11.2026).
 pub mod server {
-    /// The end of the heading of a group, after the name of the deadline: "Frist der Entscheidung je MCP-Server".
-    /// TEXT fehlt in this form.
-    pub const JE: &str = "je MCP-Server";
-    /// The origin of a value of the company file, followed by the key of the server. TEXT fehlt in this form.
-    pub const HERKUNFT_FIRMENDATEI: &str = "Firmendatei, Server";
-    /// The origin of a value of the catalogue. TEXT fehlt in this form.
-    pub const HERKUNFT_KATALOG: &str = "Katalog";
+    use ansicht::woerter as w;
+    /// The heading of the table.
+    pub const TABELLE: &str = w::FRISTEN_JE_SERVER;
+    /// The column of the server.
+    pub const SERVER: &str = w::SERVER;
+    /// The origin of a deadline from the file of the company.
+    pub const HERKUNFT_FIRMENDATEI: &str = w::HERKUNFT_FIRMENDATEI;
+    /// The origin of a deadline from the catalogue: the default.
+    pub const HERKUNFT_KATALOG: &str = w::HERKUNFT_KATALOG;
+    /// The unit after the number of seconds: „60 s“.
+    pub const SEKUNDEN: &str = w::EINHEIT_SEKUNDEN;
+}
+
+/// The words of a choice.
+pub mod wahl {
+    use ansicht::woerter as w;
+    /// The first choice of the thinking level: no level of its own, the program decides.
+    pub const VORGABE_DES_PROGRAMMS: &str = w::VORGABE_DES_PROGRAMMS;
+    /// The thinking level that is off (`none` of copilot and opencode, `off` of pi).
+    pub const AUS: &str = w::AUS;
+    /// The unit after a font size: „13 Punkt“.
+    pub const PUNKT: &str = w::EINHEIT_PUNKT;
+    /// The separator between value and origin in one cell.
+    pub const TRENNER: &str = w::TRENNER;
 }

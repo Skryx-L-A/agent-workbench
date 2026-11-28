@@ -653,7 +653,12 @@ fn formzeile<R>(
         r.schrift,
         rect.width() - breite - 14.0,
     );
-    let band = Rect::from_min_max(pos2(rect.right() - breite, rect.top()), rect.right_bottom());
+    // the band of the field is as high as a field, like in the rows of the settings: a segmented choice keeps its
+    // ground off the lines between the rows
+    let band = Rect::from_center_size(
+        pos2(rect.right() - breite / 2.0, rect.center().y),
+        vec2(breite, MASSE.formfeld + 2.0),
+    );
     let mut c = ui.new_child(
         UiBuilder::new()
             .max_rect(band)
@@ -737,25 +742,214 @@ fn sitzung_wahlen(schluessel: &str, zusatz: &Zusatz) -> Vec<(String, String)> {
         .collect()
 }
 
-/// The rows of the effective deadline `schluessel` for each MCP server (`regelebenen` 15.1.2): the server, the value and
-/// the origin "Firmendatei, Server <server>" or "Katalog"; an origin in another form stays as it is.
-fn fristen_zeilen(
-    fristen: &[crate::ziel::Frist],
-    schluessel: &str,
-) -> Vec<(String, String, String)> {
-    use crate::einstellungstexte::server as t;
-    fristen
-        .iter()
-        .filter(|f| f.schluessel == schluessel)
-        .map(|f| {
-            let herkunft = match f.herkunft.as_str() {
-                "firmendatei" => format!("{} {}", t::HERKUNFT_FIRMENDATEI, f.server),
-                "katalog" => t::HERKUNFT_KATALOG.to_owned(),
-                x => x.to_owned(),
-            };
-            (f.server.clone(), frist_text(f.wert), herkunft)
+/// The largest number of values a segmented choice shows; a choice of more values is a drop-down. One rule for both
+/// views (decision of the operator, 28.11.2026).
+pub const SEGMENTE_HOECHSTENS: usize = 4;
+
+/// The form of a choice.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Wahlform {
+    /// The values side by side, the chosen one marked.
+    Segmente,
+    /// One field with the chosen value that opens the list of values.
+    Ausklapper,
+}
+
+/// The form of a choice of `anzahl` values: up to [`SEGMENTE_HOECHSTENS`] segments, from one more a drop-down. Every
+/// choice of the window takes its form from here.
+#[must_use]
+pub fn wahlform(anzahl: usize) -> Wahlform {
+    if anzahl <= SEGMENTE_HOECHSTENS {
+        Wahlform::Segmente
+    } else {
+        Wahlform::Ausklapper
+    }
+}
+
+/// The width of a drop-down in a row of the settings.
+const AUSKLAPPER_BREITE: f32 = 150.0;
+
+/// A choice in the form of [`wahlform`]: segments on a sunken ground, or a drop-down of `breite` points. `kennung` is the
+/// element id of every control of the choice, `name` its name; `wahlen` are value and text, `gewaehlt` the chosen
+/// value (none is marked when it is no choice). Returns the value clicked and the ids of the controls.
+fn wahl_malen(
+    ui: &mut Ui,
+    r: &Rollen,
+    kennung: &str,
+    name: &str,
+    wahlen: &[(String, String)],
+    gewaehlt: &str,
+    breite: f32,
+) -> (Option<String>, Vec<Id>) {
+    let mut neu = None;
+    let mut ids = Vec::new();
+    match wahlform(wahlen.len()) {
+        Wahlform::Segmente => {
+            ui.scope_builder(UiBuilder::new().id_salt(("segmente", kennung)), |ui| {
+                Frame::new()
+                    .fill(r.linie)
+                    .corner_radius(gestalt::radius(MASSE.radius_feld))
+                    .inner_margin(Margin::same(2))
+                    .show(ui, |ui| {
+                        // the Ui inside the frame holds the segments: it is the group with the name of the choice
+                        behaelter(ui, Role::RadioGroup, name, None);
+                        ui.spacing_mut().item_spacing.x = 0.0;
+                        ui.spacing_mut().interact_size.y = MASSE.knopf - 2.0;
+                        ui.visuals_mut().selection.bg_fill = r.reiter_wahl;
+                        let w = &mut ui.visuals_mut().widgets;
+                        for x in [&mut w.inactive, &mut w.hovered, &mut w.active] {
+                            x.corner_radius = gestalt::radius(MASSE.radius_feld - 1.0);
+                            x.bg_stroke = Stroke::NONE;
+                        }
+                        // in a row from right to left the last choice comes first
+                        let von_rechts = ui.layout().main_dir() == egui::Direction::RightToLeft;
+                        let reihe: Vec<&(String, String)> = if von_rechts {
+                            wahlen.iter().rev().collect()
+                        } else {
+                            wahlen.iter().collect()
+                        };
+                        for (w, t) in reihe {
+                            let k = ui.selectable_label(gewaehlt == w, t.as_str());
+                            let s = kennung.to_owned();
+                            ui.ctx()
+                                .accesskit_node_builder(k.id, |n| n.set_author_id(s));
+                            ids.push(k.id);
+                            if k.clicked() {
+                                neu = Some(w.clone());
+                            }
+                        }
+                    });
+            });
+        }
+        Wahlform::Ausklapper => {
+            let aktuell = wahlen
+                .iter()
+                .find(|(w, _)| w == gewaehlt)
+                .map_or_else(|| gewaehlt.to_owned(), |(_, t)| t.clone());
+            let cb = egui::ComboBox::from_id_salt(kennung)
+                .selected_text(aktuell)
+                .width(breite)
+                .show_ui(ui, |ui| {
+                    for (w, t) in wahlen {
+                        let k = ui.selectable_label(gewaehlt == w, t.as_str());
+                        let s = kennung.to_owned();
+                        ui.ctx()
+                            .accesskit_node_builder(k.id, |n| n.set_author_id(s));
+                        if k.clicked() {
+                            neu = Some(w.clone());
+                        }
+                    }
+                });
+            ui.ctx().accesskit_node_builder(cb.response.id, |n| {
+                n.set_role(Role::ComboBox);
+                n.set_label(name.to_owned());
+                n.set_author_id(kennung.to_owned());
+            });
+            ids.push(cb.response.id);
+        }
+    }
+    (neu, ids)
+}
+
+/// One cell of the table of deadlines: the deadline and its origin.
+type Fristzelle = Option<(String, String)>;
+
+/// A deadline in the table in seconds like in the browser view: "60 s"; a deadline below a whole second in milliseconds.
+fn sekunden_text(ms: u64) -> String {
+    if ms.is_multiple_of(1000) {
+        format!(
+            "{} {}",
+            ms / 1000,
+            crate::einstellungstexte::server::SEKUNDEN
+        )
+    } else {
+        format!("{ms} ms")
+    }
+}
+
+/// The table of the effective deadlines per MCP server (`regelebenen` 15.1.2; decision of the operator, 28.11.2026): one
+/// row per server in the order of the message, the deadline of the decision and the deadline to redeem, each with its
+/// origin "Firma" (file of the company) or "Vorgabe" (catalogue); an origin in another form stays as it is, a missing
+/// deadline is `None`.
+fn fristen_tabelle(fristen: &[crate::ziel::Frist]) -> Vec<(String, [Fristzelle; 2])> {
+    use crate::einstellungstexte::{server as t, werte};
+    let mut server: Vec<&str> = Vec::new();
+    for f in fristen {
+        if !server.contains(&f.server.as_str()) {
+            server.push(&f.server);
+        }
+    }
+    let zelle = |s: &str, schluessel: &str| -> Fristzelle {
+        fristen
+            .iter()
+            .find(|f| f.server == s && f.schluessel == schluessel)
+            .map(|f| {
+                let herkunft = match f.herkunft.as_str() {
+                    "firmendatei" => t::HERKUNFT_FIRMENDATEI,
+                    "katalog" => t::HERKUNFT_KATALOG,
+                    x => x,
+                };
+                (sekunden_text(f.wert), herkunft.to_owned())
+            })
+    };
+    server
+        .into_iter()
+        .map(|s| {
+            (
+                s.to_owned(),
+                [
+                    zelle(s, werte::FREIGABEFRIST.0),
+                    zelle(s, werte::EINLOESEFRIST.0),
+                ],
+            )
         })
         .collect()
+}
+
+/// The word of a thinking level: `none` (copilot, opencode) and `off` (pi) are „aus“ from the shared words, every other
+/// value stays as the program names it.
+fn effort_wort(wert: &str) -> String {
+    match wert {
+        "none" | "off" => crate::einstellungstexte::wahl::AUS.to_owned(),
+        x => x.to_owned(),
+    }
+}
+
+/// The choices of `sitzung.effort` from the source of the browser view, the efforts of the routes in `Startwahl` (the
+/// service takes them from `effort.grenzen` per program, class of the route and model; contract 2, block `effort`):
+/// „Vorgabe des Programms“ first (value `""`, sent as `null`), then each effort a route allows for the program `harness`,
+/// without doubles and in the order of the routes; without a program the efforts of every program, like the browser
+/// view. Decision of the operator, 28.11.2026.
+fn denkstufen(
+    efforts: &[(String, Vec<ansicht::ziel::Effort>)],
+    harness: Option<&str>,
+) -> Vec<(String, String)> {
+    let mut werte: Vec<String> = Vec::new();
+    for e in efforts
+        .iter()
+        .flat_map(|(_, l)| l.iter())
+        .filter(|e| harness.is_none_or(|h| e.harness == h))
+    {
+        // a value a route adds goes behind the value before it in that route, so each route keeps its order
+        let mut nach = 0;
+        for x in &e.erlaubt {
+            if let Some(i) = werte.iter().position(|w| w == x) {
+                nach = i + 1;
+            } else {
+                werte.insert(nach, x.clone());
+                nach += 1;
+            }
+        }
+    }
+    let mut wahlen = vec![(
+        String::new(),
+        crate::einstellungstexte::wahl::VORGABE_DES_PROGRAMMS.to_owned(),
+    )];
+    wahlen.extend(werte.into_iter().map(|w| {
+        let t = effort_wort(&w);
+        (w, t)
+    }));
+    wahlen
 }
 
 /// A date `JJJJ-MM-TT` as `TT.MM.JJJJ`; any other text stays as it is.
@@ -3523,30 +3717,15 @@ impl Fenster {
                         erste: bool,
                         feld: &ansicht::start::Wahlfeld,
                         kennung: &str|
-             -> (Option<String>, Id) {
+             -> (Option<String>, Vec<Id>) {
+                // segments or a drop-down by the number of entries, like every choice of the window
+                let wahlen: Vec<(String, String)> = feld
+                    .eintraege
+                    .iter()
+                    .map(|e| (e.wert.clone(), e.text.clone()))
+                    .collect();
                 formzeile(ui, r, name, erste, |ui, breite| {
-                    let mut neu = None;
-                    let aktuell = feld
-                        .eintraege
-                        .iter()
-                        .find(|e| e.wert == feld.wert)
-                        .map_or(feld.wert.clone(), |e| e.text.clone());
-                    let cb = egui::ComboBox::from_id_salt(kennung)
-                        .selected_text(aktuell)
-                        .width(breite)
-                        .show_ui(ui, |ui| {
-                            for e in &feld.eintraege {
-                                if ui.selectable_label(e.wert == feld.wert, &e.text).clicked() {
-                                    neu = Some(e.wert.clone());
-                                }
-                            }
-                        });
-                    ui.ctx().accesskit_node_builder(cb.response.id, |n| {
-                        n.set_role(Role::ComboBox);
-                        n.set_label(name.to_owned());
-                        n.set_author_id(kennung.to_owned());
-                    });
-                    (neu, cb.response.id)
+                    wahl_malen(ui, r, kennung, name, &wahlen, &feld.wert, breite)
                 })
             };
             // B69: model and effort at the start; the base form is the model, the effort comes with L10
@@ -3556,25 +3735,25 @@ impl Fenster {
                     if mit_gruppe {
                         behaelter(ui, Role::Group, "Modell und Effort", Some("B69"));
                     }
-                    let (h, id) = wahl(
+                    let (h, ids) = wahl(
                         ui,
                         T_PROGRAMM,
                         true,
                         &self.kern.start.harness.clone(),
                         "harness-wahl",
                     );
-                    self.modal_halte_neu.push(id);
+                    self.modal_halte_neu.extend(ids);
                     if let Some(h) = h {
                         self.kern.start.harness.wert = h;
                     }
-                    let (m, id) = wahl(
+                    let (m, ids) = wahl(
                         ui,
                         "Modell",
                         false,
                         &self.kern.start.modell.clone(),
                         "modell-wahl",
                     );
-                    self.modal_halte_neu.push(id);
+                    self.modal_halte_neu.extend(ids);
                     if let Some(m) = m {
                         self.kern.start.modell.wert = m;
                     }
@@ -3594,48 +3773,48 @@ impl Fenster {
                                 erlaubt.first().cloned().unwrap_or_default()
                             };
                         }
-                        let id = formzeile(ui, r, T_DENKSTUFE, false, |ui, breite| {
-                            let cb = egui::ComboBox::from_id_salt("effort-wahl")
-                                .selected_text(f.effort.clone())
-                                .width(breite)
-                                .show_ui(ui, |ui| {
-                                    for e in &erlaubt {
-                                        if ui.selectable_label(*e == f.effort, e).clicked() {
-                                            f.effort.clone_from(e);
-                                        }
-                                    }
-                                });
-                            ui.ctx().accesskit_node_builder(cb.response.id, |n| {
-                                n.set_role(Role::ComboBox);
-                                n.set_label(T_DENKSTUFE.to_owned());
-                                n.set_class_name("effort-wahl");
-                            });
-                            cb.response.id
+                        let wahlen: Vec<(String, String)> = erlaubt
+                            .iter()
+                            .map(|e| (e.clone(), effort_wort(e)))
+                            .collect();
+                        let (neu, ids) = formzeile(ui, r, T_DENKSTUFE, false, |ui, breite| {
+                            wahl_malen(
+                                ui,
+                                r,
+                                "effort-wahl",
+                                T_DENKSTUFE,
+                                &wahlen,
+                                &f.effort,
+                                breite,
+                            )
                         });
-                        self.modal_halte_neu.push(id);
+                        if let Some(e) = neu {
+                            f.effort = e;
+                        }
+                        self.modal_halte_neu.extend(ids);
                     }
-                    let (ro, id) = wahl(
+                    let (ro, ids) = wahl(
                         ui,
                         "Route",
                         false,
                         &self.kern.start.route.clone(),
                         "route-wahl",
                     );
-                    self.modal_halte_neu.push(id);
+                    self.modal_halte_neu.extend(ids);
                     if let Some(ro) = ro {
                         self.kern.start.route_waehlen(&ro);
                     }
                 });
             });
             formgruppe(ui, r, "Kunde", |ui| {
-                let (k, id) = wahl(
+                let (k, ids) = wahl(
                     ui,
                     "Kunde",
                     true,
                     &self.kern.start.kunde.clone(),
                     "kunde-wahl",
                 );
-                self.modal_halte_neu.push(id);
+                self.modal_halte_neu.extend(ids);
                 if let Some(k) = k {
                     self.kern.start.kunde.wert = k;
                 }
@@ -4127,36 +4306,28 @@ impl Fenster {
                     ui.add(egui::Label::new(RichText::new(t).fett()).truncate());
                 });
             } else {
-                Frame::new()
-                    .fill(r.linie)
-                    .corner_radius(gestalt::radius(MASSE.radius_feld))
-                    .inner_margin(Margin::same(2))
-                    .show(ui, |ui| {
-                        ui.spacing_mut().item_spacing.x = 0.0;
-                        ui.spacing_mut().interact_size.y = MASSE.knopf - 2.0;
-                        ui.visuals_mut().selection.bg_fill = r.reiter_wahl;
-                        let w = &mut ui.visuals_mut().widgets;
-                        for x in [&mut w.inactive, &mut w.hovered, &mut w.active] {
-                            x.corner_radius = gestalt::radius(MASSE.radius_feld - 1.0);
-                            x.bg_stroke = Stroke::NONE;
-                        }
-                        // right to left: the last choice first
-                        for (w, t) in z.wahlen.iter().rev() {
-                            let k = ui.selectable_label(wert_t == *w, t.as_str());
-                            let s = z.schluessel.to_owned();
-                            ui.ctx()
-                                .accesskit_node_builder(k.id, |n| n.set_author_id(s));
-                            if k.clicked() {
-                                if lokal {
-                                    self.lokal_setzen(z.schluessel, w);
-                                } else {
-                                    let v: Value =
-                                        serde_json::from_str(w).unwrap_or_else(|_| json!(w));
-                                    self.einstellung_senden(z.schluessel, &v, ebene);
-                                }
-                            }
-                        }
-                    });
+                let (neu, _) = wahl_malen(
+                    ui,
+                    r,
+                    z.schluessel,
+                    z.name,
+                    &z.wahlen,
+                    &wert_t,
+                    AUSKLAPPER_BREITE,
+                );
+                if let Some(w) = neu {
+                    if lokal {
+                        self.lokal_setzen(z.schluessel, &w);
+                    } else {
+                        // the first choice of the thinking level, „Vorgabe des Programms“, is `null`
+                        let v: Value = if w.is_empty() {
+                            Value::Null
+                        } else {
+                            serde_json::from_str(&w).unwrap_or_else(|_| json!(w))
+                        };
+                        self.einstellung_senden(z.schluessel, &v, ebene);
+                    }
+                }
             }
         });
         rechts.add_space(MASSE.abstand * 2.0);
@@ -4315,9 +4486,15 @@ impl Fenster {
                     );
                 });
             }
+            // the size with its unit like in the browser view: „13 Punkt“
             let groessen = ansicht::aussehen::SCHRIFTGROESSEN
                 .iter()
-                .map(|g| (g.to_string(), g.to_string()))
+                .map(|g| {
+                    (
+                        g.to_string(),
+                        format!("{g} {}", crate::einstellungstexte::wahl::PUNKT),
+                    )
+                })
                 .collect();
             self.gruppe(ui, r, g::SCHRIFT, &[z(a::SCHRIFTGROESSE, groessen)], false);
             return;
@@ -4332,19 +4509,22 @@ impl Fenster {
                         "sitzung.harness" | "sitzung.modell" => {
                             sitzung_wahlen(zeile.0, &self.zusatz)
                         }
-                        "sitzung.effort" => {
-                            paare(&[("low", "low"), ("medium", "medium"), ("high", "high")])
-                        }
-                        // 24 h is the limit of contract 2; the deadline to redeem may be raised up to it (15.1.2)
+                        "sitzung.effort" => denkstufen(
+                            &self.kern.start.efforts,
+                            self.zusatz
+                                .einstellung("sitzung.harness")
+                                .and_then(|e| e.wert.as_str()),
+                        ),
+                        // the fixed choices of the shared words; 24 h is the limit of contract 2 (15.1.2)
                         "aufsicht.freigabefrist_ms" => frist_wahlen(
-                            &[30_000, 60_000, 300_000, 900_000],
+                            &ansicht::woerter::werte::FREIGABEFRIST_WAHLEN,
                             &self
                                 .zusatz
                                 .einstellung(zeile.0)
                                 .map_or(Value::Null, |e| e.wert.clone()),
                         ),
                         "aufsicht.einloesefrist_ms" => frist_wahlen(
-                            &[60_000, 300_000, 3_600_000, 86_400_000],
+                            &ansicht::woerter::werte::EINLOESEFRIST_WAHLEN,
                             &self
                                 .zusatz
                                 .einstellung(zeile.0)
@@ -4362,16 +4542,10 @@ impl Fenster {
             self.gruppe(ui, r, titel, &zeilen, seite.admin());
         }
         if matches!(seite, Seite::Aufsicht | Seite::AdminAufsicht) {
-            for (schluessel, name, _) in [
-                crate::einstellungstexte::werte::FREIGABEFRIST,
-                crate::einstellungstexte::werte::EINLOESEFRIST,
-            ] {
-                let zeilen = fristen_zeilen(&self.zusatz.fristen, schluessel);
-                if !zeilen.is_empty() {
-                    leer = false;
-                    let titel = format!("{name} {}", crate::einstellungstexte::server::JE);
-                    Self::lesegruppe(ui, r, schluessel, &titel, &zeilen);
-                }
+            let zeilen = fristen_tabelle(&self.zusatz.fristen);
+            if !zeilen.is_empty() {
+                leer = false;
+                Self::fristen_gruppe(ui, r, &zeilen);
             }
             if let Some(s) = self.zusatz.schutz.clone() {
                 leer = false;
@@ -4382,6 +4556,127 @@ impl Fenster {
             ui.add_space(MASSE.gruppenabstand * 2.0);
             ui.label(RichText::new(KEINE_WERTE).color(r.gedaempft));
         }
+    }
+
+    /// The deadlines per MCP server as one table to read, like in the browser view (decision of the operator, 28.11.2026):
+    /// the heading, a row of column heads (server, deadline of the decision, deadline to redeem), then one row per server
+    /// with each deadline and its origin; no control.
+    fn fristen_gruppe(ui: &mut Ui, r: &Rollen, zeilen: &[(String, [Fristzelle; 2])]) {
+        use crate::einstellungstexte::{server as t, werte};
+        ui.add_space(MASSE.gruppenabstand * 1.5);
+        ui.scope_builder(UiBuilder::new().id_salt("fristen-je-server"), |ui| {
+            ui.label(
+                RichText::new(t::TABELLE)
+                    .fett()
+                    .size(MASSE.schrift_grund)
+                    .color(r.schrift),
+            );
+            ui.add_space(MASSE.gruppe_kopf - 8.0);
+            Frame::new()
+                .fill(r.erhoben)
+                .corner_radius(gestalt::radius(MASSE.radius_gruppe))
+                .inner_margin(Margin::symmetric(12, 2))
+                .show(ui, |ui| {
+                    // egui gives every inner Ui a node of its own: the table is the Ui inside the frame, so its rows
+                    // are its children
+                    behaelter(ui, Role::Table, t::TABELLE, Some("fristen-je-server"));
+                    ui.set_width(ui.available_width());
+                    ui.spacing_mut().item_spacing.y = 0.0;
+                    let kopf: Vec<Fristzelle> =
+                        [t::SERVER, werte::FREIGABEFRIST.1, werte::EINLOESEFRIST.1]
+                            .iter()
+                            .map(|k| Some(((*k).to_owned(), String::new())))
+                            .collect();
+                    Self::fristen_zeile(ui, r, 0, &kopf);
+                    for (i, (server, zellen)) in zeilen.iter().enumerate() {
+                        let y = ui.cursor().top();
+                        ui.painter().hline(
+                            ui.max_rect().x_range(),
+                            y,
+                            Stroke::new(MASSE.linie, r.linie),
+                        );
+                        let mut z: Vec<Fristzelle> = vec![Some((server.clone(), String::new()))];
+                        z.extend(zellen.iter().cloned());
+                        Self::fristen_zeile(ui, r, i + 1, &z);
+                    }
+                });
+        });
+    }
+
+    /// One row of the table of deadlines; row 0 holds the column heads. A cell is a text and an origin (empty: none);
+    /// a missing deadline shows „–“ like the browser view.
+    fn fristen_zeile(ui: &mut Ui, r: &Rollen, nr: usize, zellen: &[Fristzelle]) {
+        use crate::einstellungstexte::wahl::TRENNER;
+        let kopf = nr == 0;
+        let hoehe = if kopf { 30.0 } else { 40.0 };
+        ui.scope_builder(UiBuilder::new().id_salt(("fristen-zeile", nr)), |ui| {
+            behaelter(ui, Role::Row, "", None);
+            let (rect, _) =
+                ui.allocate_exact_size(vec2(ui.available_width(), hoehe), Sense::hover());
+            // the server takes 30 % of the width, each deadline 35 %
+            let mut x = rect.left();
+            for (j, zelle) in zellen.iter().enumerate() {
+                let breite = rect.width() * if j == 0 { 0.30 } else { 0.35 };
+                let zr = Rect::from_min_size(pos2(x, rect.top()), vec2(breite, hoehe));
+                x += breite;
+                let (text, herkunft) = zelle
+                    .clone()
+                    .unwrap_or_else(|| ("–".to_owned(), String::new()));
+                let rolle = match (kopf, j) {
+                    (true, _) => Role::ColumnHeader,
+                    (false, 0) => Role::RowHeader,
+                    _ => Role::Cell,
+                };
+                let name = if herkunft.is_empty() {
+                    text.clone()
+                } else {
+                    format!("{text}{TRENNER}{herkunft}")
+                };
+                let zu = ui.new_child(UiBuilder::new().id_salt(("fristen-zelle", j)).max_rect(zr));
+                behaelter(&zu, rolle, &name, None);
+                let p = ui.painter();
+                if kopf || j == 0 {
+                    let (groesse, farbe) = if kopf {
+                        (MASSE.schrift_klein, r.gedaempft)
+                    } else {
+                        (MASSE.schrift_grund, r.schrift)
+                    };
+                    text_gekuerzt(
+                        ui,
+                        pos2(zr.left(), zr.center().y - groesse * 0.62),
+                        &text,
+                        FontId::proportional(groesse),
+                        farbe,
+                        breite - MASSE.innen,
+                    );
+                    continue;
+                }
+                // the deadline in bold, the origin after it as a chip like in the rows of the settings
+                let wert = p.text(
+                    pos2(zr.left(), zr.center().y),
+                    Align2::LEFT_CENTER,
+                    &text,
+                    FontId::new(
+                        MASSE.schrift_grund,
+                        egui::FontFamily::Name(crate::FETT.into()),
+                    ),
+                    r.schrift,
+                );
+                if !herkunft.is_empty() {
+                    let g = p.layout_no_wrap(
+                        herkunft,
+                        FontId::proportional(MASSE.schrift_klein),
+                        r.gedaempft,
+                    );
+                    let chip = Rect::from_min_size(
+                        pos2(wert.right() + 8.0, zr.center().y - g.size().y / 2.0 - 2.0),
+                        g.size() + vec2(14.0, 4.0),
+                    );
+                    p.rect_filled(chip, gestalt::radius(MASSE.radius_kapsel), r.kopf);
+                    p.galley(chip.min + vec2(7.0, 2.0), g, r.gedaempft);
+                }
+            }
+        });
     }
 
     /// The effective state of the protection layers, read only: a group like the others, but every row has a value and
@@ -4837,5 +5132,100 @@ mod tests {
         assert_eq!(teile(0), ["01.01.1970", "00:00 UTC"]);
         assert_eq!(teile(951_782_400_000), ["29.02.2000", "00:00 UTC"]);
         assert_eq!(teile(1_000_000_019_999), ["09.09.2001", "01:46 UTC"]);
+    }
+
+    /// Decision of the operator, 28.11.2026: four values are segments, five a drop-down.
+    #[test]
+    fn four_values_are_segments_and_five_a_drop_down() {
+        assert_eq!(SEGMENTE_HOECHSTENS, 4);
+        assert_eq!(wahlform(1), Wahlform::Segmente);
+        assert_eq!(wahlform(4), Wahlform::Segmente);
+        assert_eq!(wahlform(5), Wahlform::Ausklapper);
+        assert_eq!(
+            wahlform(ansicht::aussehen::SCHRIFTGROESSEN.len()),
+            Wahlform::Ausklapper
+        );
+    }
+
+    fn effort(harness: &str, erlaubt: &[&str]) -> ansicht::ziel::Effort {
+        ansicht::ziel::Effort {
+            harness: harness.to_owned(),
+            modell: "auto".to_owned(),
+            erlaubt: erlaubt.iter().map(|x| (*x).to_owned()).collect(),
+            vorgabe: None,
+        }
+    }
+
+    #[test]
+    fn the_thinking_level_takes_the_efforts_of_the_routes_for_the_chosen_program() {
+        use ansicht::woerter as w;
+        let efforts = vec![
+            (
+                "a".to_owned(),
+                vec![
+                    effort("copilot", &["medium"]),
+                    effort("pi", &["off", "low"]),
+                ],
+            ),
+            (
+                "b".to_owned(),
+                vec![effort("copilot", &["none", "low", "medium", "high"])],
+            ),
+        ];
+        let texte = |h: Option<&str>| -> Vec<String> {
+            denkstufen(&efforts, h)
+                .into_iter()
+                .map(|(_, t)| t)
+                .collect()
+        };
+        // each route keeps its order; a value of one route goes behind the value before it there
+        assert_eq!(
+            texte(Some("copilot")),
+            [w::VORGABE_DES_PROGRAMMS, w::AUS, "low", "medium", "high"]
+        );
+        assert_eq!(texte(Some("pi")), [w::VORGABE_DES_PROGRAMMS, w::AUS, "low"]);
+        assert_eq!(texte(Some("opencode")), [w::VORGABE_DES_PROGRAMMS]);
+        // the first choice sends `null`, the others their value as the program names it
+        let werte: Vec<String> = denkstufen(&efforts, Some("copilot"))
+            .into_iter()
+            .map(|(x, _)| x)
+            .collect();
+        assert_eq!(werte, ["", "none", "low", "medium", "high"]);
+        // without a program every program, like the browser view
+        assert!(texte(None).len() > texte(Some("pi")).len());
+    }
+
+    #[test]
+    fn the_table_of_deadlines_has_one_row_per_server_in_seconds() {
+        use ansicht::woerter as w;
+        let f = |schluessel: &str, server: &str, wert: u64, herkunft: &str| crate::ziel::Frist {
+            schluessel: schluessel.to_owned(),
+            server: server.to_owned(),
+            wert,
+            herkunft: herkunft.to_owned(),
+        };
+        let (e, l) = ("aufsicht.freigabefrist_ms", "aufsicht.einloesefrist_ms");
+        let t = fristen_tabelle(&[
+            f(l, "wiki", 60_000, "firmendatei"),
+            f(e, "tickets", 1500, "katalog"),
+            f(e, "wiki", 120_000, "anders"),
+        ]);
+        let zelle = |w: &str, h: &str| Some((w.to_owned(), h.to_owned()));
+        assert_eq!(
+            t,
+            [
+                (
+                    "wiki".to_owned(),
+                    [
+                        zelle("120 s", "anders"),
+                        zelle("60 s", w::HERKUNFT_FIRMENDATEI)
+                    ]
+                ),
+                (
+                    "tickets".to_owned(),
+                    [zelle("1500 ms", w::HERKUNFT_KATALOG), None]
+                ),
+            ]
+        );
     }
 }

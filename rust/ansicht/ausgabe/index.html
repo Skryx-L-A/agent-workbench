@@ -98,7 +98,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 button:disabled { cursor: default; opacity: 0.45; }
 svg { display: block; }
 h2, h3, p { margin: 0; }
-:focus-visible, input:focus, select:focus, [role="listbox"]:focus { outline: 2px solid var(--akzent); outline-offset: 1px; }
+:focus-visible { outline: 2px solid var(--akzent); outline-offset: 1px; }
+/* Fokusrahmen nur nach Tastatur, auch beim Oeffnen eines Fensters (28.11.2026): nach einem Zeiger traegt das Dokument data-zeiger
+   (oberflaeche.rs, eingabeart_verfolgen); Felder und Listen zeigen dann keinen Rahmen, bis eine Taste der Bedienung kommt */
+[data-zeiger] :is(input, select, textarea, [role="listbox"]):focus-visible { outline: none; }
 .versteckt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 #wurzel { height: 100%; }
@@ -375,8 +378,9 @@ h2, h3, p { margin: 0; }
 .ordner-sitzungen { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .option-id { color: var(--gedaempft); font-family: var(--mono); font-size: 11.5px; }
 .option-zustand { color: var(--gedaempft); }
-/* getrennt (B05): die Leiste liegt ueber der Mitte und schiebt nichts, alles darunter ist gesperrt */
-#kanalwarnung { position: fixed; z-index: 40; top: calc(var(--titelhoehe) + 10px); left: 50%; transform: translateX(-50%);
+/* getrennt (B05): die Leiste liegt ueber der Mitte und schiebt nichts, alles darunter ist gesperrt; sie steht am unteren Rand,
+   damit sie keinen Kopf einer Kachel verdeckt (28.11.2026) */
+#kanalwarnung { position: fixed; z-index: 40; bottom: 16px; left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 14px; max-width: calc(100vw - 32px); box-sizing: border-box;
   border-radius: var(--r-mittel); border: 1px solid var(--schlecht); background: var(--fehlergrund); color: var(--schrift);
   font-size: 13px; box-shadow: 0 4px 16px var(--schatten); }
