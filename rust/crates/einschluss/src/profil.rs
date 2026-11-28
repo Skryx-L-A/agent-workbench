@@ -29,10 +29,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::beschreibung::{
-    Beschreibung, COPILOT_PLATZHALTER, Cloud, DATEI_ZIELE, GAST_MODELL_SOCKET, GAST_SUCH_SOCKET,
-    GAST_WEITER, HARNESS_COPILOT, HARNESS_OPENCODE, HARNESS_PI, LOKAL_PORT, OPENCODE_ORDNER,
-    OPENCODE_UMGEBUNG, OPENCODE_ZUSTAND, ORDNERMARKE_PFAD, PI_UMGEBUNG, WEITER_PORT, gespraech_ort,
-    opencode_ordner,
+    Beschreibung, COPILOT_PLATZHALTER, Cloud, DATEI_ZIELE, GAST_ANFORDERN_SOCKET,
+    GAST_MODELL_SOCKET, GAST_SUCH_SOCKET, GAST_WEITER, HARNESS_COPILOT, HARNESS_OPENCODE,
+    HARNESS_PI, LOKAL_PORT, OPENCODE_ORDNER, OPENCODE_UMGEBUNG, OPENCODE_ZUSTAND, ORDNERMARKE_PFAD,
+    PI_UMGEBUNG, WEITER_PORT, gespraech_ort, opencode_ordner,
 };
 use crate::fehler::Fehler;
 use crate::pfad::{gast_pfad, innerhalb, normal, ueberlappt};
@@ -293,6 +293,9 @@ fn felder_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
     if b.modell_socket.as_deref().is_some_and(|p| !normal(p)) {
         return Err(ungueltig("modell_socket"));
     }
+    if b.anfordern_socket.as_deref().is_some_and(|p| !normal(p)) {
+        return Err(ungueltig("anfordern_socket"));
+    }
     if let Some(w) = &b.lokal_weiter {
         if b.modell_socket.is_none() {
             return Err(ungueltig("lokal_weiter without modell_socket"));
@@ -386,6 +389,7 @@ fn verbote_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
     quellen.extend(b.zustand.gespraech.as_deref());
     quellen.extend(b.programmordner.iter().map(PathBuf::as_path));
     quellen.extend(b.modell_socket.as_deref());
+    quellen.extend(b.anfordern_socket.as_deref());
     quellen.extend(b.lokal_weiter.as_deref());
     quellen.extend(b.dateien.iter().map(|d| d.quelle.as_path()));
     if let Some(c) = &b.cloud {
@@ -414,6 +418,7 @@ fn verbote_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
     let ordner = ordner_pruefen(b, &zustand_ziel)?;
     let sockel: Vec<&Path> = std::iter::once(b.such_socket.as_path())
         .chain(b.modell_socket.as_deref())
+        .chain(b.anfordern_socket.as_deref())
         .chain(b.cloud.iter().map(|c| c.weiterreicher.as_path()))
         .collect();
     if sockel
@@ -422,11 +427,7 @@ fn verbote_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
     {
         return Err(Fehler::Ueberlappt("socket lies inside a mounted folder"));
     }
-    if b.modell_socket.as_deref() == Some(b.such_socket.as_path())
-        || b.cloud
-            .as_ref()
-            .is_some_and(|c| c.weiterreicher == b.such_socket)
-    {
+    if (1..sockel.len()).any(|i| sockel[..i].contains(&sockel[i])) {
         return Err(Fehler::Ueberlappt("both sockets are the same file"));
     }
     if let Some(c) = &b.cloud {
@@ -624,6 +625,12 @@ fn kopf_bauen(b: &Beschreibung) -> Vec<String> {
     );
     if let Some(modell) = &b.modell_socket {
         zeichen(&mut k, &["--ro-bind", &text(modell), GAST_MODELL_SOCKET]);
+    }
+    if let Some(anfordern) = &b.anfordern_socket {
+        zeichen(
+            &mut k,
+            &["--ro-bind", &text(anfordern), GAST_ANFORDERN_SOCKET],
+        );
     }
     if let Some(weiter) = &b.lokal_weiter {
         zeichen(&mut k, &["--ro-bind", &text(weiter), GAST_WEITER]);

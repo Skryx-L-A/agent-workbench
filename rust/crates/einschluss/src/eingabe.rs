@@ -1,7 +1,8 @@
 //! The text form of the description: the one input of the fixed starter (see [`crate::starter`]).
 //!
 //! The JSON object is closed: every field below is required, no other key is allowed, every value has the type named
-//! here, and a path is a string. The fields `modell_socket`, `lokal_weiter`, `cloud` and `paket` are required but may be `null`;
+//! here, and a path is a string. The fields `modell_socket`, `anfordern_socket`, `lokal_weiter`, `cloud` and `paket` are
+//! required but may be `null`;
 //! `dateien` is required and may be empty.
 //! There is no field `system`: the starter reads the user and the layout of `/usr` from the host itself, so the
 //! caller cannot bind a path of its own through it.
@@ -9,7 +10,8 @@
 //! ```text
 //! { "harness": str, "arbeitsordner": str, "programmordner": [str],
 //!   "zustand": {"host": str, "name": str, "art": "neu"|"fortsetzen", "gespraech": str|null},
-//!   "heim": str, "such_socket": str, "modell_socket": str|null, "lokal_weiter": str|null,
+//!   "heim": str, "such_socket": str, "modell_socket": str|null, "anfordern_socket": str|null,
+//!   "lokal_weiter": str|null,
 //!   "cloud": null | {"weiterreicher": str, "weiter_programm": str, "bundle": str, "verteilung": "ubuntu"|"arch"},
 //!   "paket": null | {"quelle": str, "plattform": str, "fassung": str},
 //!   "dateien": [{"quelle": str, "ziel": str}],
@@ -169,6 +171,7 @@ pub fn beschreibung_lesen(bytes: &[u8], system: System) -> Option<Beschreibung> 
     let heim = f.pfad("heim")?;
     let such_socket = f.pfad("such_socket")?;
     let modell_socket = f.pfad_oder_null("modell_socket").ok()?;
+    let anfordern_socket = f.pfad_oder_null("anfordern_socket").ok()?;
     let lokal_weiter = f.pfad_oder_null("lokal_weiter").ok()?;
     let cloud = match f.nehmen("cloud")? {
         Wert::Null => None,
@@ -196,6 +199,7 @@ pub fn beschreibung_lesen(bytes: &[u8], system: System) -> Option<Beschreibung> 
         heim,
         such_socket,
         modell_socket,
+        anfordern_socket,
         lokal_weiter,
         cloud,
         paket,
@@ -271,6 +275,7 @@ pub fn beschreibung_schreiben(b: &Beschreibung) -> String {
     pfad_text(&mut s, &b.such_socket);
     for (name, wert) in [
         ("modell_socket", &b.modell_socket),
+        ("anfordern_socket", &b.anfordern_socket),
         ("lokal_weiter", &b.lokal_weiter),
     ] {
         feld(&mut s, name, false);

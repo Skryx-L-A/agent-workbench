@@ -25,6 +25,7 @@ fn muster() -> Beschreibung {
         heim: "/srv/beispiel/heim".into(),
         such_socket: "/srv/beispiel/s/such.sock".into(),
         modell_socket: Some("/srv/beispiel/s/modell.sock".into()),
+        anfordern_socket: None,
         lokal_weiter: None,
         dateien: Vec::new(),
         cloud: None,

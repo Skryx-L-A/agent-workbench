@@ -25,6 +25,7 @@ use std::path::Path;
 use crate::dienst::{Annahme, Gelesen, annahme, gelesen};
 #[cfg(unix)]
 use crate::startdatei::SOCKET_PFAD_MAX;
+use crate::stelle::Anforderung;
 
 // The peer of the report channel is checked only under Linux, macOS and Windows (`Meldung::gegenseite_gut`). Any other system would take
 // every peer (fail open), so it gets no build at all (contract `dienst` section 18 point 6 (b), project decision, 27.11.2026).
@@ -347,15 +348,28 @@ fn modell_gut(text: &[u8]) -> bool {
 
 /// `anfordern <rolle> <harness> <modell> <effort>` without its line end: exactly five fields, each separated by exactly one space.
 pub(crate) fn anforderung_gut(zeile: &[u8]) -> bool {
+    anforderung_lesen(zeile).is_some()
+}
+
+/// The fields of a valid request (see [`anforderung_gut`]), else `None`.
+pub(crate) fn anforderung_lesen(zeile: &[u8]) -> Option<Anforderung> {
     let felder: Vec<&[u8]> = zeile.split(|b| *b == b' ').collect();
     let [wort, rolle, harness, modell, effort] = felder[..] else {
-        return false;
+        return None;
     };
-    wort == b"anfordern"
+    let gut = wort == b"anfordern"
         && kennung_gut(rolle)
         && kennung_gut(harness)
         && modell_gut(modell)
-        && kennung_gut(effort)
+        && kennung_gut(effort);
+    // every field is ASCII after the checks above
+    let text = |t: &[u8]| String::from_utf8_lossy(t).into_owned();
+    gut.then(|| Anforderung {
+        rolle: text(rolle),
+        harness: text(harness),
+        modell: text(modell),
+        effort: text(effort),
+    })
 }
 
 /// What the result of one write of the answers means.
@@ -398,6 +412,22 @@ pub(crate) struct Meldeweg {
     offen: usize,
     /// The lines after [`LAEUFT`] that were dropped without an answer; only this number goes to the log, never a line.
     verworfen: u64,
+    /// The service has a channel to the authority (`lauf.stelle`, stage 2): a valid request waits for the service instead of the
+    /// answer of stage 1.
+    ueber_stelle: bool,
+    /// The request that waits for the service (stage 2).
+    angefordert: Angefordert,
+}
+
+/// A valid request of stage 2 between the line and the answer of the service.
+#[derive(Debug, PartialEq, Eq)]
+enum Angefordert {
+    /// None is open, or its answer is written already.
+    Nichts,
+    /// It came and the service has not taken it yet ([`Meldeweg::anforderung_nehmen`]).
+    Neu(Anforderung),
+    /// The service took it; its answer has not come yet ([`Meldeweg::antworten`]).
+    Wartet,
 }
 
 impl Meldeweg {
@@ -414,7 +444,46 @@ impl Meldeweg {
             ausgang: Vec::new(),
             offen: 0,
             verworfen: 0,
+            ueber_stelle: false,
+            angefordert: Angefordert::Nichts,
         })
+    }
+
+    /// Stage 2 (Nachtrag 28.11.2026, Worker-Start durch den Orchestrator): a valid request goes to the service, which asks the
+    /// authority and answers with [`Meldeweg::antworten`]. Without it every valid request is refused at once (stage 1).
+    pub(crate) fn ueber_stelle_setzen(&mut self) {
+        self.ueber_stelle = true;
+    }
+
+    /// The valid request that came and was not taken yet; it stays open until [`Meldeweg::antworten`].
+    pub(crate) fn anforderung_nehmen(&mut self) -> Option<Anforderung> {
+        match std::mem::replace(&mut self.angefordert, Angefordert::Wartet) {
+            Angefordert::Neu(a) => Some(a),
+            alt => {
+                self.angefordert = alt;
+                None
+            }
+        }
+    }
+
+    /// The answer of the service to the open request (`frei <sitzung>\n` or `abgelehnt <code>\n`). It is written without blocking; when
+    /// the connection is gone it is dropped. Without an open request nothing happens.
+    pub(crate) fn antworten(&mut self, zeile: &[u8]) {
+        if self.angefordert == Angefordert::Nichts {
+            return;
+        }
+        self.angefordert = Angefordert::Nichts;
+        if self.kanal.strom.is_none() {
+            return;
+        }
+        self.ausgang.extend_from_slice(zeile);
+        self.offen = self.ausgang.len();
+        self.schreiben();
+    }
+
+    /// A request is open: its answer is not written yet.
+    pub(crate) fn offen(&self) -> bool {
+        self.offen > 0 || self.angefordert != Angefordert::Nichts
     }
 
     /// Names the child whose connection is the right one (0: none).
@@ -495,8 +564,15 @@ impl Meldeweg {
             self.verworfen += 1;
             return;
         }
-        if self.offen > 0 {
+        if self.offen() {
             self.ausgang.extend_from_slice(ANTWORT_OFFEN);
+            return;
+        }
+        if self.ueber_stelle {
+            // stage 2: the service asks the authority; the request stays open until its answer is written
+            // `anforderung_gut` held above, so the fields are there
+            self.angefordert =
+                anforderung_lesen(zeile).map_or(Angefordert::Wartet, Angefordert::Neu);
             return;
         }
         // stage 1: the answer is known at once; the request stays open until its answer is written at the end of the turn, so a
@@ -542,6 +618,8 @@ impl Meldeweg {
     /// end is not lost this way. After [`LAEUFT`] the code of the child counts, without a reason; a line still unfinished is dropped.
     pub(crate) fn auswerten_am_ende(&mut self) -> Ende {
         self.abfragen();
+        // the end of the run: a request not taken and an answer not come yet are dropped (stage 2, point 4)
+        self.angefordert = Angefordert::Nichts;
         if !self.kanal.verbunden {
             return Ende::Keine;
         }
@@ -954,6 +1032,8 @@ mod tests {
             ausgang: Vec::new(),
             offen: 0,
             verworfen: 0,
+            ueber_stelle: false,
+            angefordert: Angefordert::Nichts,
         };
         m.laeuft_pruefen();
         m
@@ -1149,6 +1229,91 @@ mod tests {
         m.eingang(&a);
         assert!(m.ausgang.ends_with(ANTWORT_STELLE));
         assert_eq!(m.verworfen(), 0);
+    }
+
+    /// Stage 2: a valid request waits for the service; until its answer every further valid one is `anfordern_offen` at once. The
+    /// answer of the service ends it; an answer without an open request does nothing; the end drops what was not taken.
+    #[test]
+    fn mit_stelle_wartet_die_anforderung_auf_den_dienst() {
+        let mut m = weg(b"laeuft\n");
+        m.ueber_stelle_setzen();
+        m.eingang(b"anfordern pruefer pi qwen3:8b low\n");
+        assert!(m.ausgang.is_empty(), "no answer of stage 1");
+        assert!(m.offen());
+        m.eingang(b"anfordern zweiter pi m low\n");
+        assert_eq!(m.ausgang, ANTWORT_OFFEN);
+        let a = m.anforderung_nehmen().expect("the first");
+        assert_eq!(
+            (
+                a.rolle.as_str(),
+                a.harness.as_str(),
+                a.modell.as_str(),
+                a.effort.as_str()
+            ),
+            ("pruefer", "pi", "qwen3:8b", "low")
+        );
+        assert_eq!(m.anforderung_nehmen(), None, "taken once");
+        m.eingang(b"anfordern dritter pi m low\n");
+        assert_eq!(m.ausgang, [ANTWORT_OFFEN, ANTWORT_OFFEN].concat());
+        // without a connection the answer is dropped, and the request is no longer open
+        m.antworten(b"frei s-2\n");
+        assert!(!m.offen());
+        assert_eq!(m.ausgang, [ANTWORT_OFFEN, ANTWORT_OFFEN].concat());
+        m.antworten(b"frei s-3\n");
+        assert_eq!(
+            m.ausgang,
+            [ANTWORT_OFFEN, ANTWORT_OFFEN].concat(),
+            "nothing open"
+        );
+        // a new request after the answer; the end drops it
+        m.eingang(b"anfordern vierter pi m low\n");
+        assert!(m.offen());
+        assert_eq!(m.auswerten_am_ende(), Ende::Starter);
+        assert!(!m.offen());
+        assert_eq!(m.anforderung_nehmen(), None);
+        assert_eq!(m.verworfen(), 0);
+    }
+
+    /// Stage 2 on a real connection: the answer of the service comes on the same connection and ends the open request.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[test]
+    fn mit_stelle_kommt_die_antwort_des_dienstes_auf_derselben_verbindung() {
+        use std::io::{BufRead, Write};
+        let w = Wegwerf::neu("antwort2");
+        let pfad = w.0.join(SOCKET_NAME);
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
+        m.ueber_stelle_setzen();
+        m.kind_setzen(std::process::id());
+        let mut c = UnixStream::connect(&pfad).expect("connect");
+        c.set_read_timeout(Some(std::time::Duration::from_millis(20)))
+            .expect("timeout");
+        let mut leser = std::io::BufReader::new(c.try_clone().expect("clone"));
+        c.write_all(b"laeuft\nanfordern worker pi qwen3:8b medium\nanfordern zweiter pi m low\n")
+            .expect("write");
+        let frist = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let mut a = None;
+        while a.is_none() && std::time::Instant::now() < frist {
+            m.abfragen();
+            a = m.anforderung_nehmen();
+        }
+        assert_eq!(a.map(|a| a.rolle), Some("worker".to_owned()));
+        let mut antworten = Vec::new();
+        let mut zeile = String::new();
+        while antworten.is_empty() && std::time::Instant::now() < frist {
+            m.abfragen();
+            if leser.read_line(&mut zeile).is_ok_and(|n| n > 0) && zeile.ends_with('\n') {
+                antworten.push(std::mem::take(&mut zeile));
+            }
+        }
+        m.antworten(b"frei s-7\n");
+        while antworten.len() < 2 && std::time::Instant::now() < frist {
+            m.abfragen();
+            if leser.read_line(&mut zeile).is_ok_and(|n| n > 0) && zeile.ends_with('\n') {
+                antworten.push(std::mem::take(&mut zeile));
+            }
+        }
+        assert_eq!(antworten, ["abgelehnt anfordern_offen\n", "frei s-7\n"]);
+        assert!(!m.offen());
     }
 
     /// EOF after `laeuft` means only that no requests come any more: the code of the child counts without a reason; a line that has

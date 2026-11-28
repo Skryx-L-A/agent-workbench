@@ -76,11 +76,19 @@ fn wanduhr_ms() -> i64 {
 }
 
 /// The stand-in of the point: `mcp.offene` names two open requests of `s-1` with ten minutes left; `mcp.entscheiden` is answered
-/// with `erteilt` for `erteilen` and `abgelehnt` for `ablehnen`. Records every frame.
+/// with `erteilt` for `erteilen` and `abgelehnt` for `ablehnen`. Records every frame. On `stelle-kern` it answers `sitzung.starten`
+/// with `gestartet` (Nachtrag 28.11.2026, stage 2: every start with `lauf.stelle` waits for that answer).
 fn attrappe(ordner: &Path) -> Gesehen {
+    let gesehen = Arc::new(Mutex::new(Vec::new()));
+    attrappe_auf(ordner, "stelle-mensch", &gesehen);
+    attrappe_auf(ordner, "stelle-kern", &gesehen);
+    gesehen
+}
+
+fn attrappe_auf(ordner: &Path, kanal: &str, gesehen: &Gesehen) {
     let uid = std::fs::metadata(ordner).expect("folder").uid();
     let mut v = ServerVorgabe::neu(
-        Kennung::neu("stelle-mensch").expect("name"),
+        Kennung::neu(kanal).expect("name"),
         vec![Erlaubnis::Unix { uid, gid: None }],
         4,
     );
@@ -89,8 +97,8 @@ fn attrappe(ordner: &Path) -> Gesehen {
         modus: SocketModus::M0600,
     });
     let server = Server::anlegen(v).expect("server");
-    let gesehen = Arc::new(Mutex::new(Vec::new()));
-    let g = Arc::clone(&gesehen);
+    let g = Arc::clone(gesehen);
+    let kern = kanal == "stelle-kern";
     // the thread ends with the test program
     std::thread::spawn(move || {
         loop {
@@ -114,6 +122,14 @@ fn attrappe(ordner: &Path) -> Gesehen {
             };
             let eingabe = &rahmen["eingabe"];
             let antwort = match rahmen["vorgang"].as_str() {
+                Some("sitzung.starten") if kern => {
+                    let start: Value =
+                        serde_json::from_str(eingabe["start"]["text"].as_str().unwrap_or(""))
+                            .unwrap_or_default();
+                    json!({"ok": true, "ergebnis": "gestartet", "sitzung": start["sitzung"], "route": start["route"],
+                           "route_art": "cloud"})
+                }
+                _ if kern => continue,
                 Some("mcp.offene") => {
                     json!({"ok": true, "ergebnis": "offene", "offene": [offen(MF), offen(MF2)]})
                 }
@@ -128,7 +144,6 @@ fn attrappe(ordner: &Path) -> Gesehen {
             let _ = leser.get_mut().write_all(format!("{antwort}\n").as_bytes());
         }
     });
-    gesehen
 }
 
 fn vorgaenge(g: &Gesehen, vorgang: &str) -> Vec<(Instant, Value)> {

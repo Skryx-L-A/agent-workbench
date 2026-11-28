@@ -829,8 +829,8 @@ Entwurf E8 (Außentest, unten).
 | 6a | nur Harness `copilot`: Paket der CLI bereitstellen (siehe „Paket der Copilot CLI“): Form lesen, Cache-Ordner prüfen, unter Sperre prüfen und nötigenfalls im kleinen Einschluss vorentpacken; vor jedem Kind. Ist `harness.copilot` kein ausführbares Programm, überspringt der Schritt und Schritt 8 meldet `lauf.harness_fehlt` wie bisher (Quelle 1, siehe Schritt 8) | 78, `lauf.paket_form`; 73, `lauf.paket_cache`; 69, `lauf.paket_entpacken` |
 | 7 | Socket-Ordner 0700 anlegen, Such-Prozess starten (siehe unten) und auf `{"bereit":true}` warten, Frist 10 s | 69, `lauf.suche_fehlt` (Start scheitert) oder `lauf.suche_nicht_bereit` (Frist verstrichen) |
 | 7a0 | nur Cloud-Route: Zielliste des Modellwegs schreiben (siehe „Zustandsordner der Installation“), vor dem Start des Modellwegs; hat die Route kein Netzziel, das die Liste tragen kann, oder mehr als 16 (Vertrag 8, Abschnitt 12: `ziele[]` hat 1 bis 16 Einträge), oder hat sie ein Netzziel mit `zugriff` gleich `kopf-einsetzen` in der Unterdomänen-Form `*.name` (die Liste kennt kein `*`), endet der Schritt mit demselben Fehler, bevor eine Zielliste oder eine Wegwerf-CA entsteht; das Programm startet nie still ohne ein solches Ziel | 73, `lauf.zielliste` |
-| 7a | Modellweg starten (siehe unten): bei lokaler Route Betriebsart `openai-lokal`, bei Cloud-Route `kopf-einsetzen` mit den Netzzielen; auf `{"bereit":true}` warten, Frist 10 s. Fehlt der Eintrag der Route in `schluessel` der eigenen Konfiguration (Schlüsseldatei), endet der Schritt bei einer lokalen Route immer, bei einer Cloud-Route nur mit gebundenem Ziel (`schluessel: true`) mit `lauf.modellweg_fehlt`, bei der Cloud-Route vor Schritt 7a0 (also ohne Zielliste und ohne CA); ohne gebundenes Ziel startet der Lauf mit leerem Schlüsselnamen (`ablauf.rs:670-675`, `:724-730`) | 69, `lauf.modellweg_fehlt` (Start scheitert) oder `lauf.modellweg_nicht_bereit` (Frist verstrichen) |
-| 8 | Einschluss bauen, Zustandsordner und bei `pi` die Anbieter-Definition schreiben, Umgebung des Harness setzen, danach den Wächter starten (siehe „Lebensdauer“), den Startbefehl (Starter, im Prüfbau `bwrap`) als Kind über das Trampolin starten (siehe „Elternprozess des Starters“) | 69, `lauf.harness_fehlt`, aus zwei Quellen: (1) `lauf` selbst, wenn das Programm des Harness in `lauf.json` fehlt oder nicht ausführbar ist (`beschreibung_bauen`, `ablauf.rs:873-876`; nach Such-Prozess, Modellweg und PID-Dateien, vor dem Trampolin; die Kinder werden beendet), (2) das exec des Trampolins in den Starter scheitert (die Zeile schreibt das Trampolin); 73, `lauf.sitzung_belegt` (der Sitzungsordner `sitzungen/<sitzung>` besteht schon: ein Sitzungsname gilt einmal; auch, wenn `gespraeche/<sitzung>` schon besteht). Fassung 2: `gespraeche/<sitzung>` anlegen oder beim Fortsetzen umbenennen und die Sitzungsoption anhängen; Fassung 1: `gespraeche/<sitzung>` nur mit `gespraech.json` ohne Kennung anlegen (Abschnitt „Fassung 2: `fortsetzung_von` und Fortsetzen“). Als letzter Schritt nach dem Start des Wächters, vor der Übergabe an das Trampolin: genau eine Protokollzeile `lauf.harness` mit dem Auszug des argv in die Kette `gateway` (Vertrag 5, Abschnitt 6.9; Entscheid des Betreibers, 28.11.2026); stderr bleibt leer; ohne die Zeile keine Übergabe: 73, `lauf.protokoll` (die Zeile ist nicht schreibbar; fail closed wie die Zeile von `werkbank-ordnermarke`; die Kinder werden beendet) |
+| 7a | Modellweg starten (siehe unten): bei lokaler Route Betriebsart `openai-lokal`, bei Cloud-Route `kopf-einsetzen` mit den Netzzielen; auf `{"bereit":true}` warten, Frist 10 s. Exit 75 des Modellwegs vor der Bereitschaft ist `lauf.halter_fehlt`. Fehlt der Eintrag der Route in `schluessel` der eigenen Konfiguration (Schlüsseldatei), endet der Schritt bei einer lokalen Route immer, bei einer Cloud-Route nur mit gebundenem Ziel (`schluessel: true`) mit `lauf.modellweg_fehlt`, bei der Cloud-Route vor Schritt 7a0 (also ohne Zielliste und ohne CA); ohne gebundenes Ziel startet der Lauf mit leerem Schlüsselnamen (`ablauf.rs:670-675`, `:724-730`) | 69, `lauf.modellweg_fehlt` (Start scheitert) oder `lauf.modellweg_nicht_bereit` (Frist verstrichen) |
+| 8 | Einschluss bauen, Zustandsordner und bei `pi` die Anbieter-Definition schreiben, Umgebung des Harness setzen, danach den Wächter starten (siehe „Lebensdauer“), den Startbefehl (Starter, im Prüfbau `bwrap`) als Kind über das Trampolin starten (siehe „Elternprozess des Starters“) | 69, `lauf.harness_fehlt`, aus zwei Quellen: (1) `lauf` selbst, wenn das Programm des Harness in `lauf.json` fehlt oder nicht ausführbar ist (`beschreibung_bauen`, `ablauf.rs:873-876`; nach Such-Prozess, Modellweg und PID-Dateien, vor dem Trampolin; die Kinder werden beendet), (2) das exec des Trampolins in den Starter scheitert (die Zeile schreibt das Trampolin); 73, `lauf.sitzung_belegt` (der Sitzungsordner `sitzungen/<sitzung>` besteht schon: ein Sitzungsname gilt einmal; auch, wenn `gespraeche/<sitzung>` schon besteht). Fassung 2: `gespraeche/<sitzung>` anlegen oder beim Fortsetzen umbenennen und die Sitzungsoption anhängen; Fassung 1: `gespraeche/<sitzung>` nur mit `gespraech.json` ohne Kennung anlegen (Abschnitt „Fassung 2: `fortsetzung_von` und Fortsetzen“). Nach dem Start des Wächters, vor dem Start des Halteprozesses (Abschnitt „Worker anfordern“) und vor der Übergabe an das Trampolin: genau eine Protokollzeile `lauf.harness` mit dem Auszug des argv in die Kette `gateway` (Vertrag 5, Abschnitt 6.9; Entscheid des Betreibers, 28.11.2026); stderr bleibt leer; ohne die Zeile keine Übergabe: 73, `lauf.protokoll` (die Zeile ist nicht schreibbar; fail closed wie die Zeile von `werkbank-ordnermarke`; die Kinder werden beendet, ein Halteprozess ist noch nicht gestartet, und die Code-Zeile geht direkt über die Verbindung) |
 | jeder | unerwarteter Fehler im Programm | 70, `lauf.intern` |
 
 Scheitert ein Schritt nach Schritt 7, beendet das Programm den Such-Prozess (und ab Schritt 7a den Modellweg; eine schon
@@ -874,6 +874,7 @@ verbietet den Start), 78 `EX_CONFIG` (auch die eigene Konfiguration fehlt oder i
 | `lauf.zielliste` | `Zielliste nicht schreibbar` |
 | `lauf.modellweg_fehlt` | `Modellweg nicht startbar` |
 | `lauf.modellweg_nicht_bereit` | `Modellweg nicht bereit` |
+| `lauf.halter_fehlt` | `Halter nicht erreichbar` |
 | `lauf.paket_form` | `Paket des Harness unbekannt oder nicht lesbar` |
 | `lauf.paket_cache` | `Paketordner des Harness unbrauchbar` |
 | `lauf.paket_entpacken` | `Paket des Harness nicht entpackt` |
@@ -966,12 +967,14 @@ Dienst beschreibt der Vertrag `dienst`, Abschnitt 18 „Meldung von lauf“.
   **nicht** der Klartext der stderr-Zeile; nach der Zeile folgt nichts. Die stderr-Zeile bleibt unverändert. Alles
   andere wertet der Dienst als `lauf.meldung_ungueltig` (fail closed, gescheiterter Start mit dem Code des Kindendes).
   Der Dienst liest den Socket beim Kindende zuerst leer.
-- **Übergabe an das Trampolin.** Unmittelbar vor dem Start des Trampolins legt das Programm die Verbindung mit `dup2`
-  auf den freigehaltenen Deskriptor 4 ohne close-on-exec, startet das Trampolin mit `--halten-melden` statt `--halten`
-  und schließt danach beide eigenen Kopien. Das Trampolin setzt close-on-exec auf 4 und ersetzt sich durch den Starter;
-  scheitert dieses exec, schreibt es `69 lauf.harness_fehlt`. Scheitert vorher seine Bindung an den Elternprozess oder
-  das Setzen von close-on-exec, schreibt es `70 lauf.intern` und startet den Starter nicht. Ende der Verbindung ohne
-  Daten heißt für den Dienst: Der Starter läuft. Die Verbindung kommt nie in den Einschluss.
+- **Übergabe an das Trampolin (Fassung vom 27.11.2026, Abschnitt „Worker anfordern“).** Kurz vor der Übergabe gibt das
+  Programm die Verbindung an den Halteprozess und behält statt ihrer das Schreibende einer Pipe zu ihm. Unmittelbar vor dem
+  Start des Trampolins legt es dieses Schreibende mit `dup2` auf den freigehaltenen Deskriptor 4 ohne close-on-exec, startet
+  das Trampolin mit `--halten-melden` statt `--halten` und schließt danach beide eigenen Kopien. Das Trampolin setzt
+  close-on-exec auf 4 und ersetzt sich durch den Starter; scheitert dieses exec, schreibt es `69 lauf.harness_fehlt` in die
+  Pipe. Scheitert vorher seine Bindung an den Elternprozess oder das Setzen von close-on-exec, schreibt es `70 lauf.intern`
+  und startet den Starter nicht. Der Halteprozess reicht eine solche Zeile unverändert an den Dienst; nach dem Ende der Pipe
+  ohne Daten schreibt er `laeuft`. Die Verbindung kommt nie in den Einschluss, auch nicht in das Trampolin.
 - **Regel.** Zwischen dem `dup2` auf 4 und dem Schließen der eigenen Kopie startet das Programm kein anderes Kind, auch
   nicht aus einem anderen Faden. Zu diesem Zeitpunkt läuft kein weiterer Faden: Der Faden für die Signale startet erst
   nach dem Start des Starters (`rust/crates/lauf/src/uebergabe.rs`, `halten`).
@@ -981,13 +984,109 @@ Dienst beschreibt der Vertrag `dienst`, Abschnitt 18 „Meldung von lauf“.
   den OOM-Killer. Der Dienst ordnet das dem Starter zu; ein falscher Erfolg entsteht nicht (Code des Signals, nicht 0).
 
 Fälle (`rust/crates/lauf/tests/meldung.rs`, Prüfbau, Linux; der Test spielt den Dienst): eine Zeile mit Code und Grund
-und Exit gleich Code (66 `lauf.datei_modus`, 69 `lauf.modellweg_nicht_bereit`, 69 `lauf.harness_fehlt` aus Schritt 8);
-gelungener Start mit Ende ohne Daten, solange Starter, Such-Prozess, Modellweg und Wächter laufen, danach der Exit des
-Starters (Signal 9, Code 42); gescheitertes exec des Starters mit `69 lauf.harness_fehlt`; der Such-Prozess hält die
+und Exit gleich Code (66 `lauf.datei_modus`, 69 `lauf.modellweg_nicht_bereit`, 69 `lauf.halter_fehlt`, 69
+`lauf.suche_nicht_bereit` für Exit 75 des Such-Prozesses, 69 `lauf.harness_fehlt` aus Schritt 8, 73 `lauf.protokoll` vor dem
+Halteprozess); gelungener Start mit
+`laeuft`, solange Starter, Such-Prozess, Modellweg und Wächter laufen, danach der Exit des Starters (Signal 9, Code 42); gescheitertes exec des Starters mit `69 lauf.harness_fehlt`; der Such-Prozess hält die
 Verbindung nicht, während das Programm sie hält (`/proc/<pid>/fd`, Gegenstelle über `ss -x`, mit Positivkontrolle);
 ohne Option keine Verbindung; gescheitertes `connect` (kein Socket, eine Datei, Pfad über `sun_path`); ein geerbter
 Deskriptor 4; das Trampolin ohne Deskriptor 4. `src/meldung/tests.rs` prüft jeden Schlüssel aus `lauf/src/fehler.rs`
 und die weitergereichten Schlüssel `start.*` und `einst.*` gegen die Form.
+
+### Worker anfordern (Entscheid des Betreibers und Projektentscheid, 27.11.2026)
+
+Entscheid des Betreibers, 27.11.2026: Einen Worker startet nur der Orchestrator, nie ein Mensch. Der Agent im Einschluss fordert über
+den Meldeweg von `lauf` an. Der Dienst reicht die Anforderung an die Stelle, die Stelle entscheidet allein nach den Regeln der Admins,
+und bei `frei` startet der Dienst den Worker. Der Agent erreicht den Dienst nie direkt. In diesem Weg gibt es keine menschliche
+Freigabe. Die Seite des Dienstes beschreibt der Vertrag `dienst`, Abschnitt 18 und Nachtrag „Kanal zur Stelle (L6, Nr. 98)“, Punkt 10.
+Dieser Abschnitt beschreibt die Seite von `lauf` (Projektentscheid, 27.11.2026).
+
+**Form auf der Verbindung zum Dienst** (abgestimmt, dieselbe eine Verbindung zu `meldung.sock`, kein zweiter Socket):
+
+1. Gelingt das `exec` des Trampolins in den Starter, kommt genau einmal `laeuft\n` (7 Byte) als erste Zeile. Scheitert es, kommt wie
+   bisher die Code-Zeile (höchstens 128 Byte) und danach das Ende. Ein Lauf ohne `laeuft` (Ende ohne Daten) bleibt für den Dienst
+   gültig.
+2. Nach `laeuft` kommen nur Zeilen `anfordern <rolle> <harness> <modell> <effort>\n`, höchstens 256 Byte. `rolle`, `harness` und
+   `effort` haben die Form `^[a-z0-9][a-z0-9._-]{0,63}$`; `modell` hat die Form von `modell` aus diesem Vertrag (1 bis 128 Zeichen aus
+   `[A-Za-z0-9._:/@+-]`). Die Felder trennt genau ein Leerzeichen.
+3. Die Antwort kommt auf derselben Verbindung: `frei <sitzung>\n` (Sitzung in der Form einer Kennung) oder `abgelehnt <code>\n`
+   (Code in der Form der Meldung, `[a-z0-9_.]`, 1 bis 64 Zeichen), höchstens 128 Byte. Je Lauf ist eine Anforderung offen.
+4. Das Ende der Verbindung nach `laeuft` heißt nur „keine Anforderungen mehr“. Das Ende der Sitzung meldet weiter der Code des
+   Harness. Die Verbindung endet mit dem Programm.
+
+**Halteprozess.** Mit `--meldung` bindet das Programm in Schritt 8 im Socket-Ordner der Sitzung (0700, außerhalb des Einschlusses) den
+Socket `anfr.sock` mit Modus 0600. Nach dem Wächter und nach der Zeile `lauf.harness` (Schritt 8), unmittelbar vor der Übergabe,
+startet es den Halteprozess `werkbank-lauf-kind --halteprozess <PID des Programms>`. Er bekommt genau drei Deskriptoren: auf 0 das
+Leseende einer neuen Pipe, auf 1 die Verbindung zum Dienst und auf 2 den hörenden Socket `anfr.sock`. Seine Umgebung ist leer, sein Ordner ist `/`, und jeder andere
+Deskriptor des Programms trägt close-on-exec. Das Programm behält statt der Verbindung das Schreibende der Pipe (close-on-exec); jede
+spätere Zeile des Programms geht durch die Pipe. Der Halteprozess legt `/dev/null` über 0, 1 und 2, sobald er die drei übernommen hat,
+und ruft `setsid`: SIGINT und SIGQUIT des Terminals erreichen ihn nicht. Er endet, wenn das Programm endet (pidfd des Elternprozesses,
+mit Prüfung von `getppid`), wenn der Dienst die Verbindung schließt oder nach einer Code-Zeile. Er steht in der Liste der bekannten
+Kinder, die das Programm nach dem Ende des Starters nicht beendet. Startet er nicht, endet der Start mit `lauf.intern`; die Verbindung
+ist dann noch beim Programm, und die Zeile erreicht den Dienst.
+
+- **Phase 1.** Er liest die Pipe bis zu ihrem Ende, höchstens 128 Byte. Kam etwas, reicht er es unverändert weiter und endet; der Dienst
+  urteilt über die Form. Kam nichts und lebt das Programm noch, schreibt er `laeuft\n`. Ist das Programm schon beendet, schreibt er
+  nichts: Dann läuft sicher kein Starter, und der Dienst urteilt wie bisher über das Kindende.
+- **Phase 2.** Er wartet mit `poll` auf das Ende des Programms, auf Daten des Dienstes und auf Verbindungen am Socket. Je Verbindung
+  liest er genau eine Zeile, höchstens 256 Byte und höchstens 2 s. Eine Zeile in der Form von Punkt 2 reicht er unverändert an den
+  Dienst, wenn keine Anforderung offen ist, und hält die Verbindung des Agenten offen. Ist schon eine offen, antwortet er selbst
+  `abgelehnt anfordern_offen` (die Antwort, die auch der Dienst gäbe) und reicht nichts weiter: So bleibt jede Antwort des Dienstes
+  eindeutig einer Anforderung zugeordnet. Jede andere Zeile, eine zu lange Zeile und eine Zeile ohne LF in der Frist verwirft er
+  ohne Antwort und schließt die Verbindung. Eine Antwort des Dienstes in der Form von Punkt 3 gibt er der offenen Anforderung und
+  schließt deren Verbindung; eine Antwort anderer Form oder ohne offene Anforderung verwirft er. Wächst eine Zeile des Dienstes über
+  128 Byte, endet er.
+- **Keine eigene Regel.** Ob ein Worker einen Worker anfordern darf, entscheidet die Stelle. `lauf` prüft nur Länge und Grammatik.
+
+**Werkzeug des Agenten.** Im Einschluss steht der Socket am festen Gastpfad `/run/brain/anfordern.sock`, nur lesend gebunden wie die
+anderen Wege nach draußen (`rust/crates/einschluss`, Feld `anfordern_socket` der Beschreibung, nur mit `--meldung`). Der Agent
+fordert über die Shell seines Harness mit `/usr/lib/werkbank/werkbank-lauf-kind --anfordern <rolle> <harness> <modell> <effort>` an.
+Das Werkzeug prüft die Felder selbst (Exit 64 bei falscher Form, nichts wird gesendet), sendet die eine Zeile, wartet höchstens
+600 s auf die Antwort und schreibt sie auf stdout. Es endet mit 0 bei `frei`, 1 bei `abgelehnt` und 69, wenn keine Antwort kommt.
+Ein Werkzeug des Agenten selbst (ein eigenes Skript, `nc`, Python) ist nicht nötig, aber auch nicht schädlich: Am Socket gilt allein
+die Prüfung des Halteprozesses.
+
+**Wahl des Wegs: Socket im Einschluss, kein Werkzeug im MCP-Server der Suche (Projektentscheid, 27.11.2026).**
+
+Gemessen am 28.11.2026 in einer Wegwerf-VM (Ubuntu 26.04.1, kein Konto, Netz nach außen gesperrt, `probe-ip-rc=28`), mit dem
+Paket dieses Stands (`postinst` trug `copilot`, `pi` und `opencode` selbst ein), pi 1.6.1, opencode 1.19.5 und copilot 1.0.116.
+`werkbank-lauf --meldung` lief gegen einen Stellvertreter des Dienstes; eine Modell-Attrappe auf `127.0.0.1:11434` ließ den Agenten
+einmal das Shell-Werkzeug seines Harness aufrufen, mit `ls /run/brain`, einer Probe auf den Socket des Stellvertreters und dem
+Werkzeug `werkbank-lauf-kind --anfordern worker <harness> qwen3:8b medium`.
+
+| Harness | Werkzeuge, die der Harness dem Modell anbietet | Weg im echten Einschluss |
+|---|---|---|
+| `pi` 1.6.1 | `read`, `bash`, `edit`, `write`; keine Einbindung eines MCP-Servers | `bash` erreicht den Halteprozess: der Stellvertreter liest `laeuft` (1,1 s nach dem Verbinden), dann `anfordern worker pi qwen3:8b medium`; der Agent bekommt `frei s-9`, Werkzeug-Exit 0 |
+| `opencode` 1.19.5 | `bash`, `edit`, `glob`, `grep`, `question`, `read`, `skill`, `task`, `todowrite`, `webfetch`, `write`; MCP nur über eine eigene Konfiguration, die die Sitzung nicht hat | wie `pi`: `laeuft`, dann `anfordern worker opencode qwen3:8b medium`, Antwort `frei s-9`, Werkzeug-Exit 0 |
+| `copilot` 1.0.116 | ohne Konto kein Zug (OPEN 37) | nicht gemessen: Auf der Route `lokal` lehnt `lauf` den Start mit `65 start.harness_route_unvertraeglich` ab (kommt als Code-Zeile ohne `laeuft` beim Stellvertreter an); auf der Cloud-Route endet in dieser VM der Modellweg vor der Bereitschaft mit 78 (`lauf.modellweg_nicht_bereit`) |
+
+In beiden gemessenen Sitzungen standen im Einschluss `anfordern.sock`, `modell.sock`, `such.sock` und `weiter` unter `/run/brain`;
+der Socket des Stellvertreters war dort nicht sichtbar (`DIENST-UNSICHTBAR`). Nach dem Ende des Harness endete die Verbindung
+(„Ende“ beim Stellvertreter), und kein Halteprozess blieb.
+
+Grund der Wahl:
+
+- **Jeder Harness erreicht ihn ohne eigenes Werkzeug des Agenten.** Ein Werkzeug im MCP-Server der Suche erreicht `pi` nicht: `pi`
+  hat keine Einbindung eines MCP-Servers (gemessen: vier eigene Werkzeuge), und die Konfiguration von `opencode` nennt keinen
+  MCP-Server (OPEN 40). Eine Shell haben alle drei. Für `copilot` ist das hergeleitet: Einschluss, Profil und Bindung des Sockets sind
+  für alle Harnesses gleich (OPEN 45).
+- **Nichts im Einschluss erreicht dadurch den Dienst direkt.** Am Socket hängt nur der Halteprozess außerhalb des Einschlusses. Er
+  reicht nur Zeilen der geprüften Form weiter, und die Verbindung zum Dienst kommt nie in den Einschluss (gemessen: Socket des
+  Stellvertreters unsichtbar; Prüfbau: kein anderer Prozess hält die Verbindung).
+- **Ein Worker kann selbst keinen Worker anfordern, wenn die Stelle das ablehnt.** Jede Sitzung mit Meldung hat diesen Socket, auch
+  die eines Workers. Ob die Anforderung durchgeht, entscheidet allein die Stelle anhand der Sitzung, über deren Meldeweg sie kam
+  (Vertrag `dienst`, Nachtrag „Kanal zur Stelle“, Punkt 10). `lauf` erfindet keine eigene Regel.
+
+**Fälle** (`rust/crates/lauf/tests/meldung.rs`, Prüfbau, Linux; der Test spielt den Dienst): `laeuft` nach gelungenem `exec`, und nur
+der Halteprozess hält danach die Verbindung (`a_start_reports_laeuft_and_only_the_holding_process_keeps_the_connection`); die
+Code-Zeile ohne `laeuft` bei gescheitertem `exec` (`a_failed_exec_of_the_starter_reports_lauf_harness_fehlt`); eine gültige
+Anforderung kommt beim Stellvertreter des Dienstes an und die Antwort beim Agenten, eine Antwort anderer Form nicht
+(`a_valid_request_reaches_the_service_and_the_answer_the_agent`); zu lange und ungültige Zeilen kommen nie beim Dienst an
+(`too_long_and_invalid_lines_never_reach_the_service`); eine zweite Anforderung während einer offenen
+(`a_second_request_while_one_is_open_is_refused_and_not_passed_on`); der Socket im Einschluss nur mit Meldung
+(`the_enclosure_gets_the_socket_of_the_worker_request_only_with_a_report`); das Werkzeug ohne Halteprozess
+(`the_tool_without_a_holding_process_ends_with_69`). Die Grammatik prüft `rust/crates/lauf/src/anfordern/tests.rs`, die Bindung
+`rust/crates/einschluss/src/profil/tests.rs` (`the_socket_of_the_worker_request_stands_at_its_guest_path`).
 
 ### Such-Prozess je Sitzung
 
@@ -1112,7 +1211,10 @@ Startdatei und nie in die Einstellungsdatei.
 - Socket-Ordner, `--socket-rechte`, leere Umgebung, stdin `/dev/null`, stderr nicht in die PTY: wie beim Such-Prozess.
 - **Bereitschaft:** genau die Zeile `{"bereit":true}` mit LF auf stdout, Frist 10 s. Vorher schreibt er bei einem
   Fehler eine stderr-Zeile und endet mit einem eigenen Exitcode (Vertrag 8). Ausbleiben, vorzeitiges Ende oder jede
-  andere Zeile ergibt `lauf.modellweg_nicht_bereit`; scheitert schon der Start, `lauf.modellweg_fehlt`.
+  andere Zeile ergibt `lauf.modellweg_nicht_bereit`; scheitert schon der Start, `lauf.modellweg_fehlt`. Endet der Modellweg vor
+  der Bereitschaft mit Exit 75 (Vertrag 8, Abschnitt 5.1: `mw.halter_fehlt` oder `mw.halter_frist`), ergibt das
+  `lauf.halter_fehlt` (69, `Halter nicht erreichbar`). Derselbe Code vom Such-Prozess bleibt `lauf.suche_nicht_bereit`
+  (`rust/crates/lauf/src/kind.rs`, `Ausfall::HalterFehlt`; Fälle `tests/meldung.rs`, `halter` und `suche-75`).
 - **Marker:** Mit `marker` hängt das Programm `--probelauf --marker <a,b,...> --marker-zaehlung
   <ordner>/<sitzung>.modellweg.json` an, in beiden Betriebsarten; ohne `marker` keine der drei Optionen. `<a,b,...>` ist `marker.liste` in ihrer
   Reihenfolge, mit Komma verbunden.
@@ -1790,8 +1892,8 @@ normal, also ohne `.`, `..`, doppelten Schrägstrich und Schrägstrich am Ende):
 {"harness": "pi", "arbeitsordner": "/srv/beispiel/projekt", "programmordner": ["/usr/lib/werkbank"],
  "zustand": {"host": "/var/lib/werkbank/beispiel/sitzungen/s-1", "name": "zustand", "art": "neu"},
  "heim": "/srv/beispiel/heim", "such_socket": "/run/werkbank/beispiel/s-1/such.sock",
- "modell_socket": "/run/werkbank/beispiel/s-1/modell.sock", "lokal_weiter": "/usr/lib/werkbank/einschluss-weiter",
- "cloud": null, "paket": null,
+ "modell_socket": "/run/werkbank/beispiel/s-1/modell.sock", "anfordern_socket": "/run/werkbank/beispiel/s-1/anfr.sock",
+ "lokal_weiter": "/usr/lib/werkbank/einschluss-weiter", "cloud": null, "paket": null,
  "umgebung": {"home": "/srv/beispiel/heim", "path": "/usr/bin:/bin", "term": "xterm-256color", "lang": "C.UTF-8", "tmpdir": "/tmp"},
  "geschuetzt": ["/var/lib/werkbank"],
  "dateien": [{"quelle": "/var/lib/werkbank/beispiel/sitzungen/s-1/models.json", "ziel": "/srv/beispiel/heim/.pi/agent/models.json"}],
@@ -1799,7 +1901,8 @@ normal, also ohne `.`, `..`, doppelten Schrägstrich und Schrägstrich am Ende):
 ```
 
 Die Felder: `harness` (Name aus Vertrag 2), `arbeitsordner`, `programmordner` (Liste), `zustand` (`host` und `name` des
-Zustandsordners der Sitzung), `heim`, `such_socket`, `modell_socket` (Text oder `null`), `lokal_weiter` (Text oder
+Zustandsordners der Sitzung), `heim`, `such_socket`, `modell_socket` (Text oder `null`), `anfordern_socket` (Text oder
+`null`; Abschnitt „Worker anfordern“, nur mit `--meldung`, am Gastpfad `/run/brain/anfordern.sock`), `lokal_weiter` (Text oder
 `null`; `zustand` dazu `art` und `gespraech`, Abschnitt „Ablage des Gesprächs“), `cloud` (`null` oder ein Objekt mit `weiterreicher`, `weiter_programm`, `bundle`, `verteilung` = `ubuntu` oder
 `arch`), `paket` (`null` oder ein Objekt mit `quelle`, `plattform`, `fassung`; nur Harness `copilot`), `umgebung` (`home`, `path`, `term`, `lang`, `tmpdir`), `geschuetzt` (Liste), `dateien` (Liste) und `argv`
 (`argv[0]` ist ein absoluter, normaler Pfad). Es gibt kein Feld `system`. Den Text erzeugt „Lauf starten“ mit der
@@ -1952,8 +2055,17 @@ python3 -I rust/spec/start/bau-faelle.py            # Fälle neu erzeugen
     der Fassung 2. Die geschlossene Form (Vertrag 5, Abschnitt 6.9) prüfen der Schreiber in `lauf` und die Fälle. Der Bau im Crate
     `formate` und ein Wort für `lauf.protokoll` in der Worttabelle der Ansicht (`rust/crates/ansicht/src/woerter.rs`) liegen
     außerhalb dieses Schritts.
+45. **copilot im echten Einschluss (27.11.2026).** Ohne Konto erreicht copilot keinen Zug (OPEN 37). Der Weg des Agenten ist für
+    copilot darum nicht mit einem Zug des echten Harness gemessen, sondern hergeleitet: Einschluss, Profil und Bindung des Sockets sind
+    für alle Harnesses gleich, und copilot hat ein eigenes Shell-Werkzeug. Empfehlung: Der erste Start mit dem Erststart-Profil
+    misst eine Anforderung über die Shell von copilot.
 
 ### Erledigt
+
+44. **`laeuft` beim Dienst: geschlossen (28.11.2026).** Die Seite des Dienstes (Stufe 1, Vertrag `dienst`, Nachtrag zu Abschnitt 18)
+    nimmt `laeuft` als erste Zeile an und liest danach Anforderungen; jede gültige Anforderung beantwortet sie mit
+    `abgelehnt stelle_nicht_erreichbar`. Der Kreuztest mit dem echten Dienst (`rust/crates/lauf/tests/kreuz.rs`) besteht 4 von 4, auch
+    Fall 4 (`zweihundertsechsundfuenfzig_cloud_sitzungen_ohne_laeufer`), der vorher mit Code 70 `lauf.meldung_ungueltig` endete.
 
 42. **Auszug des argv im Log: geschlossen (Entscheid des Betreibers, 28.11.2026).** Ziel ist eine Protokollzeile nach Vertrag 5.
     Vorher offen war die Wahl zwischen einer Zeile auf stderr, einer Protokollzeile und einer Datei neben der Startdatei, weil „Lauf

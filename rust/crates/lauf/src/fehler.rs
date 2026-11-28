@@ -80,6 +80,9 @@ pub enum Fehler {
     ModellwegFehlt,
     /// Step 7a: the model path did not report ready in time.
     ModellwegNichtBereit,
+    /// Step 7a: the model path ended with exit 75 before it was ready: its holder is missing or silent (contract 8,
+    /// section 5.1).
+    HalterFehlt,
     /// Step 6a: the package of the cloud harness has an unknown form or cannot be read (main package, platform package,
     /// a machine without a known architecture or without glibc).
     PaketForm,
@@ -145,6 +148,7 @@ impl Fehler {
             Fehler::Zielliste => "lauf.zielliste",
             Fehler::ModellwegFehlt => "lauf.modellweg_fehlt",
             Fehler::ModellwegNichtBereit => "lauf.modellweg_nicht_bereit",
+            Fehler::HalterFehlt => "lauf.halter_fehlt",
             Fehler::PaketForm => "lauf.paket_form",
             Fehler::PaketCache(_) => "lauf.paket_cache",
             Fehler::PaketEntpacken { .. } => "lauf.paket_entpacken",
@@ -200,6 +204,7 @@ impl Fehler {
             Fehler::Zielliste => "Zielliste nicht schreibbar",
             Fehler::ModellwegFehlt => "Modellweg nicht startbar",
             Fehler::ModellwegNichtBereit => "Modellweg nicht bereit",
+            Fehler::HalterFehlt => "Halter nicht erreichbar",
             Fehler::PaketForm => "Paket des Harness unbekannt oder nicht lesbar",
             Fehler::PaketCache(_) => "Paketordner des Harness unbrauchbar",
             Fehler::PaketEntpacken { .. } => "Paket des Harness nicht entpackt",
@@ -225,6 +230,7 @@ impl Fehler {
             | Fehler::SucheNichtBereit
             | Fehler::ModellwegFehlt
             | Fehler::ModellwegNichtBereit
+            | Fehler::HalterFehlt
             | Fehler::PaketEntpacken { .. }
             | Fehler::HarnessFehlt
             | Fehler::MeldungFehlt
@@ -315,6 +321,7 @@ mod tests {
             Fehler::Zielliste,
             Fehler::ModellwegFehlt,
             Fehler::ModellwegNichtBereit,
+            Fehler::HalterFehlt,
             Fehler::HarnessFehlt,
             Fehler::MeldungFehlt,
             Fehler::Intern,
@@ -324,7 +331,7 @@ mod tests {
             Fehler::FortsetzungFremd,
             Fehler::Protokoll,
         ];
-        let soll: [(u8, &str); 32] = [
+        let soll: [(u8, &str); 33] = [
             (78, "lauf.tls_umgebung: TLS-Umgebung gesetzt\n"),
             (64, "lauf.aufruf: genau ein Pfad erwartet\n"),
             (66, "lauf.datei_unlesbar: Startdatei nicht lesbar\n"),
@@ -376,6 +383,7 @@ mod tests {
             (73, "lauf.zielliste: Zielliste nicht schreibbar\n"),
             (69, "lauf.modellweg_fehlt: Modellweg nicht startbar\n"),
             (69, "lauf.modellweg_nicht_bereit: Modellweg nicht bereit\n"),
+            (69, "lauf.halter_fehlt: Halter nicht erreichbar\n"),
             (69, "lauf.harness_fehlt: Harness nicht startbar\n"),
             (
                 69,

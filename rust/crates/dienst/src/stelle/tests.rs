@@ -112,6 +112,8 @@ fn attrappe_roh(
 }
 
 const MF: &str = "mf-1795179540000-1";
+/// A promise of `worker.anfordern` in its form (contract `stelle` section 15.3).
+const ZS: &str = "zs-1795179540000-1";
 /// A digest of the point (64 hex digits).
 const D: &str = "d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0";
 
@@ -224,20 +226,28 @@ fn offene_pseudonym_und_worker_folgen_ihrer_form() {
     let antworten = vec![
         json!({"ok": true, "ergebnis": "pseudonym", "pseudonym": ps}).to_string(),
         json!({"ok": true, "ergebnis": "pseudonym", "pseudonym": "uid-501"}).to_string(),
-        json!({"ok": true, "ergebnis": "frei", "sitzung": "s-1"}).to_string(),
-        json!({"ok": true, "ergebnis": "frei", "sitzung": "s-2"}).to_string(),
+        json!({"ok": true, "ergebnis": "frei", "sitzung": "s-1", "zusage": ZS, "zusage_bis_ms": 9})
+            .to_string(),
+        json!({"ok": true, "ergebnis": "frei", "sitzung": "s-2", "zusage": ZS, "zusage_bis_ms": 9})
+            .to_string(),
         json!({"ok": false, "code": "stelle.worker_hoechstzahl", "grund": "x"}).to_string(),
     ];
     let (gesehen, f) = attrappe(&o, KANAL_KERN, antworten);
     assert_eq!(pseudonym(&ort_, "uid-501").as_deref(), Some(ps));
     assert_eq!(pseudonym(&ort_, "uid-501"), None);
     let a = meldezeile_lesen(b"anfordern pruefer claude m-1 mittel\n").expect("line");
-    assert_eq!(worker_anfordern(&ort_, "s-1", &a, 0), Ok(()));
+    let fuer = |laufend: u64| Fuer {
+        sitzung: "s-1".to_owned(),
+        laufend,
+        route: "cloud-beispiel".to_owned(),
+        kunde: None,
+    };
+    assert_eq!(worker_anfordern(&ort_, &fuer(0), &a), Ok(ZS.to_owned()));
     assert_eq!(
-        worker_anfordern(&ort_, "s-1", &a, 0),
+        worker_anfordern(&ort_, &fuer(0), &a),
         Err(Fehlschlag::Dienst(ANTWORT_UNGUELTIG))
     );
-    let hoch = worker_anfordern(&ort_, "s-1", &a, 2);
+    let hoch = worker_anfordern(&ort_, &fuer(2), &a).map(|_| ());
     assert_eq!(
         hoch,
         Err(Fehlschlag::Stelle("stelle.worker_hoechstzahl".to_owned()))
@@ -254,12 +264,30 @@ fn offene_pseudonym_und_worker_folgen_ihrer_form() {
     f.join().expect("stand-in");
     let g = gesehen.lock().expect("lock");
     assert_eq!(g[0]["eingabe"], json!({"kennung": "uid-501"}));
-    assert_eq!(g[2]["eingabe"]["sitzung"], "s-1");
+    assert_eq!(
+        g[2]["eingabe"],
+        json!({"sitzung": "s-1", "rolle": "pruefer", "harness": "claude", "modell": "m-1", "effort": "mittel",
+               "laufend": 0, "route": "cloud-beispiel", "kunde": null})
+    );
 }
 
 #[test]
 fn die_meldezeile_hat_eine_feste_grammatik() {
     assert!(meldezeile_lesen(b"anfordern pruefer claude m-1 mittel\n").is_some());
+    // `modell` in the form of contract 1 (contract `stelle` section 15.3): real model names are no identifiers
+    for modell in ["qwen3:8b", "claude-sonnet-5.5", "m/1", "Org/Modell@v2+x"] {
+        let zeile = format!("anfordern pruefer pi {modell} low\n");
+        let a = meldezeile_lesen(zeile.as_bytes()).expect(modell);
+        assert_eq!(
+            (
+                a.rolle.as_str(),
+                a.harness.as_str(),
+                a.modell.as_str(),
+                a.effort.as_str()
+            ),
+            ("pruefer", "pi", modell, "low")
+        );
+    }
     let lang = format!("anfordern {} claude m-1 mittel\n", "r".repeat(64));
     assert!(meldezeile_lesen(lang.as_bytes()).is_some());
     for falsch in [
@@ -271,7 +299,8 @@ fn die_meldezeile_hat_eine_feste_grammatik() {
         b"anfordern pruefer claude m-1 mittel\n\n",
         b"starten pruefer claude m-1 mittel\n",
         b"anfordern s-1 claude m-1 mittel\r\n",
-        b"anfordern pruefer claude m/1 mittel\n",
+        b"anfordern pruefer claude m 1 mittel\n",
+        b"anfordern pruefer claude m\\1 mittel\n",
     ] {
         assert!(
             meldezeile_lesen(falsch).is_none(),
@@ -861,4 +890,98 @@ fn das_konto_kommt_nur_aus_der_messung_des_lokalen_wegs() {
     ] {
         assert_eq!(konto_aus(&falsch), None, "{falsch}");
     }
+}
+
+#[test]
+fn die_zusage_und_die_antworten_von_stufe_2_haben_ihre_form() {
+    for gut in [ZS, "zs-0-1", "zs-123456789012345-9999999999"] {
+        assert!(zusage_form(gut), "{gut}");
+    }
+    for falsch in [
+        "zs-1-0",
+        "zs-1-01",
+        "zs--1",
+        "zs-1-",
+        "zs-1234567890123456-1",
+        "zs-1-12345678901",
+        "zt-1-1",
+        "zs-1-1-1",
+        "zs-a-1",
+        "ZS-1-1",
+    ] {
+        assert!(!zusage_form(falsch), "{falsch}");
+    }
+    let frei =
+        json!({"ok": true, "ergebnis": "frei", "sitzung": "s-1", "zusage": ZS, "zusage_bis_ms": 9});
+    assert_eq!(frei_lesen(&objekt(&frei), "s-1"), Some(ZS.to_owned()));
+    assert_eq!(frei_lesen(&objekt(&frei), "s-2"), None);
+    let mut falsch = Vec::new();
+    for (k, v) in [
+        ("ok", json!(false)),
+        ("ergebnis", json!("gestartet")),
+        ("zusage", json!("zs-1-0")),
+        ("zusage", json!(1)),
+        ("zusage_bis_ms", json!("9")),
+        ("zusage_bis_ms", json!(9.5)),
+        ("x", json!(1)),
+    ] {
+        let mut f = frei.clone();
+        f[k] = v;
+        falsch.push(f);
+    }
+    for k in ["zusage", "zusage_bis_ms", "sitzung"] {
+        let mut f = frei.clone();
+        f.as_object_mut().expect("object").remove(k);
+        falsch.push(f);
+    }
+    for f in falsch {
+        assert_eq!(frei_lesen(&objekt(&f), "s-1"), None, "{f}");
+    }
+    let gestartet = json!({"ok": true, "ergebnis": "gestartet", "sitzung": "s-2", "route": "cloud-beispiel", "route_art": "cloud"});
+    assert_eq!(gestartet_lesen(&objekt(&gestartet), "s-2"), Some(()));
+    let mut lokal = gestartet.clone();
+    lokal["route_art"] = json!("lokal");
+    assert_eq!(gestartet_lesen(&objekt(&lokal), "s-2"), Some(()));
+    assert_eq!(gestartet_lesen(&objekt(&gestartet), "s-1"), None);
+    for (k, v) in [
+        ("ok", json!(false)),
+        ("ergebnis", json!("frei")),
+        ("route", json!(null)),
+        ("route_art", json!("andere")),
+        ("x", json!(1)),
+    ] {
+        let mut f = gestartet.clone();
+        f[k] = v;
+        assert_eq!(gestartet_lesen(&objekt(&f), "s-2"), None, "{f}");
+    }
+}
+
+#[test]
+fn sitzung_starten_traegt_die_bytes_der_startdatei_und_beim_worker_orchestrator_und_zusage() {
+    let inhalt = br#"{"fassung":2,"sitzung":"s-2","name":"\u00e4"}"#;
+    let e = starten_eingabe(inhalt, None, None).expect("text");
+    assert_eq!(
+        e,
+        json!({"start": {"text": String::from_utf8_lossy(inhalt)}})
+    );
+    assert_eq!(
+        e["start"]["text"].as_str().expect("text").as_bytes(),
+        inhalt,
+        "exactly the bytes"
+    );
+    assert_eq!(
+        starten_eingabe(inhalt, Some("s-1"), Some(ZS)).expect("worker"),
+        json!({"start": {"text": String::from_utf8_lossy(inhalt)}, "orchestrator": "s-1", "zusage": ZS})
+    );
+    // a worker started without a promise names its orchestrator: the authority refuses it (`stelle.zusage_ungueltig`)
+    assert_eq!(
+        starten_eingabe(inhalt, Some("s-1"), None).expect("worker"),
+        json!({"start": {"text": String::from_utf8_lossy(inhalt)}, "orchestrator": "s-1"})
+    );
+    // a promise without an orchestrator never goes
+    assert_eq!(
+        starten_eingabe(inhalt, None, Some(ZS)).expect("no worker"),
+        json!({"start": {"text": String::from_utf8_lossy(inhalt)}})
+    );
+    assert_eq!(starten_eingabe(b"\xff", None, None), None);
 }

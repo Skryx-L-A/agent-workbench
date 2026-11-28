@@ -23,6 +23,7 @@ fn muster() -> Beschreibung {
         heim: PathBuf::from("/home/u"),
         such_socket: PathBuf::from("/var/tmp/k/s-1/such.sock"),
         modell_socket: Some(PathBuf::from("/var/tmp/k/s-1/modell.sock")),
+        anfordern_socket: None,
         lokal_weiter: None,
         dateien: Vec::new(),
         cloud: None,
@@ -77,6 +78,56 @@ fn the_argument_list_is_exactly_this() {
     let profil = bauen(&muster()).expect("the sample is valid");
     assert_eq!(profil.argumente(), erwartet_kopf());
     assert_eq!(profil.bwrap(), Path::new("/usr/bin/bwrap"));
+}
+
+/// The socket of the worker request stands read-only at its fixed guest path, right after the model socket; without it
+/// the list has no such mount (the sample has none).
+#[test]
+fn the_socket_of_the_worker_request_stands_at_its_guest_path() {
+    let mut b = muster();
+    assert!(
+        !bauen(&b)
+            .expect("valid")
+            .argumente()
+            .iter()
+            .any(|a| a == GAST_ANFORDERN_SOCKET)
+    );
+    b.anfordern_socket = Some(PathBuf::from("/var/tmp/k/s-1/anfordern.sock"));
+    let args = bauen(&b).expect("valid").argumente();
+    let i = args
+        .iter()
+        .position(|a| a == GAST_ANFORDERN_SOCKET)
+        .expect("mounted");
+    assert_eq!(
+        args[i - 2..=i],
+        [
+            "--ro-bind",
+            "/var/tmp/k/s-1/anfordern.sock",
+            GAST_ANFORDERN_SOCKET
+        ]
+    );
+    assert_eq!(args[i - 3], GAST_MODELL_SOCKET);
+    assert_eq!(
+        abgelehnt(|b| b.anfordern_socket = Some("a.sock".into())),
+        Fehler::BeschreibungUngueltig("anfordern_socket")
+    );
+    assert_eq!(
+        abgelehnt(|b| b.anfordern_socket = Some("/srv/arbeit/p/a.sock".into())),
+        Fehler::Ueberlappt("socket lies inside a mounted folder")
+    );
+    assert_eq!(
+        abgelehnt(|b| b.anfordern_socket = Some("/var/tmp/90-secrets/a.sock".into())),
+        Fehler::Verboten("path with a secret segment")
+    );
+    for gleich in [
+        |b: &mut Beschreibung| b.anfordern_socket = Some(b.such_socket.clone()),
+        |b: &mut Beschreibung| b.anfordern_socket.clone_from(&b.modell_socket),
+    ] {
+        assert_eq!(
+            abgelehnt(gleich),
+            Fehler::Ueberlappt("both sockets are the same file")
+        );
+    }
 }
 
 #[test]

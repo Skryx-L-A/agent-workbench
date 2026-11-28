@@ -54,6 +54,7 @@ impl Welt {
             heim: heim.clone(),
             such_socket: such_pfad.clone(),
             modell_socket: None,
+            anfordern_socket: None,
             lokal_weiter: None,
             dateien: Vec::new(),
             cloud: None,

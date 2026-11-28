@@ -225,7 +225,14 @@ fn g1_counter_probe_the_signal_hangs_on_the_forking_thread() {
         std::mem::forget(k);
     });
     let pid = i32::try_from(rx.recv().expect("pid")).expect("pid");
-    std::thread::sleep(Duration::from_millis(500));
+    // the thread may end only after the trampoline set the death signal: before it, the parent check of the trampoline
+    // passes after the end of the thread too (the process keeps its PID), and no signal would ever come. The `exec` into
+    // the program comes after the signal, so the program in `/proc/<pid>/exe` marks that point (a fixed sleep did not
+    // under load)
+    assert!(
+        exe_ist(pid, &w.bin.join("rangkern"), HAENGESPERRE_MS),
+        "the trampoline replaces itself by the program"
+    );
     assert!(lebt(pid), "the child runs while its forking thread runs");
     drop(halt_tx);
     faden.join().expect("thread");
@@ -239,6 +246,18 @@ fn g1_counter_probe_the_signal_hangs_on_the_forking_thread() {
         rustix::process::WaitOptions::NOHANG,
     );
     eprintln!("G1 thread condition: child {pid} ended with the end of its forking thread");
+}
+
+/// Waits until the program of `pid` is `programm` (`/proc/<pid>/exe`); `ms` is only the guard against a hang.
+fn exe_ist(pid: i32, programm: &std::path::Path, ms: u64) -> bool {
+    let ende = std::time::Instant::now() + Duration::from_millis(ms);
+    while std::time::Instant::now() < ende {
+        if std::fs::read_link(format!("/proc/{pid}/exe")).is_ok_and(|p| p == programm) {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    false
 }
 
 #[test]
@@ -1178,7 +1197,7 @@ fn a_starter_that_cannot_be_run_ends_with_the_code_of_lauf_harness_fehlt() {
             .args([eltern.as_str(), art, "/nicht/da/werkbank-einschluss"])
             .env_clear()
             .stdin(Stdio::null())
-            .output()
+            .gesperrt_output()
             .expect("trampoline");
         assert_eq!(aus.status.code(), Some(code), "{art}");
         let zeile = String::from_utf8_lossy(&aus.stderr);

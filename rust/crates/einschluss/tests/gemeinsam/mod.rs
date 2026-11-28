@@ -303,6 +303,7 @@ impl Welt {
             heim: self.heim.clone(),
             such_socket: self.such.socket.clone(),
             modell_socket: None,
+            anfordern_socket: None,
             lokal_weiter: None,
             dateien: Vec::new(),
             cloud: None,

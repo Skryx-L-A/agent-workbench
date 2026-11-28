@@ -1422,6 +1422,29 @@ fn only_a_new_start_of_version_2_of_opencode_keeps_a_conversation_without_a_key(
     assert!(!text.contains(r#""kennung":null"#), "{text}");
 }
 
+/// The socket of the worker request: bound with mode 0600 in the socket folder only with a report; without one nothing.
+#[cfg(unix)]
+#[test]
+fn the_socket_of_the_worker_request_is_bound_only_with_a_report() {
+    use std::os::unix::fs::{FileTypeExt, PermissionsExt};
+    let o = crate::testhilfe::Ordner::neu("anfr");
+    assert!(anfordern_binden(&o.0, false).expect("no fault").is_none());
+    assert!(
+        !o.0.join(ANFORDERN_SOCKET).exists(),
+        "nothing without a report"
+    );
+    let (pfad, _hoerer) = anfordern_binden(&o.0, true)
+        .expect("bound")
+        .expect("a socket");
+    assert_eq!(pfad, o.0.join(ANFORDERN_SOCKET));
+    let meta = std::fs::symlink_metadata(&pfad).expect("socket");
+    assert!(meta.file_type().is_socket());
+    assert_eq!(meta.permissions().mode() & 0o777, 0o600);
+    // a second bind at the same place fails: `lauf.intern`
+    assert_eq!(anfordern_binden(&o.0, true).err(), Some(Fehler::Intern));
+    assert!(ANFORDERN_SOCKET.len() <= "modell.sock".len());
+}
+
 /// The files of the log folder of the world `w`, sorted, and the text of the month file of `zeit_ms`.
 fn protokoll(w: &Path, zeit_ms: i64) -> (Vec<String>, String) {
     let mut namen: Vec<String> = std::fs::read_dir(w.join("protokoll"))

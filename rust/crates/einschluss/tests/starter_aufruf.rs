@@ -49,6 +49,7 @@ fn ohne_arbeitsordner() -> String {
         heim: PathBuf::from("/srv/beispiel/heim"),
         such_socket: PathBuf::from("/srv/beispiel/such/s"),
         modell_socket: None,
+        anfordern_socket: None,
         lokal_weiter: None,
         dateien: Vec::new(),
         cloud: None,

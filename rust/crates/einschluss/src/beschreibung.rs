@@ -7,6 +7,10 @@ use crate::fehler::Fehler;
 /// Where the socket of the search process of the session stands inside the enclosure (contract 4).
 pub const GAST_SUCH_SOCKET: &str = "/run/brain/such.sock";
 
+/// Where the socket of the worker request stands inside the enclosure, when the session has one (contract 1, "Worker
+/// anfordern"): the agent reaches the holding process of "Lauf starten" there, never the service.
+pub const GAST_ANFORDERN_SOCKET: &str = "/run/brain/anfordern.sock";
+
 /// Where the socket of the model path stands inside the enclosure, when the session has one. The bridge that listens
 /// on it is not part of this crate (see [`crate::erweiterung`]).
 pub const GAST_MODELL_SOCKET: &str = "/run/brain/modell.sock";
@@ -429,6 +433,9 @@ pub struct Beschreibung {
     pub such_socket: PathBuf,
     /// The socket of the model path on the host, if the session has one. It stands at [`GAST_MODELL_SOCKET`].
     pub modell_socket: Option<PathBuf>,
+    /// The socket of the worker request on the host, if the session has one (only with a report to the service). It
+    /// stands at [`GAST_ANFORDERN_SOCKET`]; its folder is never mounted.
+    pub anfordern_socket: Option<PathBuf>,
     /// The program of the forwarder of the local route on the host (the binary `einschluss-weiter`), only together with
     /// `modell_socket`: bound read-only at [`GAST_WEITER`], it listens on `127.0.0.1:`[`LOKAL_PORT`] inside and passes
     /// the bytes to the model socket. Without it the model socket is bound, but nothing listens on the loopback.

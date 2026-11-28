@@ -386,48 +386,101 @@ pub(crate) struct Anforderung {
     pub(crate) effort: String,
 }
 
-/// The grammar `anfordern <rolle> <harness> <modell> <effort>` with LF, each field in the form of an identifier, at most 256
-/// bytes; anything else is `None`.
+/// The grammar `anfordern <rolle> <harness> <modell> <effort>` with LF, at most 256 bytes; `rolle`, `harness` and `effort` in the
+/// form of an identifier, `modell` in the form of contract 1 (contract `stelle` section 15.3; the same check as the report path,
+/// `meldung::anforderung_lesen`); anything else is `None`.
 pub(crate) fn meldezeile_lesen(zeile: &[u8]) -> Option<Anforderung> {
     if zeile.len() > MELDEZEILE_MAX {
         return None;
     }
-    let text = std::str::from_utf8(zeile.strip_suffix(b"\n")?).ok()?;
-    let teile: Vec<&str> = text.split(' ').collect();
-    let [kopf, rolle, harness, modell, effort] = teile.as_slice() else {
-        return None;
+    crate::meldung::anforderung_lesen(zeile.strip_suffix(b"\n")?)
+}
+
+/// `^zs-[0-9]{1,15}-[1-9][0-9]{0,9}$` (contract `stelle` section 15.2).
+pub(crate) fn zusage_form(t: &str) -> bool {
+    let Some((laden, n)) = t.strip_prefix("zs-").and_then(|r| r.split_once('-')) else {
+        return false;
     };
-    if *kopf != "anfordern"
-        || ![rolle, harness, modell, effort]
-            .iter()
-            .all(|t| kennung_form(t))
-    {
-        return None;
-    }
-    Some(Anforderung {
-        rolle: (*rolle).to_owned(),
-        harness: (*harness).to_owned(),
-        modell: (*modell).to_owned(),
-        effort: (*effort).to_owned(),
+    let ziffern = |x: &str| x.bytes().all(|c| c.is_ascii_digit());
+    (1..=15).contains(&laden.len())
+        && ziffern(laden)
+        && (1..=10).contains(&n.len())
+        && ziffern(n)
+        && !n.starts_with('0')
+}
+
+/// What `worker.anfordern` names besides the line: the orchestrator `sitzung` (the session of the run, never a value of the line),
+/// the number of its running workers, and `route` and `kunde` of its start structure, which the worker gets unchanged.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Fuer {
+    pub(crate) sitzung: String,
+    pub(crate) laufend: u64,
+    pub(crate) route: String,
+    pub(crate) kunde: Option<String>,
+}
+
+/// `worker.anfordern` (contract `stelle` section 15.3): `Ok` with the promise only for exactly
+/// `{"ok": true, "ergebnis": "frei", "sitzung": <the same session>, "zusage": <promise>, "zusage_bis_ms": <whole number>}`.
+pub(crate) fn worker_anfordern(ort: &Ort, f: &Fuer, a: &Anforderung) -> Result<String, Fehlschlag> {
+    let eingabe = json!({"sitzung": f.sitzung, "rolle": a.rolle, "harness": a.harness, "modell": a.modell,
+                         "effort": a.effort, "laufend": f.laufend, "route": f.route, "kunde": f.kunde});
+    auswerten(fragen(ort, KANAL_KERN, "worker.anfordern", &eingabe), |o| {
+        frei_lesen(o, &f.sitzung)
     })
 }
 
-/// `worker.anfordern` for the orchestrator `sitzung` (the session of the run, never a value of the line): `Ok` only for
-/// `frei` with the same session.
-pub(crate) fn worker_anfordern(
-    ort: &Ort,
-    sitzung: &str,
-    a: &Anforderung,
-    laufend: u64,
-) -> Result<(), Fehlschlag> {
-    let eingabe = json!({"sitzung": sitzung, "rolle": a.rolle, "harness": a.harness, "modell": a.modell,
-                         "effort": a.effort, "laufend": laufend});
-    auswerten(fragen(ort, KANAL_KERN, "worker.anfordern", &eingabe), |o| {
-        let gut = genau(o, &["ok", "ergebnis", "sitzung"])
-            && o.get("ok") == Some(&json!(true))
-            && o.get("ergebnis") == Some(&json!("frei"))
-            && o.get("sitzung").and_then(Value::as_str) == Some(sitzung);
-        gut.then_some(())
+/// The form of the answer `frei` of `worker.anfordern`; the promise, else `None`.
+pub(crate) fn frei_lesen(o: &Map<String, Value>, sitzung: &str) -> Option<String> {
+    let zusage = o
+        .get("zusage")
+        .and_then(Value::as_str)
+        .filter(|z| zusage_form(z))?;
+    let gut = genau(o, &["ok", "ergebnis", "sitzung", "zusage", "zusage_bis_ms"])
+        && o.get("ok") == Some(&json!(true))
+        && o.get("ergebnis") == Some(&json!("frei"))
+        && o.get("sitzung").and_then(Value::as_str) == Some(sitzung)
+        && o.get("zusage_bis_ms").is_some_and(|v| v.as_i64().is_some());
+    gut.then(|| zusage.to_owned())
+}
+
+/// The input of `sitzung.starten` (contract `stelle` sections 4, 15.1 and 15.2): the bytes of the start file as text, and with a
+/// worker its orchestrator and, when the authority gave one, the promise. `None` for bytes that are no UTF-8 (a start file always
+/// is; the start is refused then).
+pub(crate) fn starten_eingabe(
+    inhalt: &[u8],
+    orchestrator: Option<&str>,
+    zusage: Option<&str>,
+) -> Option<Value> {
+    let text = std::str::from_utf8(inhalt).ok()?;
+    let mut e = json!({"start": {"text": text}});
+    if let Some(o) = orchestrator {
+        e["orchestrator"] = json!(o);
+        if let Some(z) = zusage {
+            e["zusage"] = json!(z);
+        }
+    }
+    Some(e)
+}
+
+/// The form of the answer of `sitzung.starten`: exactly
+/// `{"ok": true, "ergebnis": "gestartet", "sitzung": <the identifier sent>, "route": <text>, "route_art": "cloud" | "lokal"}`.
+pub(crate) fn gestartet_lesen(o: &Map<String, Value>, sitzung: &str) -> Option<()> {
+    let gut = genau(o, &["ok", "ergebnis", "sitzung", "route", "route_art"])
+        && o.get("ok") == Some(&json!(true))
+        && o.get("ergebnis") == Some(&json!("gestartet"))
+        && o.get("sitzung").and_then(Value::as_str) == Some(sitzung)
+        && o.get("route").is_some_and(Value::is_string)
+        && matches!(
+            o.get("route_art").and_then(Value::as_str),
+            Some("cloud" | "lokal")
+        );
+    gut.then_some(())
+}
+
+/// `sitzung.starten` for the session `sitzung` with the input of [`starten_eingabe`].
+pub(crate) fn sitzung_starten(ort: &Ort, sitzung: &str, eingabe: &Value) -> Result<(), Fehlschlag> {
+    auswerten(fragen(ort, KANAL_KERN, "sitzung.starten", eingabe), |o| {
+        gestartet_lesen(o, sitzung)
     })
 }
 
@@ -610,6 +663,13 @@ pub(crate) enum Auftrag {
     },
     /// `mcp.offene`.
     Offene,
+    /// `worker.anfordern` for a request of the run of the orchestrator `fuer.sitzung`.
+    Anfordern {
+        fuer: Fuer,
+        anforderung: Anforderung,
+    },
+    /// `sitzung.starten` before the start of `lauf` of the session `sitzung`.
+    Starten { sitzung: String, eingabe: Value },
 }
 
 /// What the thread hands back to the loop.
@@ -623,6 +683,17 @@ pub(crate) enum Rueckmeldung {
     },
     /// The open requests, or the failure (then no new request).
     Offene(Result<Vec<Offen>, Fehlschlag>),
+    /// The outcome of `worker.anfordern`: the promise.
+    Angefordert {
+        fuer: Fuer,
+        anforderung: Anforderung,
+        ergebnis: Result<String, Fehlschlag>,
+    },
+    /// The outcome of `sitzung.starten` of the session `sitzung`.
+    Gestartet {
+        sitzung: String,
+        ergebnis: Result<(), Fehlschlag>,
+    },
 }
 
 /// The thread of the channel: jobs in, answers into a queue, and one byte on the wake socket per answer.
@@ -657,6 +728,18 @@ impl Faden {
                         }
                     }
                     Auftrag::Offene => Rueckmeldung::Offene(offene(&ort)),
+                    Auftrag::Anfordern { fuer, anforderung } => {
+                        let ergebnis = worker_anfordern(&ort, &fuer, &anforderung);
+                        Rueckmeldung::Angefordert {
+                            fuer,
+                            anforderung,
+                            ergebnis,
+                        }
+                    }
+                    Auftrag::Starten { sitzung, eingabe } => {
+                        let ergebnis = sitzung_starten(&ort, &sitzung, &eingabe);
+                        Rueckmeldung::Gestartet { sitzung, ergebnis }
+                    }
                 };
                 if let Ok(mut q) = ziel.lock() {
                     q.push_back(r);

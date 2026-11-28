@@ -106,7 +106,7 @@ fn inode(s: &impl AsRawFd) -> u64 {
 fn gegenstelle(inode: u64) -> Option<u64> {
     let aus = Command::new("ss")
         .args(["-x", "-a", "-n", "-H"])
-        .output()
+        .gesperrt_output()
         .expect("ss");
     let text = String::from_utf8_lossy(&aus.stdout);
     for zeile in text.lines() {
@@ -185,10 +185,16 @@ fn welt_leer(w: &Welt) {
 #[test]
 fn a_fault_before_the_start_writes_exactly_one_line_and_ends_with_its_code() {
     // (setup, expected exit, key)
-    let faelle: [(&str, u8, &str); 3] = [
+    let faelle: [(&str, u8, &str); 6] = [
         ("modus", 66, "lauf.datei_modus"),
         ("modellweg", 69, "lauf.modellweg_nicht_bereit"),
+        // exit 75 of the model path before its ready line: the holder is missing or silent (contract 8, section 5.1)
+        ("halter", 69, "lauf.halter_fehlt"),
+        // the same code from the search process is no readiness, nothing more
+        ("suche-75", 69, "lauf.suche_nicht_bereit"),
         ("harness", 69, "lauf.harness_fehlt"),
+        // the line lauf.harness cannot be written: no hand-over, and the holding process has not taken the connection
+        ("protokoll", 73, "lauf.protokoll"),
     ];
     for (art, code, grund) in faelle {
         let w = Welt::neu();
@@ -203,6 +209,12 @@ fn a_fault_before_the_start_writes_exactly_one_line_and_ends_with_its_code() {
                 .expect("mode");
             }
             "modellweg" => w.verhalten("modellweg", "ende:3"),
+            "halter" => w.verhalten("modellweg", "ende:75"),
+            "suche-75" => w.verhalten("rangkern", "ende:75"),
+            "protokoll" => {
+                std::fs::remove_dir_all(&w.protokoll).expect("remove");
+                datei(&w.protokoll, b"KEIN-ORDNER\n", 0o600);
+            }
             // the program of the harness is missing: the program itself refuses at step 8, before the trampoline
             _ => {
                 let _ = std::fs::remove_file(w.bin.join("pi"));
@@ -225,11 +237,33 @@ fn a_fault_before_the_start_writes_exactly_one_line_and_ends_with_its_code() {
     }
 }
 
-/// (2), (4), (5): a start that reaches the starter writes nothing; the connection ends while the harness runs, so no
-/// process holds it: not the watcher, the search process, the model path, the program, nor the starter after its `exec`.
-/// The program then ends with the code of the starter.
+/// The holding process among the descendants of the program (`werkbank-lauf-kind --halteprozess`).
+fn halteprozess_von(alle: &[gemeinsam::Prozess]) -> Option<i32> {
+    alle.iter()
+        .find(|p| p.befehl.contains(" --halteprozess "))
+        .map(|p| p.pid)
+}
+
+/// Reads exactly `n` bytes within [`FRIST`]; `None` when the connection ends before or the time is up.
+fn genau(s: &mut UnixStream, n: usize) -> Option<Vec<u8>> {
+    s.set_read_timeout(Some(FRIST)).expect("timeout");
+    let mut daten = vec![0u8; n];
+    s.read_exact(&mut daten).ok().map(|()| daten)
+}
+
+/// Whether nothing more comes on `s` within `ms` (the connection stays open and silent).
+fn still(s: &mut UnixStream, ms: u64) -> bool {
+    s.set_read_timeout(Some(Duration::from_millis(ms)))
+        .expect("timeout");
+    let mut b = [0u8; 1];
+    matches!(s.read(&mut b), Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut))
+}
+
+/// (2), (4), (5): a start that reaches the starter reports `laeuft` once; the connection then stays with the holding
+/// process alone: not the watcher, the search process, the model path, the program, nor the starter after its `exec`.
+/// It ends with the program, which ends with the code of the starter.
 #[test]
-fn a_start_ends_the_connection_without_data_and_no_child_holds_it() {
+fn a_start_reports_laeuft_and_only_the_holding_process_keeps_the_connection() {
     let w = Welt::neu();
     schlafender_bwrap(&w);
     let d = Dienst::neu(&w);
@@ -245,19 +279,16 @@ fn a_start_ends_the_connection_without_data_and_no_child_holds_it() {
         .expect("start");
     let mut s = d.annehmen();
     let gegen = gegenstelle(inode(&s));
-    let daten = bis_zum_ende(&mut s, FRIST);
+    assert_eq!(
+        genau(&mut s, lauf::anfordern::LAEUFT.len()).as_deref(),
+        Some(lauf::anfordern::LAEUFT),
+        "laeuft after the exec of the trampoline"
+    );
+    assert!(
+        still(&mut s, 300),
+        "nothing after laeuft, and the connection stays"
+    );
     let lauf_pid = i32::try_from(lauf.id()).expect("pid");
-    let alle = nachkommen(lauf_pid);
-    // the peer is read while the program still holds it; `ss` drops it once every holder is gone
-    eprintln!("peer {gegen:?}, descendants {alle:?}");
-    assert_eq!(daten.as_deref(), Some(&b""[..]), "end without data");
-    // the starter (the `bwrap` stand-in, later the harness `sleep`) runs at the end of the connection
-    let starter = alle
-        .iter()
-        .find(|p| p.befehl.contains("/bin/bwrap ") || p.befehl.starts_with("sleep "))
-        .map(|p| p.pid)
-        .expect("the starter runs at the end of the connection");
-    assert!(lebt(starter), "the starter still runs");
     let ende = Instant::now() + FRIST;
     let harness = loop {
         if let Some(h) = harness_von(lauf.id()) {
@@ -266,17 +297,29 @@ fn a_start_ends_the_connection_without_data_and_no_child_holds_it() {
         assert!(Instant::now() < ende, "the harness started");
         std::thread::sleep(Duration::from_millis(10));
     };
+    let alle = nachkommen(lauf_pid);
+    eprintln!("peer {gegen:?}, descendants {alle:?}");
+    let halter = halteprozess_von(&alle).expect("the holding process runs");
     let pids: Vec<i32> = w.kinder_pids();
     assert_eq!(pids.len(), 2, "search process and model path run");
     for p in &pids {
-        assert!(lebt(*p), "child {p} runs at the end of the connection");
+        assert!(lebt(*p), "child {p} runs");
     }
     assert!(
-        alle.len() >= 4,
-        "watcher, search process, model path and harness: {alle:?}"
+        alle.len() >= 5,
+        "watcher, holding process, search process, model path and harness: {alle:?}"
     );
     let g = gegen.expect("ss names the peer while the program starts");
-    for p in alle.iter().map(|p| p.pid).chain([lauf_pid]) {
+    assert!(
+        haelt(halter, g),
+        "positive control: the holding process holds it"
+    );
+    for p in alle
+        .iter()
+        .map(|p| p.pid)
+        .chain([lauf_pid])
+        .filter(|p| *p != halter)
+    {
         assert!(!haelt(p, g), "process {p} holds the connection");
     }
     d.keine_weitere();
@@ -285,21 +328,245 @@ fn a_start_ends_the_connection_without_data_and_no_child_holds_it() {
     }
     let status = lauf.wait().expect("wait");
     assert_eq!(status.signal(), Some(9), "the end of the starter");
+    assert_eq!(
+        bis_zum_ende(&mut s, FRIST).as_deref(),
+        Some(&b""[..]),
+        "the end with the program"
+    );
+    assert!(
+        endet_binnen(halter, HAENGESPERRE_MS),
+        "the holding process ends"
+    );
     welt_leer(&w);
 }
 
-/// (2) The exit after the end without data is the code of the starter.
+/// (2) The exit after `laeuft` is the code of the starter; nothing else comes on the connection.
 #[test]
-fn after_the_end_without_data_the_exit_is_the_code_of_the_starter() {
+fn after_laeuft_the_exit_is_the_code_of_the_starter() {
     let w = Welt::neu();
     bwrap_mit_code(&w);
     let d = Dienst::neu(&w);
     let lauf = w.lauf(&d.args(&w.lokal()), &[]);
     let mut s = d.annehmen();
-    assert_eq!(bis_zum_ende(&mut s, FRIST).as_deref(), Some(&b""[..]));
+    assert_eq!(
+        bis_zum_ende(&mut s, FRIST).as_deref(),
+        Some(lauf::anfordern::LAEUFT)
+    );
     assert_eq!(lauf.exit(), Some(42));
     assert_eq!(lauf.stderr(), "");
     welt_leer(&w);
+}
+
+/// The socket of the worker request in the socket folder of the session (`lz/<sitzung>`).
+fn anfordern_socket(w: &Welt) -> PathBuf {
+    w.laufzeit.join("s-1").join(lauf::ablauf::ANFORDERN_SOCKET)
+}
+
+/// A started session with the report whose harness sleeps; returns the program, the connection of the service after
+/// `laeuft` and the socket of the worker request.
+fn laufende_sitzung(w: &Welt, d: &Dienst) -> (std::process::Child, UnixStream, PathBuf) {
+    schlafender_bwrap(w);
+    let lauf = gemeinsam::ohne_fremde_deskriptoren(&w.bin.join("werkbank-lauf"))
+        .args(d.args(&w.lokal()))
+        .env_clear()
+        .env("TERM", "xterm")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .gesperrt_spawn()
+        .expect("start");
+    let mut s = d.annehmen();
+    assert_eq!(
+        genau(&mut s, lauf::anfordern::LAEUFT.len()).as_deref(),
+        Some(lauf::anfordern::LAEUFT)
+    );
+    (lauf, s, anfordern_socket(w))
+}
+
+fn sitzung_beenden(w: &Welt, mut lauf: std::process::Child) {
+    if let Some(h) = harness_von(lauf.id())
+        && let Some(pid) = rustix::process::Pid::from_raw(h)
+    {
+        let _ = rustix::process::kill_process(pid, rustix::process::Signal::KILL);
+    }
+    let _ = lauf.wait();
+    welt_leer(w);
+}
+
+/// The tool of the agent with `--an <socket>`: its output and exit code.
+fn werkzeug(socket: &Path, felder: &[&str]) -> std::process::Child {
+    Command::new(gemeinsam::KIND)
+        .args([lauf::anfordern::ANFORDERN, lauf::anfordern::AN])
+        .arg(socket)
+        .args(felder)
+        .env_clear()
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .gesperrt_spawn()
+        .expect("tool")
+}
+
+/// The socket of the worker request is bound read-only at its guest path, and only with a report.
+#[test]
+fn the_enclosure_gets_the_socket_of_the_worker_request_only_with_a_report() {
+    let w = Welt::neu();
+    let d = Dienst::neu(&w);
+    let lauf = w.lauf(&d.args(&w.lokal()), &[]);
+    assert_eq!(lauf.exit(), Some(0));
+    let gast = einschluss::GAST_ANFORDERN_SOCKET;
+    let host = anfordern_socket(&w).to_string_lossy().into_owned();
+    let mit = w.bwrap_aufrufe();
+    let mit = &mit.last().expect("bwrap ran").1;
+    let i = mit
+        .iter()
+        .position(|a| a == gast)
+        .expect("the guest path is bound");
+    assert_eq!(mit[i - 2..i], ["--ro-bind".to_owned(), host]);
+    let w2 = Welt::neu();
+    assert_eq!(w2.lauf(&w2.lokal(), &[]).exit(), Some(0));
+    let ohne = w2.bwrap_aufrufe();
+    assert!(
+        !ohne.last().expect("bwrap ran").1.iter().any(|a| a == gast),
+        "no socket without a report"
+    );
+}
+
+/// A valid request reaches the stand-in of the service unchanged, and its answer reaches the agent; an answer of
+/// another form never does.
+#[test]
+fn a_valid_request_reaches_the_service_and_the_answer_the_agent() {
+    let w = Welt::neu();
+    let d = Dienst::neu(&w);
+    let (lauf, mut s, socket) = laufende_sitzung(&w, &d);
+    let agent = werkzeug(&socket, &["worker", "pi", "qwen3:8b", "medium"]);
+    let zeile = b"anfordern worker pi qwen3:8b medium\n";
+    assert_eq!(genau(&mut s, zeile.len()).as_deref(), Some(&zeile[..]));
+    std::io::Write::write_all(&mut s, b"frei S-9\nfrei s-9\n").expect("answer");
+    let aus = agent.wait_with_output().expect("tool ends");
+    assert_eq!(String::from_utf8_lossy(&aus.stdout), "frei s-9\n");
+    assert_eq!(aus.status.code(), Some(0));
+    // the tool for `abgelehnt`
+    let agent = werkzeug(&socket, &["worker", "copilot", "gpt-6-luna", "high"]);
+    let zeile = b"anfordern worker copilot gpt-6-luna high\n";
+    assert_eq!(genau(&mut s, zeile.len()).as_deref(), Some(&zeile[..]));
+    std::io::Write::write_all(&mut s, b"abgelehnt stelle.nein\n").expect("answer");
+    let aus = agent.wait_with_output().expect("tool ends");
+    assert_eq!(
+        String::from_utf8_lossy(&aus.stdout),
+        "abgelehnt stelle.nein\n"
+    );
+    assert_eq!(aus.status.code(), Some(lauf::anfordern::KLIENT_ABGELEHNT));
+    sitzung_beenden(&w, lauf);
+}
+
+/// Lines too long and lines of another form never reach the service: the holding process closes the connection of
+/// the agent without an answer, and the next valid request is the first thing the service reads.
+#[test]
+fn too_long_and_invalid_lines_never_reach_the_service() {
+    let w = Welt::neu();
+    let d = Dienst::neu(&w);
+    let (lauf, mut s, socket) = laufende_sitzung(&w, &d);
+    let feld = "a".repeat(64);
+    let zu_lang = format!("anfordern {feld} {feld} {} {feld}\n", "m".repeat(60));
+    assert!(zu_lang.len() > lauf::anfordern::ANFORDERUNG_MAX);
+    let falsch: [&[u8]; 9] = [
+        zu_lang.as_bytes(),
+        b"anfordern worker pi qwen3:8b\n",
+        b"anfordern worker pi qwen3:8b medium extra\n",
+        b"anfordern Worker pi qwen3:8b medium\n",
+        b"anfordern worker pi qwen3;8b medium\n",
+        b"laeuft\n",
+        b"69 lauf.intern\n",
+        b"frei s-9\n",
+        b"anfordern worker pi qwen3:8b medium",
+    ];
+    for falsch_zeile in falsch {
+        let mut agent = UnixStream::connect(&socket).expect("connect");
+        std::io::Write::write_all(&mut agent, falsch_zeile).expect("write");
+        agent.set_read_timeout(Some(FRIST)).expect("timeout");
+        let mut antwort = Vec::new();
+        // the end, or a reset where the holding process closed with bytes of the line still unread
+        let ende = match agent.read_to_end(&mut antwort) {
+            Ok(_) => true,
+            Err(e) => e.kind() == std::io::ErrorKind::ConnectionReset,
+        };
+        assert!(
+            ende && antwort.is_empty(),
+            "closed without an answer: {}",
+            String::from_utf8_lossy(falsch_zeile)
+        );
+    }
+    // the tool refuses a wrong field itself and sends nothing
+    let aus = werkzeug(&socket, &["worker", "pi", "qwen3:8b", "a b"])
+        .wait_with_output()
+        .expect("tool");
+    assert_eq!(aus.status.code(), Some(lauf::anfordern::KLIENT_AUFRUF));
+    assert!(still(&mut s, 300), "nothing reached the service");
+    let agent = werkzeug(&socket, &["worker", "pi", "qwen3:8b", "medium"]);
+    let zeile = b"anfordern worker pi qwen3:8b medium\n";
+    assert_eq!(
+        genau(&mut s, zeile.len()).as_deref(),
+        Some(&zeile[..]),
+        "the first line is the valid request"
+    );
+    std::io::Write::write_all(&mut s, b"frei s-2\n").expect("answer");
+    assert_eq!(
+        agent.wait_with_output().expect("tool").status.code(),
+        Some(0)
+    );
+    sitzung_beenden(&w, lauf);
+}
+
+/// A second request while one is open gets `abgelehnt anfordern_offen` from the holding process and never reaches
+/// the service; the answer of the service goes to the first.
+#[test]
+fn a_second_request_while_one_is_open_is_refused_and_not_passed_on() {
+    let w = Welt::neu();
+    let d = Dienst::neu(&w);
+    let (lauf, mut s, socket) = laufende_sitzung(&w, &d);
+    let erster = werkzeug(&socket, &["worker", "pi", "qwen3:8b", "medium"]);
+    let zeile = b"anfordern worker pi qwen3:8b medium\n";
+    assert_eq!(genau(&mut s, zeile.len()).as_deref(), Some(&zeile[..]));
+    let zweiter = werkzeug(&socket, &["worker", "opencode", "qwen3:8b", "low"])
+        .wait_with_output()
+        .expect("tool");
+    assert_eq!(
+        String::from_utf8_lossy(&zweiter.stdout),
+        "abgelehnt anfordern_offen\n"
+    );
+    assert_eq!(
+        zweiter.status.code(),
+        Some(lauf::anfordern::KLIENT_ABGELEHNT)
+    );
+    assert!(
+        still(&mut s, 300),
+        "the second request did not reach the service"
+    );
+    std::io::Write::write_all(&mut s, b"frei s-3\n").expect("answer");
+    let aus = erster.wait_with_output().expect("tool");
+    assert_eq!(String::from_utf8_lossy(&aus.stdout), "frei s-3\n");
+    sitzung_beenden(&w, lauf);
+}
+
+/// Without a holding process to reach, the tool ends with 69 and prints nothing on standard output.
+#[test]
+fn the_tool_without_a_holding_process_ends_with_69() {
+    let o = std::env::temp_dir().join(format!("lauf-anfordern-{}", std::process::id()));
+    let aus = werkzeug(
+        &o.join("fehlt.sock"),
+        &["worker", "pi", "qwen3:8b", "medium"],
+    )
+    .wait_with_output()
+    .expect("tool");
+    assert_eq!(aus.status.code(), Some(lauf::anfordern::KLIENT_FEHLT));
+    assert_eq!(aus.stdout, Vec::<u8>::new());
+    let aus = Command::new(gemeinsam::KIND)
+        .args([lauf::anfordern::ANFORDERN, "worker", "pi"])
+        .env_clear()
+        .gesperrt_output()
+        .expect("tool");
+    assert_eq!(aus.status.code(), Some(lauf::anfordern::KLIENT_AUFRUF));
 }
 
 /// (3) The `exec` of the trampoline into the starter fails: the trampoline writes `69 lauf.harness_fehlt`.

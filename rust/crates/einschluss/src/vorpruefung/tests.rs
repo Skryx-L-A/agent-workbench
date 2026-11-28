@@ -78,6 +78,7 @@ fn profil_in(o: &Ordner) -> Profil {
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
         modell_socket: None,
+        anfordern_socket: None,
         lokal_weiter: None,
         dateien: Vec::new(),
         cloud: None,
@@ -334,6 +335,7 @@ fn cloud_profil(
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
         modell_socket: None,
+        anfordern_socket: None,
         lokal_weiter: None,
         dateien: Vec::new(),
         cloud: Some(Cloud {
@@ -426,6 +428,7 @@ fn lokal_profil(
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
         modell_socket: Some(o.0.join("such").join("modell.sock")),
+        anfordern_socket: None,
         lokal_weiter: Some(weiter),
         dateien: vec![crate::Datei {
             quelle,

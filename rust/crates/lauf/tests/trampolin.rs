@@ -90,13 +90,13 @@ fn bis(frist: Duration, mut bedingung: impl FnMut() -> bool) -> bool {
     }
 }
 
-/// Runs `programm` with `args` from bash, which closes every descriptor above 2 and then, with `vier`, lays that socket on
-/// descriptor 4. The program is a direct child of this process (bash replaces itself by it). Waits at most 15 s; standard
+/// Runs `programm` with `args` from bash, which closes every descriptor above 2 and then, with `vier`, lays that descriptor
+/// (the write end of the pipe to the holding process, or a socket) on descriptor 4. The program is a direct child of this process (bash replaces itself by it). Waits at most 15 s; standard
 /// error goes into a file, so a grandchild that keeps a copy never holds the test.
 fn laufen(
     programm: &str,
     args: &[String],
-    vier: Option<UnixStream>,
+    vier: Option<std::os::fd::OwnedFd>,
     umgebung: &[(&str, &str)],
 ) -> (ExitStatus, String) {
     let vier_da = vier.is_some();
@@ -120,7 +120,7 @@ fn laufen(
     let pfad = o.0.join("fehler");
     c.stderr(std::fs::File::create(&pfad).expect("error file"));
     match vier {
-        Some(v) => c.stdin(Stdio::from(std::os::fd::OwnedFd::from(v))),
+        Some(v) => c.stdin(Stdio::from(v)),
         None => c.stdin(Stdio::null()),
     };
     let mut k = c.spawn().expect("bash");
@@ -141,13 +141,28 @@ fn laufen(
     (status, fehler)
 }
 
+/// The pipe of the report as "Lauf starten" lays it for the trampoline: the read end of the holding process and the
+/// write end for descriptor 4.
+fn rohr() -> (std::fs::File, std::os::fd::OwnedFd) {
+    let (lesen, schreiben) = rustix::pipe::pipe().expect("pipe");
+    (std::fs::File::from(lesen), schreiben)
+}
+
 /// What the service reads on its end of the report until the connection ends (at most 10 s).
-fn gelesen(dienst: &UnixStream) -> Vec<u8> {
+fn bis_zum_ende(dienst: &UnixStream) -> Vec<u8> {
     dienst
         .set_read_timeout(Some(Duration::from_secs(10)))
         .expect("limit");
     let mut alles = Vec::new();
     let mut leser = dienst;
+    leser.read_to_end(&mut alles).expect("read to the end");
+    alles
+}
+
+/// What the holding process reads on its end of the pipe until the pipe ends (every writer has run).
+fn gelesen(halter: std::fs::File) -> Vec<u8> {
+    let mut alles = Vec::new();
+    let mut leser = halter;
     leser.read_to_end(&mut alles).expect("read to the end");
     alles
 }
@@ -205,7 +220,7 @@ fn the_starter_becomes_the_program_and_keeps_the_session() {
 
 #[test]
 fn the_starter_with_report_closes_descriptor_4_before_its_exec() {
-    let (dienst, vier) = UnixStream::pair().expect("pair");
+    let (dienst, vier) = rohr();
     let (st, _) = laufen(
         KIND,
         &[
@@ -220,9 +235,9 @@ fn the_starter_with_report_closes_descriptor_4_before_its_exec() {
     );
     assert_eq!(st.code(), Some(7));
     assert_eq!(
-        gelesen(&dienst),
+        gelesen(dienst),
         Vec::<u8>::new(),
-        "the start ends the connection without a line"
+        "the start ends the pipe without a line"
     );
 }
 
@@ -260,7 +275,7 @@ fn a_parent_that_is_not_the_parent_is_refused_in_every_form() {
         );
         assert_eq!(st.code(), Some(KIND_AUFRUF_FEHLER), "{art}");
     }
-    let (dienst, vier) = UnixStream::pair().expect("pair");
+    let (dienst, vier) = rohr();
     let (st, _) = laufen(
         KIND,
         &[s("1"), s(HALTEN_MELDEN), s("/bin/sh"), s("-c"), skript],
@@ -269,7 +284,7 @@ fn a_parent_that_is_not_the_parent_is_refused_in_every_form() {
     );
     assert_eq!(st.code(), Some(i32::from(Fehler::Intern.exitcode())));
     assert_eq!(
-        gelesen(&dienst),
+        gelesen(dienst),
         lauf::meldung::zeile(&Fehler::Intern).as_bytes()
     );
     assert!(!lief.exists());
@@ -284,11 +299,11 @@ fn a_program_that_cannot_run_has_the_code_of_its_form() {
     let (st, fehler) = laufen(KIND, &[eltern(), s(HALTEN), fehlt.clone()], None, &[]);
     assert_eq!(st.code(), Some(i32::from(harness.exitcode())));
     assert_eq!(fehler, harness.zeile());
-    let (dienst, vier) = UnixStream::pair().expect("pair");
+    let (dienst, vier) = rohr();
     let (st, fehler) = laufen(KIND, &[eltern(), s(HALTEN_MELDEN), fehlt], Some(vier), &[]);
     assert_eq!(st.code(), Some(i32::from(harness.exitcode())));
     assert_eq!(fehler, harness.zeile());
-    assert_eq!(gelesen(&dienst), lauf::meldung::zeile(&harness).as_bytes());
+    assert_eq!(gelesen(dienst), lauf::meldung::zeile(&harness).as_bytes());
 }
 
 #[test]
@@ -400,7 +415,12 @@ fn a_child_that_does_not_start_is_missing_and_one_that_ends_is_not_ready() {
         starten("exit 125", &marke).map(|k| k.pid()).err(),
         Some(Ausfall::Fehlt)
     );
-    for anders in ["exit 0", "exit 1", "exit 126"] {
+    // the code of a missing holder of the model path (contract 8, section 5.1)
+    assert_eq!(
+        starten("exit 75", &marke).map(|k| k.pid()).err(),
+        Some(Ausfall::HalterFehlt)
+    );
+    for anders in ["exit 0", "exit 1", "exit 126", "exit 78"] {
         assert_eq!(
             starten(anders, &marke).map(|k| k.pid()).err(),
             Some(Ausfall::NichtBereit),
@@ -535,18 +555,18 @@ fn the_report_needs_descriptor_4_and_carries_the_line_of_the_first_fault() {
     assert_eq!(st.code(), Some(i32::from(unlesbar.exitcode())));
     assert_eq!(fehler, unlesbar.zeile());
     let v = annehmen(&hoerer);
-    assert_eq!(gelesen(&v), lauf::meldung::zeile(&unlesbar).as_bytes());
+    assert_eq!(bis_zum_ende(&v), lauf::meldung::zeile(&unlesbar).as_bytes());
     // with descriptor 4 taken (here by a socket of the test): no place for the hand-over, the report says so
     let (_rest, vier) = UnixStream::pair().expect("pair");
     let fehlt = Fehler::MeldungFehlt;
-    let (st, fehler) = laufen(LAUF, &mit, Some(vier), &[]);
+    let (st, fehler) = laufen(LAUF, &mit, Some(vier.into()), &[]);
     assert_eq!(st.code(), Some(i32::from(fehlt.exitcode())));
     assert_eq!(fehler, fehlt.zeile());
     let v = annehmen(&hoerer);
-    assert_eq!(gelesen(&v), lauf::meldung::zeile(&fehlt).as_bytes());
+    assert_eq!(bis_zum_ende(&v), lauf::meldung::zeile(&fehlt).as_bytes());
     // descriptor 4 taken but no option: nothing to report, the fault of the start file
     let (_rest, vier) = UnixStream::pair().expect("pair");
-    let (st, _) = laufen(LAUF, &[start], Some(vier), &[]);
+    let (st, _) = laufen(LAUF, &[start], Some(vier.into()), &[]);
     assert_eq!(st.code(), Some(i32::from(unlesbar.exitcode())));
 }
 
@@ -555,4 +575,262 @@ fn the_command_of_the_mark_refuses_a_wrong_call() {
     let (st, fehler) = laufen(ORDNERMARKE, &[], None, &[]);
     assert_ne!(st.code(), Some(0));
     assert_ne!(fehler, "", "the line of the fault");
+}
+
+/// The holding process as "Lauf starten" starts it, with this test as its parent: the pipe of the trampoline on its
+/// standard input, the end of the service on its standard output, the listener on its standard error.
+struct Halter {
+    kind: std::process::Child,
+    rohr: Option<std::fs::File>,
+    dienst: UnixStream,
+    socket: PathBuf,
+    _o: Ordner,
+}
+
+impl Halter {
+    fn starten(eltern: &str) -> Halter {
+        let n = ZAEHLER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let o = Ordner::neu(&format!("halter-{n}"));
+        let socket = o.0.join("a.sock");
+        let hoerer = std::os::unix::net::UnixListener::bind(&socket).expect("bind");
+        let (lesen, schreiben) =
+            rustix::pipe::pipe_with(rustix::pipe::PipeFlags::CLOEXEC).expect("pipe");
+        let (dienst, halter) = UnixStream::pair().expect("pair");
+        let kind = Command::new(KIND)
+            .args([lauf::anfordern::HALTEPROZESS, eltern])
+            .env_clear()
+            .stdin(Stdio::from(lesen))
+            .stdout(Stdio::from(std::os::fd::OwnedFd::from(halter)))
+            .stderr(Stdio::from(std::os::fd::OwnedFd::from(hoerer)))
+            .spawn()
+            .expect("holding process");
+        dienst
+            .set_read_timeout(Some(Duration::from_secs(10)))
+            .expect("timeout");
+        Halter {
+            kind,
+            rohr: Some(std::fs::File::from(schreiben)),
+            dienst,
+            socket,
+            _o: o,
+        }
+    }
+
+    fn dienst_liest(&mut self, n: usize) -> Vec<u8> {
+        let mut d = vec![0u8; n];
+        self.dienst.read_exact(&mut d).expect("the service reads");
+        d
+    }
+
+    fn ende(&mut self) -> Option<i32> {
+        let ende = Instant::now() + Duration::from_secs(10);
+        while Instant::now() < ende {
+            if let Ok(Some(s)) = self.kind.try_wait() {
+                return s.code();
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        None
+    }
+}
+
+impl Drop for Halter {
+    fn drop(&mut self) {
+        let _ = self.kind.kill();
+        let _ = self.kind.wait();
+    }
+}
+
+/// The end of the pipe without data gives `laeuft`; then a request of the agent goes on and the answer comes back; the
+/// end of the connection of the service ends the holding process.
+#[test]
+fn the_holding_process_reports_laeuft_and_passes_a_request() {
+    let mut h = Halter::starten(&eltern());
+    drop(h.rohr.take());
+    assert_eq!(
+        h.dienst_liest(lauf::anfordern::LAEUFT.len()),
+        lauf::anfordern::LAEUFT
+    );
+    let agent = Command::new(KIND)
+        .args([lauf::anfordern::ANFORDERN, lauf::anfordern::AN])
+        .arg(&h.socket)
+        .args(["worker", "pi", "qwen3:8b", "medium"])
+        .env_clear()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("tool");
+    let zeile = b"anfordern worker pi qwen3:8b medium\n";
+    assert_eq!(h.dienst_liest(zeile.len()), zeile);
+    std::io::Write::write_all(&mut h.dienst, b"frei s-4\n").expect("answer");
+    let aus = agent.wait_with_output().expect("tool");
+    assert_eq!(String::from_utf8_lossy(&aus.stdout), "frei s-4\n");
+    assert_eq!(aus.status.code(), Some(0));
+    let (ersatz, _) = UnixStream::pair().expect("pair");
+    drop(std::mem::replace(&mut h.dienst, ersatz));
+    assert_eq!(h.ende(), Some(0), "it ends with the connection");
+}
+
+/// A code line from the pipe goes on unchanged, without `laeuft`, and the holding process ends.
+#[test]
+fn the_holding_process_passes_a_code_line_and_ends() {
+    let mut h = Halter::starten(&eltern());
+    let zeile = lauf::meldung::zeile(&Fehler::HarnessFehlt);
+    let mut rohr = h.rohr.take().expect("pipe");
+    std::io::Write::write_all(&mut rohr, zeile.as_bytes()).expect("write");
+    drop(rohr);
+    let mut alles = Vec::new();
+    h.dienst.read_to_end(&mut alles).expect("read");
+    assert_eq!(alles, zeile.as_bytes());
+    assert_eq!(h.ende(), Some(0));
+}
+
+/// A parent that is not the parent: the holding process refuses at once and writes nothing; so does a call without
+/// a number.
+#[test]
+fn the_holding_process_refuses_a_parent_that_is_not_its_own() {
+    for eltern in ["1", "x"] {
+        let mut h = Halter::starten(eltern);
+        drop(h.rohr.take());
+        assert_eq!(h.ende(), Some(KIND_AUFRUF_FEHLER), "{eltern}");
+        let mut alles = Vec::new();
+        let _ = h.dienst.read_to_end(&mut alles);
+        assert_eq!(alles, b"", "{eltern}");
+    }
+}
+
+/// The tool of the agent: its exit codes, its output and the socket of `--an`.
+#[test]
+fn the_tool_of_the_agent_has_its_codes() {
+    let o = Ordner::neu("werkzeug");
+    let socket = o.0.join("a.sock");
+    let hoerer = std::os::unix::net::UnixListener::bind(&socket).expect("bind");
+    let werkzeug = |felder: &[&str]| {
+        Command::new(KIND)
+            .args([lauf::anfordern::ANFORDERN, lauf::anfordern::AN])
+            .arg(&socket)
+            .args(felder)
+            .env_clear()
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("tool")
+    };
+    for (antwort, code, aus) in [
+        (
+            &b"abgelehnt stelle.nein\n"[..],
+            1,
+            "abgelehnt stelle.nein\n",
+        ),
+        (b"frei s-1\n", 0, "frei s-1\n"),
+        (b"frei S-1\n", 69, ""),
+        (b"frei s-1", 69, ""),
+    ] {
+        let k = werkzeug(&["worker", "pi", "qwen3:8b", "medium"]);
+        let mut v = annehmen(&hoerer);
+        v.set_read_timeout(Some(Duration::from_secs(10)))
+            .expect("timeout");
+        let mut zeile = vec![0u8; 36];
+        v.read_exact(&mut zeile).expect("line");
+        assert_eq!(zeile, b"anfordern worker pi qwen3:8b medium\n");
+        std::io::Write::write_all(&mut v, antwort).expect("answer");
+        drop(v);
+        let a = k.wait_with_output().expect("tool");
+        assert_eq!(
+            a.status.code(),
+            Some(code),
+            "{}",
+            String::from_utf8_lossy(antwort)
+        );
+        assert_eq!(String::from_utf8_lossy(&a.stdout), aus);
+        assert_eq!(
+            a.stderr.is_empty(),
+            code != 69,
+            "a line on standard error only without an answer"
+        );
+    }
+    // a wrong field or call sends nothing and ends with 64; without `--an` the guest path counts (missing here)
+    for felder in [&["worker", "pi", "qwen3:8b", "a b"][..], &["worker", "pi"]] {
+        let a = werkzeug(felder).wait_with_output().expect("tool");
+        assert_eq!(a.status.code(), Some(64), "{felder:?}");
+        assert_ne!(a.stderr, Vec::<u8>::new());
+    }
+    hoerer.set_nonblocking(true).expect("nonblocking");
+    assert!(hoerer.accept().is_err(), "nothing connected");
+    let a = Command::new(KIND)
+        .args([
+            lauf::anfordern::ANFORDERN,
+            "worker",
+            "pi",
+            "qwen3:8b",
+            "medium",
+        ])
+        .env_clear()
+        .output()
+        .expect("tool");
+    assert_eq!(
+        a.status.code(),
+        Some(69),
+        "the guest path does not exist outside the enclosure"
+    );
+}
+
+/// `Meldung::halter_starten`: the connection goes to the holding process, and a line of the program reaches the
+/// service through the pipe.
+#[test]
+fn the_report_hands_its_connection_to_the_holding_process() {
+    let o = Ordner::neu("uebergabe");
+    let pfad = o.0.join("m.sock");
+    let dienst = std::os::unix::net::UnixListener::bind(&pfad).expect("bind");
+    let mut m = lauf::meldung::Meldung::verbinden(&pfad, None).expect("connect");
+    let mut v = annehmen(&dienst);
+    let hoerer = std::os::unix::net::UnixListener::bind(o.0.join("a.sock")).expect("bind");
+    let pid = m
+        .halter_starten(Path::new(KIND), hoerer.into())
+        .expect("started")
+        .expect("a PID");
+    assert!(pid > 1);
+    assert!(m.aktiv());
+    m.melden(&Fehler::Intern);
+    v.set_read_timeout(Some(Duration::from_secs(10)))
+        .expect("timeout");
+    let mut alles = Vec::new();
+    v.read_to_end(&mut alles).expect("read");
+    assert_eq!(alles, lauf::meldung::zeile(&Fehler::Intern).as_bytes());
+    // without a report nothing starts
+    let mut ohne = lauf::meldung::Meldung::default();
+    let leer = std::os::unix::net::UnixListener::bind(o.0.join("b.sock")).expect("bind");
+    assert_eq!(ohne.halter_starten(Path::new(KIND), leer.into()), Ok(None));
+}
+
+/// After the end of its parent the holding process writes nothing at the end of the pipe: no starter runs. The parent
+/// is a shell that starts it and ends after one second; the pipe stays open in this test until then.
+#[test]
+fn the_holding_process_writes_no_laeuft_after_its_parent() {
+    let o = Ordner::neu("waise");
+    let hoerer = std::os::unix::net::UnixListener::bind(o.0.join("a.sock")).expect("bind");
+    let (lesen, schreiben) =
+        rustix::pipe::pipe_with(rustix::pipe::PipeFlags::CLOEXEC).expect("pipe");
+    let (mut dienst, halter) = UnixStream::pair().expect("pair");
+    let mut sh = Command::new("bash")
+        // without job control bash gives a command with `&` /dev/null as its input; the pipe goes over descriptor 3
+        .args([
+            "-c",
+            "exec 3<&0; \"$0\" --halteprozess $$ <&3 3<&- & exec 3<&-; sleep 1",
+            KIND,
+        ])
+        .env_clear()
+        .stdin(Stdio::from(lesen))
+        .stdout(Stdio::from(std::os::fd::OwnedFd::from(halter)))
+        .stderr(Stdio::from(std::os::fd::OwnedFd::from(hoerer)))
+        .spawn()
+        .expect("shell");
+    let _ = sh.wait();
+    drop(schreiben);
+    dienst
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .expect("timeout");
+    let mut alles = Vec::new();
+    let _ = dienst.read_to_end(&mut alles);
+    assert_eq!(alles, b"", "no laeuft without the parent");
 }

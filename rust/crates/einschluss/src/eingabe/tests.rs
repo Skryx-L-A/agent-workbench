@@ -19,6 +19,7 @@ fn muster(cloud: bool) -> Beschreibung {
         heim: PathBuf::from("/srv/beispiel/heim"),
         such_socket: PathBuf::from("/srv/beispiel/s/such.sock"),
         modell_socket: (!cloud).then(|| PathBuf::from("/srv/beispiel/s/modell.sock")),
+        anfordern_socket: (!cloud).then(|| PathBuf::from("/srv/beispiel/s/anfordern.sock")),
         lokal_weiter: None,
         dateien: Vec::new(),
         cloud: cloud.then(|| Cloud {
@@ -131,6 +132,7 @@ fn a_missing_field_is_refused_for_every_field() {
         "heim",
         "such_socket",
         "modell_socket",
+        "anfordern_socket",
         "lokal_weiter",
         "cloud",
         "dateien",
@@ -200,6 +202,10 @@ fn a_wrong_type_is_refused_for_every_field() {
         (
             "\"modell_socket\":\"/srv/beispiel/s/modell.sock\"",
             "\"modell_socket\":4",
+        ),
+        (
+            "\"anfordern_socket\":\"/srv/beispiel/s/anfordern.sock\"",
+            "\"anfordern_socket\":4",
         ),
         ("\"cloud\":null", "\"cloud\":[]"),
         ("\"cloud\":null", "\"cloud\":\"x\""),

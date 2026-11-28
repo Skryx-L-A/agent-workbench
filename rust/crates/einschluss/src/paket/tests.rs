@@ -437,6 +437,7 @@ fn sitzung_muster() -> Beschreibung {
         heim: PathBuf::from("/srv/beispiel/heim"),
         such_socket: PathBuf::from("/var/tmp/k/s-1/such.sock"),
         modell_socket: Some(PathBuf::from("/var/tmp/k/s-1/modell.sock")),
+        anfordern_socket: None,
         lokal_weiter: None,
         cloud: None,
         paket: Some(Paket {

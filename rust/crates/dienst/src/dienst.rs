@@ -27,6 +27,7 @@ use serde_json::{Map, Value, json};
 use traeger::Ereignis;
 use zustandskern::Wirkungen;
 
+use crate::anfordern::{Wartestart, Ziel};
 use crate::arbeitsordner;
 use crate::bereit::Bereitschaft;
 use crate::betrachter::{Betrachter, json_rahmen};
@@ -252,7 +253,9 @@ pub struct Dienst {
     /// The local way (DI-L11), if the start file has `lokal`.
     lokal: Option<Lokal>,
     /// The channel to the decision point (addendum "Kanal zur Stelle (L6, Nr. 98)"), only with `lauf.stelle`.
-    stelle: Option<crate::stelle::Faden>,
+    pub(crate) stelle: Option<crate::stelle::Faden>,
+    /// The starts that wait for the answer of the authority to `sitzung.starten`, by identifier (stage 2, `anfordern.rs`).
+    pub(crate) wartend: BTreeMap<String, Wartestart>,
     /// What the service knows of the requests of the point.
     stelle_stand: crate::stelle::Stand,
     halt: Arc<AtomicBool>,
@@ -275,7 +278,7 @@ pub struct Dienst {
     /// The socket folder, opened once after the check of its rights; every removal below it goes through this descriptor (`loeschen.rs`).
     pub(crate) wurzel: Arc<Ordner>,
     /// The markers of a trial run, read once from `lauf.marker_datei` at the start; they go into every `start.json` and nowhere else.
-    marker: Option<start::Marker>,
+    pub(crate) marker: Option<start::Marker>,
     /// The identifiers `Starten` handed out so far (`s-<n>`, never used again, DI12 point 4); not the raster number.
     pub(crate) naechste: usize,
     /// The raster numbers handed out in this run, by number (DI12 point 4, P25): a number never handed out is taken first.
@@ -407,6 +410,7 @@ impl Dienst {
             post,
             lokal,
             stelle,
+            wartend: BTreeMap::new(),
             stelle_stand: crate::stelle::Stand::default(),
             halt: Arc::new(AtomicBool::new(false)),
             runden: Arc::new(AtomicU64::new(0)),
@@ -1122,6 +1126,7 @@ impl Dienst {
                 m.abfragen();
             }
         }
+        self.anforderungen_abholen();
     }
 
     /// Takes the output of every child: what is there now, in several pieces if need be, at most [`KIND_LESEN_MAX`] per child and
@@ -1187,7 +1192,7 @@ impl Dienst {
     /// no viewer subscribes it; it is taken only when a new session needs one: first a number never handed out in this run, then the
     /// free one whose session ended longest ago. The session that gave it shows `nr: null` from then on, and every connection forgets
     /// the number (RA R13), so the first frame of the new session is a full picture. A subscribed number is never taken.
-    fn rahmen_waehlen(&self, n: usize, max: usize) -> Option<u8> {
+    pub(crate) fn rahmen_waehlen(&self, n: usize, max: usize) -> Option<u8> {
         let mut frei: Vec<(u64, u8)> = self
             .sitzungen
             .iter()
@@ -1708,6 +1713,14 @@ impl Dienst {
                 }
                 // a failed fetch makes no new request; the known ones stay as the cores know them
                 Rueckmeldung::Offene(Err(_)) => {}
+                Rueckmeldung::Angefordert {
+                    fuer,
+                    anforderung,
+                    ergebnis,
+                } => self.stelle_angefordert(&fuer, &anforderung, ergebnis),
+                Rueckmeldung::Gestartet { sitzung, ergebnis } => {
+                    self.stelle_gestartet(&sitzung, ergebnis);
+                }
             }
         }
         let faellig = self
@@ -1801,12 +1814,13 @@ impl Dienst {
         self.ablehnen(nr, &a.nutzlast());
     }
 
-    /// Sessions that run: not ended.
+    /// Sessions that run: not ended, and the starts that wait for the answer of the authority (stage 2, point 3).
     fn laufende(&self) -> usize {
         self.sitzungen
             .iter()
             .filter(|s| s.sid.is_some() && s.kind_ende.is_none())
             .count()
+            + self.wartend.len()
     }
 
     /// `Starten` (DI12 point 3). The first violation answers and nothing starts. The core never sees the event.
@@ -1822,13 +1836,28 @@ impl Dienst {
 
     /// The way of `Starten` from DI12 point 3.1 on, for `Starten`, `Fortsetzen` and `Wiederbeleben` (DI-L3 points 2 and 3). `worker`
     /// is the orchestrator and the role (DI-L1); `alt` is the session that `Fortsetzen` or `Wiederbeleben` continues.
-    #[allow(clippy::too_many_lines)] // the checks of DI12 point 3 in the order of the contract
     pub(crate) fn starten_mit(
         &mut self,
         nr: u64,
         start: &Value,
         worker: Result<Option<(String, String)>, Abgelehnt>,
         alt: Option<&str>,
+    ) {
+        self.starten_fuer(Ziel::Betrachter(nr), start, worker, alt, None);
+    }
+
+    /// [`Self::starten_mit`] for a viewer or for the run of an orchestrator (`ziel`, Nachtrag 28.11.2026, stage 2). With
+    /// `lauf.stelle` the start has two steps: after the checks and the folder the service asks the authority `sitzung.starten` with
+    /// the bytes of the start file (`zusage`: the promise of `worker.anfordern`), and `lauf` starts only after its answer
+    /// ([`Self::stelle_gestartet`]).
+    #[allow(clippy::too_many_lines)] // the checks of DI12 point 3 in the order of the contract
+    pub(crate) fn starten_fuer(
+        &mut self,
+        ziel: Ziel,
+        start: &Value,
+        worker: Result<Option<(String, String)>, Abgelehnt>,
+        alt: Option<&str>,
+        zusage: Option<&str>,
     ) {
         let Some(lauf) = self.cfg.lauf.clone() else {
             return;
@@ -1837,26 +1866,26 @@ impl Dienst {
         // (`einstellungen`), then stages 14 to 17; the first violation answers and nothing starts
         let anfrage = match start_form(start) {
             Ok(a) => a,
-            Err(a) => return self.start_ablehnen(nr, &a),
+            Err(a) => return self.ziel_ablehnen(&ziel, &a),
         };
         let worker = match worker {
             Ok(w) => w,
-            Err(a) => return self.start_ablehnen(nr, &a),
+            Err(a) => return self.ziel_ablehnen(&ziel, &a),
         };
         if let Some((orchestrator, _)) = &worker
             && let Err(a) = self.orchestrator_pruefen(orchestrator, &meta_von(&anfrage)[3])
         {
-            return self.start_ablehnen(nr, &a);
+            return self.ziel_ablehnen(&ziel, &a);
         }
         let Some(einst) = einstellungen_laden(&lauf.einstellungen) else {
-            return self.start_ablehnen(nr, &Abgelehnt::fest("einst_unlesbar"));
+            return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("einst_unlesbar"));
         };
         self.startwahl_aus(&einst, None, true);
         if let Err(a) = start_pruefen(&anfrage, &einst) {
-            return self.start_ablehnen(nr, &a);
+            return self.ziel_ablehnen(&ziel, &a);
         }
         if self.laufende() >= SITZUNGEN_MAX {
-            return self.start_ablehnen(nr, &Abgelehnt::fest("zu_viele_sitzungen"));
+            return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("zu_viele_sitzungen"));
         }
         // DI12 point 4 (P25): with every raster number held the start is refused before the identifier loop, so point 15a removes an
         // old target list only for a start that is handed out (whether a raster number is free does not depend on the identifier)
@@ -1864,7 +1893,7 @@ impl Dienst {
             .rahmen_waehlen(self.naechste + 1, lauf.rahmen_max)
             .is_none()
         {
-            return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
+            return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("nummern_erschoepft"));
         }
         // DI12 points 13 and 15: skip every identifier whose entry under `lauf.sitzungen` or whose target list under `lauf.ziellisten`
         // still exists (`lstat`: any kind, a dead link too); point 15a in `nummer_vergebbar`: the identifiers count from `s-1` again
@@ -1872,18 +1901,18 @@ impl Dienst {
         let mut n = self.naechste + 1;
         loop {
             if n > lauf.nummer_max {
-                return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
+                return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("nummern_erschoepft"));
             }
             match nummer_vergebbar(&lauf, n) {
                 Ok(false) => break,
                 Ok(true) => n += 1,
-                Err(()) => return self.start_ablehnen(nr, &Abgelehnt::fest("start_ordner")),
+                Err(()) => return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("start_ordner")),
             }
         }
         // DI12 point 4 (P25): the raster number is separate from the identifier. Every number held: the start is refused, before
         // anything is made. The number is taken only after the folder, the child and the core exist (see below).
         let Some(nummer) = self.rahmen_waehlen(n, lauf.rahmen_max) else {
-            return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
+            return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("nummern_erschoepft"));
         };
         let kennung = format!("s-{n}");
         // DI-L3 point 2: the start file of a continued session names the old one (`fortsetzung_von`), written by the crate `start`
@@ -1911,11 +1940,46 @@ impl Dienst {
             |_| Err(()),
         );
         let Ok((ordner, datei)) = angelegt else {
-            return self.start_ablehnen(nr, &Abgelehnt::fest("start_ordner"));
+            return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("start_ordner"));
         };
+        let w = Wartestart {
+            ziel,
+            n,
+            kennung,
+            ordner,
+            datei,
+            anfrage,
+            start: start.clone(),
+            worker,
+            alt: alt.map(str::to_owned),
+        };
+        if self.stelle.is_some() {
+            return self.stelle_fragen(w, zusage);
+        }
+        self.start_abschliessen(w, nummer);
+    }
+
+    /// The second half of `Starten` (DI12 point 3): the socket of the report and `lauf`, the core, the entry in the list and
+    /// `Gestartet` to the sender (or `frei <kennung>` to the run of the orchestrator).
+    pub(crate) fn start_abschliessen(&mut self, w: Wartestart, nummer: u8) {
+        let Some(lauf) = self.cfg.lauf.clone() else {
+            return;
+        };
+        let Wartestart {
+            ziel,
+            n,
+            kennung,
+            ordner,
+            datei,
+            anfrage,
+            start,
+            worker,
+            alt,
+        } = w;
+        let alt = alt.as_deref();
         let (kind, meldung) = match self.lauf_starten(&kennung, &ordner, &datei) {
             Ok(x) => x,
-            Err(a) => return self.start_ablehnen(nr, &a),
+            Err(a) => return self.ziel_ablehnen(&ziel, &a),
         };
         let meta = meta_von(&anfrage);
         let eintrag = eintrag_fuer(
@@ -1935,7 +1999,7 @@ impl Dienst {
                 self.waisen.jagen(sid, Instant::now());
             }
             crate::loeschen::sitzung_entfernen(self.wurzel.as_fd(), &kennung);
-            return self.start_ablehnen(nr, &Abgelehnt::fest("programm_nicht_startbar"));
+            return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("programm_nicht_startbar"));
         };
         let mut sitzung = Sitzung::gestartet(
             kennung.clone(),
@@ -1947,7 +2011,7 @@ impl Dienst {
             (ordner, Arc::clone(&self.wurzel), meldung),
         );
         sitzung.arbeitsordner = Some(PathBuf::from(arbeitsordner_von(&anfrage)));
-        angaben_setzen(&mut sitzung, &anfrage, start, worker);
+        angaben_setzen(&mut sitzung, &anfrage, &start, worker);
         // DI-L3 point 2: the new session names the old one and takes its name; the old one names the new one once it is in the list
         let vorher = alt.and_then(|a| self.finde(a));
         if let (Some(a), Some(v)) = (alt, vorher) {
@@ -1957,12 +2021,26 @@ impl Dienst {
                 .name
                 .clone_from(&self.sitzungen[v].angaben.name);
         }
+        let Ziel::Betrachter(nr) = ziel else {
+            // the run of an orchestrator has no viewer: the list goes to everyone, `frei <kennung>` to the run
+            if !self.gestartet_aufnehmen(sitzung, u64::MAX, n, nummer) {
+                // Windows: the child had no job and is ended (section 21a point 4); the refusal went to no viewer
+                return self.ziel_ablehnen(&ziel, &Abgelehnt::fest("programm_nicht_startbar"));
+            }
+            return self.gestartet_melden(&ziel, &kennung);
+        };
         if !self.gestartet_aufnehmen(sitzung, nr, n, nummer) {
             return;
         }
         if let Some(v) = vorher {
             self.sitzungen[v].angaben.fortgesetzt_als = Some(kennung.clone());
         }
+        self.gestartet_melden(&ziel, &kennung);
+    }
+
+    /// The new session is in the list: the cores learn the viewers, the list goes to everyone (with `Agenten` behind it when the
+    /// workers changed, DI-L1 point 4), then `Gestartet` to the sender alone (DI12 point 3.7) or `frei <kennung>` to the run.
+    fn gestartet_melden(&mut self, ziel: &Ziel, kennung: &str) {
         let k = self.sitzungen.len() - 1;
         let t = self.jetzt();
         let nummern: Vec<u64> = self.betrachter.keys().copied().collect();
@@ -1970,15 +2048,24 @@ impl Dienst {
             let e = self.verbinden_ereignis(t, *b);
             self.ereignis(k, e, None);
         }
-        // first the list to everyone (with `Agenten` behind it when the workers changed, DI-L1 point 4), then `Gestartet` to the
-        // sender alone (DI12 point 3.7)
         self.liste_und_agenten();
-        let gestartet = json!({"t": self.jetzt(), "art": "Gestartet", "sitzung": kennung});
-        self.nachricht_an(nr, &gestartet, None);
+        match ziel {
+            Ziel::Betrachter(nr) => {
+                let gestartet = json!({"t": self.jetzt(), "art": "Gestartet", "sitzung": kennung});
+                self.nachricht_an(*nr, &gestartet, None);
+            }
+            Ziel::Meldung(orchestrator) => {
+                self.meldung_antworten(orchestrator, format!("frei {kennung}\n").as_bytes());
+            }
+        }
     }
 
     /// DI-L1 point 2: the orchestrator is a running session of `Starten` in the list, no worker itself, with the same customer.
-    fn orchestrator_pruefen(&self, orchestrator: &str, kunde: &str) -> Result<(), Abgelehnt> {
+    pub(crate) fn orchestrator_pruefen(
+        &self,
+        orchestrator: &str,
+        kunde: &str,
+    ) -> Result<(), Abgelehnt> {
         let o = self
             .finde(orchestrator)
             .and_then(|k| self.sitzungen.get(k))
@@ -2005,7 +2092,8 @@ impl Dienst {
         let Some(sitzung) = crate::sys::sitzung_mit_job(self, sitzung, nr) else {
             return false;
         };
-        self.naechste = n;
+        // a start that waits for the authority has taken a later identifier already (stage 2): the counter never goes back
+        self.naechste = self.naechste.max(n);
         self.rahmen_nehmen(nummer);
         self.sitzungen.push(sitzung);
         true
@@ -2032,6 +2120,10 @@ impl Dienst {
             return Err(Abgelehnt::fest("programm_nicht_startbar"));
         };
         meldung.kind_setzen(kind.pid().unwrap_or(0));
+        // stage 2: with `lauf.stelle` a valid request of the run goes to the authority (`anfordern.rs`)
+        if self.stelle.is_some() {
+            meldung.ueber_stelle_setzen();
+        }
         Ok((kind, meldung))
     }
 
@@ -2240,6 +2332,10 @@ impl Dienst {
             self.socket_da = false;
         }
         lokal_entfernen(&self.wurzel, self.lokal.take());
+        // the starts that wait for the authority have a folder and no child yet
+        for kennung in std::mem::take(&mut self.wartend).into_keys() {
+            crate::loeschen::sitzung_entfernen(self.wurzel.as_fd(), &kennung);
+        }
         let sids: Vec<u32> = self
             .sitzungen
             .iter()

@@ -225,6 +225,7 @@ impl Profil {
         let relay = b.cloud.iter().map(|c| &c.weiterreicher);
         for socket in std::iter::once(&b.such_socket)
             .chain(b.modell_socket.iter())
+            .chain(b.anfordern_socket.iter())
             .chain(relay)
         {
             if !quelle_pruefen(socket)?.file_type().is_socket() {

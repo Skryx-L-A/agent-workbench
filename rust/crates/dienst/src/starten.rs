@@ -89,6 +89,10 @@ pub(crate) fn text_zu(grund: &str) -> &'static str {
         "schon_fortgesetzt" => "Sitzung ist schon fortgesetzt",
         "nicht_fortsetzbar" => "Sitzung lässt sich nicht fortsetzen",
         "nicht_abgestuerzt" => "Sitzung ist nicht abgestürzt",
+        // Nachtrag 28.11.2026 (stage 2): the answer of the authority to `sitzung.starten`
+        "stelle_abgelehnt" => "Stelle lehnt ab",
+        crate::weiche::STELLE_NICHT_ERREICHBAR => "Stelle nicht erreichbar",
+        "stelle_antwort_ungueltig" => "Antwort der Stelle ungueltig",
         _ => "",
     }
 }
@@ -330,6 +334,22 @@ pub(crate) fn nummer_vergebbar(lauf: &Lauf, n: usize) -> Result<bool, ()> {
     }
 }
 
+/// The bytes of `start.json` of the session `kennung`: what `start::schreiben` gives for the structure with the key set, the
+/// markers and the old key of `Fortsetzen` (`None` for a new start, as `mit_sitzung`). The same bytes go to the authority with
+/// `sitzung.starten` (stage 2) and into the file.
+pub(crate) fn startdatei_inhalt(
+    start: &Startanfrage,
+    kennung: &str,
+    marker: Option<&start::Marker>,
+    fortsetzung_von: Option<&str>,
+) -> Option<Vec<u8>> {
+    let datei = start
+        .clone()
+        .mit_fortsetzung(kennung, marker.cloned(), fortsetzung_von)
+        .ok()?;
+    Some(start::schreiben(&datei))
+}
+
 /// The folder `<ordner>/<kennung>` (0700) with `start.json` (0600, exclusive) that holds the start structure with `sitzung`
 /// set. SECURITY: a folder that exists already is never replaced or deleted (`Err`, nothing removed); a folder this call made
 /// and could not fill is removed again.
@@ -347,12 +367,7 @@ pub(crate) fn ordner_anlegen(
 ) -> Result<(PathBuf, PathBuf), ()> {
     // the file is what `start::schreiben` gives for the structure with the key set (and, for `Fortsetzen` and `Wiederbeleben`, the old
     // key); `Lauf starten` reads it with `start::lesen_datei`
-    let inhalt = start::schreiben(
-        &start
-            .clone()
-            .mit_fortsetzung(kennung, marker.cloned(), fortsetzung_von)
-            .map_err(|_| ())?,
-    );
+    let inhalt = startdatei_inhalt(start, kennung, marker, fortsetzung_von).ok_or(())?;
     let sitzung = ordner.join(kennung);
     DirBuilder::new()
         .mode(0o700)

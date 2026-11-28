@@ -35,7 +35,15 @@ pub enum Ausfall {
     Fehlt,
     /// The child ran but gave no ready line in time, another line, or ended before it.
     NichtBereit,
+    /// The child ended with [`HALTER_FEHLT_EXIT`] before the ready line: the model path found its holder missing or
+    /// silent (contract 8, section 5.1). Only the model path has this code; for the search process it is
+    /// [`Ausfall::NichtBereit`].
+    HalterFehlt,
 }
+
+/// The exit code of the model path for a missing or silent holder (`mw.halter_fehlt`, `mw.halter_frist`; contract 8,
+/// section 5.1).
+pub const HALTER_FEHLT_EXIT: i32 = 75;
 
 /// A running child.
 #[derive(Debug)]
@@ -188,6 +196,7 @@ pub fn starten(
         Lesen::Ende => {
             let ausfall = match ende_abwarten(&mut k.kind) {
                 Some(KIND_START_FEHLER | KIND_AUFRUF_FEHLER) => Ausfall::Fehlt,
+                Some(HALTER_FEHLT_EXIT) => Ausfall::HalterFehlt,
                 _ => Ausfall::NichtBereit,
             };
             k.beenden();
@@ -279,8 +288,9 @@ fn bereit_lesen(aus: &mut ChildStdout, frist: Duration) -> Lesen {
 /// terminal and the foreground group of "Lauf starten"), descriptor 3 stays open.
 pub const HALTEN: &str = "--halten";
 
-/// Like [`HALTEN`], with the report to the service on descriptor 4 (contract 1, "Meldung an den Dienst"): the trampoline
-/// sets close-on-exec on 4 before its `exec`, so the starter never holds the connection, and writes the line of
+/// Like [`HALTEN`], with the report on descriptor 4 (contract 1, "Meldung an den Dienst"): the pipe to the holding
+/// process, which holds the connection to the service ([`crate::anfordern`]). The trampoline
+/// sets close-on-exec on 4 before its `exec`, so the starter never holds the pipe, and writes the line of
 /// `lauf.harness_fehlt` there when the `exec` fails (`lauf.intern` when the binding fails). Its code is then the one of
 /// the line.
 pub const HALTEN_MELDEN: &str = "--halten-melden";
@@ -292,8 +302,11 @@ pub const HALTEN_MELDEN: &str = "--halten-melden";
 #[must_use]
 pub fn trampolin(args: &[String]) -> i32 {
     use std::os::unix::process::CommandExt;
-    if args.first().map(String::as_str) == Some(WACHE) {
-        return wache(&args[1..]);
+    match args.first().map(String::as_str) {
+        Some(WACHE) => return wache(&args[1..]),
+        Some(crate::anfordern::HALTEPROZESS) => return crate::anfordern::halteprozess(&args[1..]),
+        Some(crate::anfordern::ANFORDERN) => return crate::anfordern::fragen(&args[1..]),
+        _ => {}
     }
     let (Some(ppid), Some(art), Some(programm)) = (
         args.first().and_then(|p| p.parse::<i32>().ok()),
@@ -351,17 +364,22 @@ fn vier_bei_exec_schliessen() -> bool {
     gesetzt
 }
 
-/// Writes the line of `f` to the service on descriptor 4 (best effort, no SIGPIPE; Linux only) and gives the code of the
-/// line.
+/// Writes the line of `f` on descriptor 4 (best effort; Linux only) and gives the code of the line. Descriptor 4 is the
+/// write end of the pipe to the holding process ([`crate::anfordern`]). The trampoline opens it anew through
+/// `/proc/self/fd/4` (`std` and `rustix` write only to descriptors they own, and the workspace forbids `unsafe`), with
+/// `O_NONBLOCK`: without a reader the open fails at once (`ENXIO`) instead of waiting. A reader that is gone gives
+/// `EPIPE` and no signal: a Rust program ignores SIGPIPE from its start.
 fn vier_melden(f: &crate::Fehler) -> i32 {
     #[cfg(target_os = "linux")]
     {
-        use nix::sys::socket::{MsgFlags, send};
-        let _ = send(
-            crate::meldung::MELDUNG_FD,
-            crate::meldung::zeile(f).as_bytes(),
-            MsgFlags::MSG_NOSIGNAL,
-        );
+        use std::os::unix::fs::OpenOptionsExt;
+        if let Ok(mut rohr) = std::fs::OpenOptions::new()
+            .write(true)
+            .custom_flags(rustix::fs::OFlags::NONBLOCK.bits().cast_signed())
+            .open(format!("/proc/self/fd/{}", crate::meldung::MELDUNG_FD))
+        {
+            let _ = std::io::Write::write_all(&mut rohr, crate::meldung::zeile(f).as_bytes());
+        }
     }
     i32::from(f.exitcode())
 }

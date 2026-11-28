@@ -42,12 +42,12 @@ pub mod weiter;
 pub mod attrappe;
 
 pub use beschreibung::{
-    Beschreibung, COPILOT_PLATZHALTER, Cloud, DATEI_ZIELE, Datei, ETC_DATEIEN, GAST_MODELL_SOCKET,
-    GAST_SUCH_SOCKET, GAST_WEITER, GESPRAECH_ORTE, HARNESS_COPILOT, HARNESS_OPENCODE, HARNESS_PI,
-    LOKAL_PORT, OPENCODE_ORDNER, OPENCODE_UMGEBUNG, OPENCODE_ZUSTAND, ORDNERMARKE_PFAD,
-    PAKET_GAST_CACHE, PAKET_MARKE, PAKET_PLATTFORMEN, PI_UMGEBUNG, Paket, System, Umgebung,
-    Verteilung, WEITER_PORT, Zustand, fassung_gut, gespraech_ort, opencode_ordner, paket_pfade,
-    paket_ziel,
+    Beschreibung, COPILOT_PLATZHALTER, Cloud, DATEI_ZIELE, Datei, ETC_DATEIEN,
+    GAST_ANFORDERN_SOCKET, GAST_MODELL_SOCKET, GAST_SUCH_SOCKET, GAST_WEITER, GESPRAECH_ORTE,
+    HARNESS_COPILOT, HARNESS_OPENCODE, HARNESS_PI, LOKAL_PORT, OPENCODE_ORDNER, OPENCODE_UMGEBUNG,
+    OPENCODE_ZUSTAND, ORDNERMARKE_PFAD, PAKET_GAST_CACHE, PAKET_MARKE, PAKET_PLATTFORMEN,
+    PI_UMGEBUNG, Paket, System, Umgebung, Verteilung, WEITER_PORT, Zustand, fassung_gut,
+    gespraech_ort, opencode_ordner, paket_pfade, paket_ziel,
 };
 pub use eingabe::{EINGABE_MAX, beschreibung_lesen, beschreibung_schreiben};
 pub use fehler::Fehler;

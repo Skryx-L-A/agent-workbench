@@ -237,19 +237,28 @@ fn fall_vier_frei() {
     assert_eq!(vier.as_raw_fd(), MELDUNG_FD);
     let flags = rustix::io::fcntl_getfd(&vier).expect("flags");
     assert!(flags.contains(rustix::io::FdFlags::CLOEXEC));
-    let (_o, pfad, hoerer) = dienst();
+    let (_o, pfad, _hoerer) = dienst();
     let mut m = Meldung::verbinden(&pfad, Some(vier)).expect("connect");
+    // the connection itself never goes to the trampoline: without the holding process there is nothing to lay over 4
+    assert_eq!(m.auf_vier_legen(), Err(Fehler::MeldungFehlt));
+    // what `halter_starten` leaves: the pipe in place of the connection
+    let (lesen, schreiben) = super::rohr_neu().expect("pipe");
+    m.verbindung = None;
+    m.rohr = Some(std::fs::File::from(schreiben));
+    assert!(m.aktiv());
     assert_eq!(m.auf_vier_legen(), Ok(true));
-    // descriptor 4 is the connection now, without close-on-exec
+    // descriptor 4 is the write end of the pipe now, without close-on-exec
     let flags = rustix::io::fcntl_getfd(m.vier.as_ref().expect("held")).expect("flags");
     assert!(!flags.contains(rustix::io::FdFlags::CLOEXEC));
     let st = rustix::fs::fstat(m.vier.as_ref().expect("held")).expect("fstat");
     assert_eq!(
         rustix::fs::FileType::from_raw_mode(st.st_mode),
-        rustix::fs::FileType::Socket
+        rustix::fs::FileType::Fifo
     );
     m.melden(&Fehler::Intern);
-    assert_eq!(gelesen(&hoerer), zeile(&Fehler::Intern).as_bytes());
+    let mut daten = Vec::new();
+    std::io::Read::read_to_end(&mut std::fs::File::from(lesen), &mut daten).expect("read");
+    assert_eq!(daten, zeile(&Fehler::Intern).as_bytes());
 }
 
 fn fall_vier_belegt() {

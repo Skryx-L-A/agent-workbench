@@ -97,6 +97,8 @@ struct Kinder {
     sitzung: Option<PathBuf>,
     /// The PID of the watcher, once it runs.
     wache: Option<u32>,
+    /// The PID of the holding process of the report, once it runs ([`crate::anfordern`]); it ends with this process.
+    halter: Option<u32>,
     /// The old key of a conversation this run renamed to the new session (step 8): a fault before the exec renames it
     /// back.
     umbenannt: Option<String>,
@@ -385,7 +387,12 @@ fn starten(
     if let Err(f) = pids_schreiben(lage, kinder) {
         return f;
     }
-    let beschreibung = match beschreibung_bauen(
+    // the socket of the worker request, only with a report: the holding process listens on it
+    let anfordern = match anfordern_binden(&sockel, meldung.aktiv()) {
+        Ok(a) => a,
+        Err(f) => return f,
+    };
+    let mut beschreibung = match beschreibung_bauen(
         lage,
         umgebung,
         &sockel,
@@ -397,6 +404,7 @@ fn starten(
         Ok(b) => b,
         Err(f) => return f,
     };
+    beschreibung.anfordern_socket = anfordern.as_ref().map(|(p, _)| p.clone());
     // the watcher starts last: it removes the session folder, which exists and is this run's only from here on
     match wache_starten(lage, &sockel, kinder) {
         Ok(pid) => kinder.wache = Some(pid),
@@ -405,6 +413,13 @@ fn starten(
     // the last step before the hand-over: exactly one line with the excerpt of the argv, or no hand-over (fail closed)
     if let Err(f) = argv_protokollieren(lage, &beschreibung.argv, jetzt_ms()) {
         return f;
+    }
+    // the holding process takes the connection and the listener; from here on every line goes through its pipe
+    if let Some((_, hoerer)) = anfordern {
+        match meldung.halter_starten(&lage.konfig.programme.kind, hoerer) {
+            Ok(pid) => kinder.halter = pid,
+            Err(f) => return f,
+        }
     }
     uebergeben(lage, platz, meldung, &beschreibung, kinder)
 }
@@ -453,7 +468,32 @@ fn bekannte(kinder: &mut Kinder) -> Vec<u32> {
         b.push(k.pid());
     }
     b.extend(kinder.wache);
+    b.extend(kinder.halter);
     b
+}
+
+/// The name of the socket of the worker request in the socket folder of the session (no longer than `modell.sock`, so
+/// the limit of [`socket_ordner`] holds for it too).
+pub const ANFORDERN_SOCKET: &str = "anfr.sock";
+
+/// Binds the listening socket of the worker request in the socket folder (mode 0600 in the folder 0700), when the
+/// program reports to the service; without a report there is none.
+///
+/// # Errors
+/// `lauf.intern` when the socket cannot be bound or its mode cannot be set.
+fn anfordern_binden(
+    sockel: &Path,
+    melden: bool,
+) -> Result<Option<(PathBuf, std::os::fd::OwnedFd)>, Fehler> {
+    use std::os::unix::fs::PermissionsExt;
+    if !melden {
+        return Ok(None);
+    }
+    let pfad = sockel.join(ANFORDERN_SOCKET);
+    let hoerer = std::os::unix::net::UnixListener::bind(&pfad).map_err(|_| Fehler::Intern)?;
+    std::fs::set_permissions(&pfad, std::fs::Permissions::from_mode(0o600))
+        .map_err(|_| Fehler::Intern)?;
+    Ok(Some((pfad, std::os::fd::OwnedFd::from(hoerer))))
 }
 
 /// The hand-over of step 8: the delivered build starts the starter, the test build `bwrap` of the configuration. One
@@ -686,7 +726,8 @@ fn such_starten(lage: &Lage, sockel: &Path) -> Result<Kind, Fehler> {
     )
     .map_err(|a| match a {
         Ausfall::Fehlt => Fehler::SucheFehlt,
-        Ausfall::NichtBereit => Fehler::SucheNichtBereit,
+        // the code of a missing holder belongs to the model path; from the search process it is just no readiness
+        Ausfall::NichtBereit | Ausfall::HalterFehlt => Fehler::SucheNichtBereit,
     })
 }
 
@@ -766,6 +807,7 @@ fn modellweg_starten(
     .map_err(|a| match a {
         Ausfall::Fehlt => Fehler::ModellwegFehlt,
         Ausfall::NichtBereit => Fehler::ModellwegNichtBereit,
+        Ausfall::HalterFehlt => Fehler::HalterFehlt,
     })?;
     Ok((k, cloud))
 }
@@ -1019,6 +1061,7 @@ fn beschreibung_bauen(
         heim: k.heim.clone(),
         such_socket: sockel.join("such.sock"),
         modell_socket: cloud_teil.is_none().then(|| modell_socket.clone()),
+        anfordern_socket: None,
         lokal_weiter: lokal.then(|| k.programme.weiter.clone()),
         cloud: cloud_teil,
         paket,
