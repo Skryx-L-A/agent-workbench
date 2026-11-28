@@ -596,9 +596,29 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32((arg0 >>> 0) + 4 * 1, len1, true);
             getDataViewMemory0().setInt32((arg0 >>> 0) + 4 * 0, ptr1, true);
         }, arguments); },
+        __wbg_getDate_a44b5f4a8c42a3c3: function(arg0) {
+            const ret = arg0.getDate();
+            return ret;
+        },
         __wbg_getElementById_7ee213db584f37b0: function(arg0, arg1, arg2) {
             const ret = arg0.getElementById(getStringFromWasm0(arg1, arg2));
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_getFullYear_94114da14f235fca: function(arg0) {
+            const ret = arg0.getFullYear();
+            return ret;
+        },
+        __wbg_getHours_d55d13f9f95415bb: function(arg0) {
+            const ret = arg0.getHours();
+            return ret;
+        },
+        __wbg_getMinutes_d0d71c490ef83b47: function(arg0) {
+            const ret = arg0.getMinutes();
+            return ret;
+        },
+        __wbg_getMonth_a4698d688e95d9bd: function(arg0) {
+            const ret = arg0.getMonth();
+            return ret;
         },
         __wbg_getNode_b14ec18ffa4892a9: function(arg0, arg1) {
             const ret = arg0.getNode(arg1 >>> 0);
@@ -1110,6 +1130,10 @@ function __wbg_get_imports() {
             const ret = new Headers();
             return ret;
         }, arguments); },
+        __wbg_new_3e95cd7386bb9a6c: function(arg0) {
+            const ret = new Date(arg0);
+            return ret;
+        },
         __wbg_new_5f28518387ad0e34: function() { return handleError(function () {
             const ret = new AbortController();
             return ret;
@@ -1275,6 +1299,9 @@ function __wbg_get_imports() {
             const ret = arg0.read();
             return ret;
         },
+        __wbg_reload_a46804ad57f539bf: function() { return handleError(function (arg0) {
+            arg0.reload();
+        }, arguments); },
         __wbg_repeat_f86675ce521ba584: function(arg0) {
             const ret = arg0.repeat;
             return ret;
@@ -1586,7 +1613,12 @@ function __wbg_get_imports() {
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen_cc6ac81a6aa92d46___convert__closures_____invoke_______true_);
             return ret;
         },
-        __wbindgen_generic_0000000000000004: function(arg0, arg1) {
+        __wbindgen_generic_0000000000000004: function(arg0) {
+
+            const ret = arg0;
+            return ret;
+        },
+        __wbindgen_generic_0000000000000005: function(arg0, arg1) {
 
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;

@@ -364,6 +364,43 @@ h2, h3, p { margin: 0; }
 .schalter.an .schalter-knopf { left: 18px; }
 .einst-zeile .feld { width: auto; min-width: 140px; }
 
+/* Woerter und Ablaeufe (Projektentscheid, 27.11.2026) */
+.antrag-hinweis { color: var(--gedaempft); font-size: 12.5px; }
+.zeile-werte { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12.5px; text-align: right; }
+.ordner-gruppe { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.ordner-gruppe + .ordner-gruppe { margin-top: 6px; }
+.ordner-kopf { padding: 4px 10px 2px; font-size: 11.5px; font-weight: 600; color: var(--gedaempft); white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; direction: rtl; text-align: left; }
+.ordner-kopf span { unicode-bidi: isolate; }
+.ordner-sitzungen { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.option-id { color: var(--gedaempft); font-family: var(--mono); font-size: 11.5px; }
+.option-zustand { color: var(--gedaempft); }
+/* getrennt (B05): die Leiste liegt ueber der Mitte und schiebt nichts, alles darunter ist gesperrt */
+#kanalwarnung { position: fixed; z-index: 40; top: calc(var(--titelhoehe) + 10px); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 14px; max-width: calc(100vw - 32px); box-sizing: border-box;
+  border-radius: var(--r-mittel); border: 1px solid var(--schlecht); background: var(--fehlergrund); color: var(--schrift);
+  font-size: 13px; box-shadow: 0 4px 16px var(--schatten); }
+#kanalwarnung::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--schlecht); }
+#kanalwarnung .knopf-rand { flex: 0 0 auto; }
+[inert] button, [inert] select, [inert] input, [inert] .sitzung { opacity: 0.55; }
+.form-grund { width: 55%; font-size: 12.5px; color: var(--gedaempft); }
+.schutz-kurz { margin-bottom: 6px; }
+.schutz-wert { text-align: right; }
+.fristen { width: 100%; border-collapse: collapse; font-size: 13px; }
+.fristen th, .fristen td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--linie); vertical-align: middle; }
+.fristen thead th { font-size: 12px; font-weight: 600; color: var(--gedaempft); }
+.fristen tbody tr:last-child th, .fristen tbody tr:last-child td { border-bottom: 0; }
+.fristen tbody th { font-weight: 500; font-family: var(--mono); font-size: 12.5px; }
+.fristen-wert { margin-right: 8px; }
+.blase.mit-spitze { overflow: visible; }
+.blase.mit-spitze::before { content: ""; position: absolute; top: -6px; left: calc(var(--spitze, 165px) - 6px); width: 12px; height: 12px;
+  background: inherit; border-left: inherit; border-top: inherit; transform: rotate(45deg); border-top-left-radius: 2px; }
+.blase-zeile { align-items: baseline; }
+.blase-zeile .blase-text { flex: 1 1 auto; min-width: 0; }
+.blase-zeile .wzustand { flex: 0 0 auto; color: var(--gedaempft); font-size: 12px; }
+.blase-fuss { margin-top: 4px; font-size: 11.5px; color: var(--gedaempft); text-align: right; }
+.blase:focus { outline: none; }
+
 /* Handybreite: unveraendert eine Spalte, kein Querscrollen, Ziele mindestens 44 px (OF6, SE5) */
 @media (max-width: 900px) {
   html, body { height: auto; overflow-x: hidden; overflow-y: auto; }

@@ -15,7 +15,7 @@ use serde_json::{Map, Value, json};
 
 use crate::ablage::Ablage;
 use crate::antwort;
-use crate::antwortform::Sammler;
+use crate::antwortform::{self, Sammler};
 use crate::b64;
 use crate::code::Code;
 use crate::form::Op;
@@ -569,6 +569,17 @@ impl Dienst {
                 None => return senden(strom, &antwort::fehler(Some(&g.id), Code::Intern)).is_ok(),
             }
         };
+        // the switch of the first start names exactly this rule: the reasoning effort of the request is read now, before
+        // the body is dropped; the copy of the answer follows below (section 4)
+        let regel = format!("{methode} {}", s(o, "pfad"));
+        let form = z.antwortform.contains(&regel).then(|| {
+            Sammler::mit_anfrage(
+                koerper
+                    .as_deref()
+                    .map(antwortform::anfrage)
+                    .unwrap_or_default(),
+            )
+        });
         let leer = Map::new();
         let kopf = o.get("kopf").and_then(Value::as_object).unwrap_or(&leer);
         let anfrage = Geheim::neu(ziel::anfrage(
@@ -629,10 +640,8 @@ impl Dienst {
             Ok(k) => k,
             Err(c) => return senden(strom, &antwort::ende_fehler(&g.id, c)).is_ok(),
         };
-        // the switch of the first start names exactly this rule: a copy of the body for the answer form (section 4);
-        // the answer itself goes on through the leak lock
-        let regel = format!("{methode} {}", s(o, "pfad"));
-        let form = z.antwortform.contains(&regel).then(Sammler::neu);
+        // with the switch a copy of the body for the answer form (section 4); the answer itself goes on through the
+        // leak lock
         self.koerper_senden(strom, g, &mut koerper, werte, form, k.status)
     }
 

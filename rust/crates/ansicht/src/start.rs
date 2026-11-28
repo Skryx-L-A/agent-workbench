@@ -12,7 +12,7 @@ pub const OHNE_KUNDE: &str = "ohne Kunde";
 /// The model that holds without a model of the route.
 pub const MODELL_AUTO: &str = "auto";
 /// The entry of the field `Effort` that sends `null` (contract `start`, message `Startwahl` with efforts).
-pub const VORGABE_HARNESS: &str = "Vorgabe des Harness";
+pub const VORGABE_HARNESS: &str = crate::woerter::VORGABE_DES_PROGRAMMS;
 
 /// One option: value and visible text.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -95,7 +95,14 @@ impl Default for Startform {
     /// The fixed sample entries of the contract `seite`, valid until the first `Startwahl`.
     fn default() -> Self {
         Startform {
-            harness: Wahlfeld::neu(vec![Eintrag::gleich("claude"), Eintrag::gleich("pi")], None),
+            harness: Wahlfeld::neu(
+                vec![
+                    Eintrag::gleich("claude"),
+                    Eintrag::gleich("pi"),
+                    Eintrag::gleich("opencode"),
+                ],
+                None,
+            ),
             modell: Wahlfeld::neu(
                 vec![
                     Eintrag::gleich("cloud-beispiel"),

@@ -52,6 +52,13 @@ zusätzlich die Werte genau zweier Felder: `data[].id` aus `GET /models` und `er
 und nie tokenähnlich (Abschnitt 4, „Antwortform im Erststart“, Punkt „Werte“). Es ändern sich die Abschnitte 4 und 8; kein Fall
 der Formen `anfrage`, `antwort` und `konfig` ändert sich.
 
+**Nachtrag Effort und Modellliste (Entscheid des Betreibers, 27.11.2026):** Ein Chat-Aufruf des Erststarts endete mit 400
+`invalid_reasoning_effort`, und weder die Anfrage noch die Modellliste zeigten den Grund. Darum nennt die Zeile der Antwortform
+zusätzlich den Effort der Anfrage und, bei `GET /models`, je Modell `policy.state` und `capabilities.supports.reasoning_effort`.
+Diese Werte werden nie abgeschrieben: Jeder wird auf eine feste Liste abgebildet, jeder andere vorhandene Wert heißt `anderer`
+(Abschnitt 4, „Antwortform im Erststart“, Punkt „Effort und Modellliste“). Es ändert sich Abschnitt 4; kein Fall der Formen
+`anfrage`, `antwort` und `konfig` ändert sich.
+
 Der Vertrag steht vor dem Code. Dieser Stand enthält die sichtbaren Fälle. Verdeckte Fälle und Mutanten folgen mit dem
 Bau. Was nur auf einem System prüfbar ist, steht als Außentest in Abschnitt 11: W für die Windows-VM, L für den Linux-Baurechner, M für
 den Mac.
@@ -578,7 +585,8 @@ das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24)
   Länge, kein Typ.
 - **Werte (Projektentscheid, 26.11.2026).** Grund: Das Erststart-Profil wählt das Modell fest und nie `auto`;
   `POST /auto` bleibt gesperrt. Um ein angebotenes Modell zu wählen, braucht die Leitung die Modellnamen des Kontos. Die Zeile
-  trägt darum die Werte genau zweier Felder und keines anderen: `data[].id`, nur wenn Methode und Pfad genau `GET` und
+  trägt darum die Werte genau zweier Felder und keines anderen (dazu nur Werte fester Listen nach Punkt „Effort und
+  Modellliste“): `data[].id`, nur wenn Methode und Pfad genau `GET` und
   `/models` sind (die Schlüssel `id` der Objekte in der Liste `data` auf der obersten Ebene), und `error.code`, nur bei einem
   Status ab 400 (der Schlüssel `code` des Objekts `error` auf der obersten Ebene). Werte gibt es nur bei der Form `json`. Kein
   anderes Feld, kein Kopf, kein Körper und kein Freitext stehen in der Zeile, auch nicht `data[].name` oder `access_token`.
@@ -595,6 +603,26 @@ das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24)
   als 200, stehen die ersten 200 in Bytefolge in der Zeile, die Zeile trägt `"abgeschnitten":true` und damit `"zu":true`, und
   kein weiterer Name erscheint. Grund: Eine feste Grenze hält die Zeile kurz; `abgeschnitten` sagt der Leitung, dass die Liste
   unvollständig ist und sie den Pfad nicht auf ihrer Grundlage beurteilen soll.
+- **Effort und Modellliste (Entscheid des Betreibers, 27.11.2026).** Grund: Ein 400 `invalid_reasoning_effort` wird nur
+  lesbar, wenn die Zeile den gesendeten Effort und die Stufen des Modells nennt. Die Zeile trägt dafür Werte nur aus festen
+  Listen, nie einen Text aus Anfrage oder Antwort:
+  - **Stufen:** `none`, `low`, `medium`, `high`, `xhigh`, `max` (die Vereinigung von `capabilities.supports.reasoning_effort`
+    in der gemessenen Antwort von `GET /models`). **Zustände:** `enabled`, `disabled`. Jeder andere vorhandene Wert, auch eine
+    Stufe in anderer Schreibweise, eine Zahl, `null`, eine Liste oder ein Objekt, heißt `anderer`. Ein fehlendes Feld ist `null`.
+  - **Anfrage.** Der Halter liest den Körper der Anfrage nur unter demselben Schalter und derselben Regel wie die Antwort, als
+    JSON. Ist er ein Objekt, nennt `anfrage.reasoning_effort` den Schlüssel `reasoning_effort` der obersten Ebene und
+    `anfrage.reasoning.effort` den Schlüssel `effort` im Objekt `reasoning` der obersten Ebene, je als Stufe, `anderer` oder
+    `null`. Ist `reasoning` kein Objekt, ist `anfrage.reasoning.effort` `anderer`. Ein Körper, der kein JSON-Objekt ist, und
+    `GET` ohne Körper geben zweimal `null`. Die zwei Werte der Anfrage stehen in jeder Form der Zeile, auch bei `kein_json`,
+    `zu_gross` und `geheimnis`, weil sie nur aus der festen Liste stammen. Die Anfrage geht unverändert an das Ziel.
+  - **Modellliste.** Nur bei `GET /models` und der Form `json`: `modelle` hat je Name aus `data[].id` (nach Punkt „Werte“
+    bestanden und unter den ersten 200) genau die Schlüssel `policy.state` (Zustand, `anderer` oder `null`) und
+    `capabilities.supports.reasoning_effort`. Dieser ist `null`, wenn das Feld fehlt, `anderer`, wenn es keine Liste ist oder
+    eine Ebene darüber kein Objekt ist, sonst eine Liste: die Stufen der Quelle in der Reihenfolge oben, je einmal, und zuletzt
+    einmal `anderer` für jedes andere Element. `policy.state` ist `anderer`, wenn `policy` kein Objekt ist. Steht ein Name
+    mehrfach in `data`, gelten die Werte seines ersten Elements. Ein Name, der Punkt „Werte“ nicht besteht, und ein Element,
+    das kein Objekt ist oder keinen Schlüssel `id` hat, geben keinen Eintrag. Sonst ist `modelle` ein leeres Objekt.
+  - `anderer` zählt nicht in `wert_verworfen`; es ist selbst der Befund „unerwarteter Wert“.
 - **Grenzen.** Höchstens 1048576 Byte Körper (darüber: Form `zu_gross`, keine Namen), höchstens 256 Namen, je Name höchstens
   256 Byte, höchstens 32 Ebenen. Ein längerer Name bleibt weg; eine Überschreitung setzt `abgeschnitten`.
 - **Regel der Namen.** Enthält ein Name `token`, `secret`, `key`, `session` oder `credential` (ohne Groß- und Kleinschreibung,
@@ -606,14 +634,16 @@ das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24)
 - **Zeile.** Genau eine Zeile im Journal (stderr der Einheit): `halter.antwortform: ` und das kanonische JSON-Objekt (RFC 8785)
   mit genau `abgeschnitten` (bool), `form` (`json`, `kein_json`, `zu_gross` oder `geheimnis`), `methode`, `namen` (Liste),
   `pfad` (das Feld `pfad` der Anfrage), `status` (HTTP-Status des Ziels), `wert_verworfen` (Zahl, Punkt „Werte“), `werte`
-  (Objekt mit genau `data[].id`, einer Liste, und `error.code`, Text oder `null`), `ziel` (Name aus `halter.json`) und `zu`
-  (bool). Nie `abfrage`, ein Kopf, ein Wert außer nach Punkt „Werte“, `id`, `lauf` oder eine Person. Ein Zeilenumbruch in einem Namen ist im JSON maskiert; die Zeile
+  (Objekt mit genau `anfrage.reasoning.effort` und `anfrage.reasoning_effort`, je Stufe, `anderer` oder `null`, `data[].id`,
+  einer Liste, `error.code`, Text oder `null`, und `modelle`, einem Objekt, Punkt „Effort und Modellliste“), `ziel` (Name aus
+  `halter.json`) und `zu` (bool). Nie `abfrage`, ein Kopf, ein Wert außer nach den Punkten „Werte“ und „Effort und
+  Modellliste“, `id`, `lauf` oder eine Person. Ein Zeilenumbruch in einem Namen ist im JSON maskiert; die Zeile
   bleibt eine Zeile. Die Zeile steht nicht in der Kette; es gibt keine neue Art im Register von Vertrag 5.
 
 ```
-halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"wert_verworfen":0,"werte":{"data[].id":[],"error.code":null},"ziel":"api.individual.githubcopilot.com","zu":true}
-halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"GET","namen":["data","data[].id","data[].name","object"],"pfad":"/models","status":200,"wert_verworfen":1,"werte":{"data[].id":["claude-sonnet-5.5","gpt-6-luna"],"error.code":null},"ziel":"api.individual.githubcopilot.com","zu":false}
-halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["error","error.code","error.message"],"pfad":"/chat/completions","status":400,"wert_verworfen":0,"werte":{"data[].id":[],"error.code":"model_not_supported"},"ziel":"api.individual.githubcopilot.com","zu":false}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"wert_verworfen":0,"werte":{"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":[],"error.code":null,"modelle":{}},"ziel":"api.individual.githubcopilot.com","zu":true}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"GET","namen":["data","data[].capabilities","data[].capabilities.supports","data[].capabilities.supports.reasoning_effort","data[].id","data[].name","data[].policy","data[].policy.state","object"],"pfad":"/models","status":200,"wert_verworfen":1,"werte":{"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":["claude-sonnet-5.5","gpt-6-luna"],"error.code":null,"modelle":{"claude-sonnet-5.5":{"capabilities.supports.reasoning_effort":["low","medium","high","xhigh","max"],"policy.state":"disabled"},"gpt-6-luna":{"capabilities.supports.reasoning_effort":["none","low","medium","high","xhigh","max"],"policy.state":"enabled"}}},"ziel":"api.individual.githubcopilot.com","zu":false}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["error","error.code","error.message"],"pfad":"/chat/completions","status":400,"wert_verworfen":0,"werte":{"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":"anderer","data[].id":[],"error.code":"invalid_reasoning_effort","modelle":{}},"ziel":"api.individual.githubcopilot.com","zu":false}
 ```
 
 Fälle der Form `konfig`: `k-gut-erststart-antwortform` (gültig, auch ein Pfad im Teilbaum von `pfade`), Gegenproben
@@ -621,12 +651,15 @@ Fälle der Form `konfig`: `k-gut-erststart-antwortform` (gültig, auch ein Pfad 
 `-server` (je `halter.konfig`). Tests im Bau: `antwortform::tests` (Namen ohne Werte mit Markenwert als Gegenprobe, jedes Wort
 in jeder Schreibweise, Grenzen genau und um eins darüber, gehaltenes Geheimnis als Name, Zeilenumbruch im Namen; zu den Werten:
 echte Modellnamen, ein anderes Feld ohne Wert, falsche Form mit 64 und 65 Byte, tokenähnlich vor dem Wortmuster je Regel, ein
-`error.code`, die Grenze 200 und 201, ohne Form `json` kein Wert),
+`error.code`, die Grenze 200 und 201, ohne Form `json` kein Wert; zu Effort und Modellliste: `bekannter_effort_steht_in_der_zeile`,
+`unbekannter_effort_wird_anderer`, `anfrage_ohne_effort`, `modellliste_mit_zustand_und_stufen`, `modellliste_mit_unerwarteter_form`),
 `konfig::tests::erststart_antwortform_nur_genau_und_gedeckt`, `tests/dienst.rs` `antwortform_nennt_die_namen_ohne_werte` (die Antwort
 kommt unverändert an, die Zeile nennt `access_token`, `data`, `data[].id` und `"zu":true`, der Markenwert steht weder in der
 Zeile noch in der Kette), `antwortform_nennt_modellnamen_und_fehlercode` (Modellnamen aus `GET /models` und `error.code` aus einer
 Antwort mit Status 400, kein Wert eines anderen Felds, kein Wert in der Kette), `ohne_schalter_keine_antwortform` (dieselbe
-Antwort ohne Schalter: keine Zeile) und `ohne_schalter_keine_modellnamen` (`GET /models` ohne Schalter: keine Zeile). Das Fallformat kennt
+Antwort ohne Schalter: keine Zeile), `ohne_schalter_keine_modellnamen` (`GET /models` ohne Schalter: keine Zeile), `antwortform_nennt_effort_und_stufen` (Stufen und
+Zustand je Modell, ein unbekannter Effort als `anderer` bei 400 `invalid_reasoning_effort`, ein bekannter unter `reasoning`, ohne
+Effort `null`; die Anfrage kommt unverändert am Ziel an, kein Wert in der Kette) und `ohne_schalter_kein_effort`. Das Fallformat kennt
 keine Antwort des Ziels; die Zeile prüft darum nur der Bau.
 
 ### `schluessel.vorhanden`

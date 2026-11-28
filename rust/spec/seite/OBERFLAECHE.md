@@ -46,6 +46,9 @@ Dieser Teil legt fest, **wie die Oberfläche aussieht, welche Bedienwege sie hat
 5. Der **Inspektor** hat Symbolreiter wie heute: Schild (Freigaben, B56), Ordner (B52), Uhr (Aktivität) und Blatt mit Lupe (Protokolle). Im Pilot gibt es
    nur Freigaben und Ordner (B51).
 6. Das **Fenster „Sitzungen“** öffnet sich in der Oberfläche über „+“ (F1, B68). Es steht nie fest in einer Spalte.
+7. **Gleiche Wörter:** Beide Ansichten nehmen ihre Wörter aus einer Tabelle, `rust/crates/ansicht/src/woerter.rs` (Modul `ansicht::woerter`). Wo die
+   heutige App ein Wort hat, gilt es: „Programm“ statt „Harness“ an jedem sichtbaren Feld, „Denkstufe“ statt „Effort“ im Fenster „Sitzungen“, „Programme und Modelle“, „Beenden“ auch im Kontextmenü,
+   die Schriftgröße in „Punkt“. Die Herkunft einer eigenen Wahl heißt in beiden Ansichten „du“ (Projektentscheid, 27.11.2026).
 - Prüfmittel: Bilder 1280 px hell und dunkel neben den Vorlagebildern, Prüfung am Auge (OF13).
 
 ### OF2 Flächig, Maße wie heute (G1)
@@ -80,7 +83,7 @@ Dieser Teil legt fest, **wie die Oberfläche aussieht, welche Bedienwege sie hat
 
 1. Grundschrift ist die Systemschrift in der Größe der Vorlage. Die Stufen sind Projektname in der Titelleiste, Grundtext und kleine Zusatzzeile.
 2. Terminal: `ui-monospace, SFMono-Regular, Menlo, monospace` im Browser, im App-Fenster eine mitgelieferte Monospace-Schrift mit Umlauten und
-   Rahmenzeichen. Die Größe ist 13 px und in den Einstellungen wählbar.
+   Rahmenzeichen. Die Größe ist 13 px und in den Einstellungen wählbar; die Wahl zeigt sie in „Punkt“, 1 Punkt = 1 CSS-Pixel (Projektentscheid, 27.11.2026).
 3. Die Browser-Ansicht lädt keine Schrift von außen (SE6 Punkt 1). Das App-Fenster lädt nichts aus dem Netz.
 - Prüfmittel: Läufer des Vertrags `seite` (Netzregel), Bilder, Prüfung am Auge.
 
@@ -134,6 +137,13 @@ Dieser Teil legt fest, **wie die Oberfläche aussieht, welche Bedienwege sie hat
    - Maschinen und Programm zeigen nur Werte.
 4. **Admin (B78):** Harnesses und Modelle je Stufe, Grenzen des Efforts je Stufe und Modell, Erlaubnisse, Aufsicht und Wachen, Routen und Datenklassen
    und alle Optionen (A30). Jede Änderung steht im Protokoll, mit Admin, Ebene, altem und neuem Wert und Zeit (A27).
+   Die Seite „Aufsicht und Meldungen“ zeigt im Pilot die zwei Fristen einer Freigabe (`aufsicht.freigabefrist_ms`, `aufsicht.einloesefrist_ms`) und die
+   Auskunft „Wirksamer Stand der Schutzschichten“ (Nachricht `Schutzstand`). Sie sagt nur Gemessenes, je mit Datum: den Probelauf des Einschlusses und das
+   Einrichten des Halters bei der Installation, den letzten Start mit Ergebnis und die Zahl der freigegebenen Netzziele je Herkunft, nie einen Host. Ohne
+   Messung steht „nicht bekannt“; nie „an“, keine Ampel, kein Häkchen. Die Auskunft ist nur zum Lesen; ohne die Nachricht des Dienstes fehlt sie (OF8 Punkt 3).
+   Dazu kommt eine Tabelle nur zum Lesen, „Fristen je MCP-Server“ (Nachricht `Fristen`): je Server beide Fristen in Sekunden mit Herkunft „Firma“
+   (Firmendatei) oder „Vorgabe“ (Katalog); ohne die Nachricht fehlt sie.
+   Einen Schalter, der eine Prüfung vor der Ausführung abschaltet, gibt es in keiner Ansicht (Projektentscheid, 27.11.2026).
 5. **Ebenen:** Regeln gelten auf den Ebenen Firma, Gruppe und Nutzer (A26). Jede Einstellung zeigt ihren **wirksamen Wert und seine Herkunft**, etwa
    „Firma“, „Gruppe Entwicklung“ oder „du“ (E3).
 6. **Gestaltung (E3, Betreiber wörtlich):** „arbeite mehr visuell, mit symbolen und kurzen passenden beschreibungen, halte dich an desing standarts
@@ -211,18 +221,18 @@ braucht, fehlen bis dahin, etwa die Worker-Zahl in B10 oder der Ordner in B02. B
 | B02 | Titelleiste: Projektname mit Herkunft | P | Projektname fett, darunter „Harness · Modell · Ordner“ der gewählten Sitzung | L5 | ja | G3 |
 | B03 | Freigabe-Abzeichen | P | nur bei offener Anfrage, mit Zahl; öffnet den Inspektor im Reiter Freigaben | – | – | G4 |
 | B04 | Inspektor ein- und ausklappen | P | Knopf rechts in der Titelleiste; Vorgabe zu; je Gerät gemerkt | L8 | ja | G5 |
-| B05 | Warnleiste „Verbindung zum Kern fehlt“ | P | erscheint, wenn der Strom endet oder das Token fehlt | – | – | – |
+| B05 | Warnleiste „Verbindung zum Kern fehlt“ | P | erscheint, wenn der Strom endet oder das Token fehlt; liegt über der Mitte und verschiebt nichts; nach dem Ende des Stroms mit dem Knopf „Neu laden“; dann sind alle Bedienelemente gesperrt, und jedes Terminal behält sein letztes Bild (Projektentscheid, 27.11.2026) | – | – | – |
 | B06 | Freigabeleiste | E | geht in B56 auf | – | – | G4 |
 | B07 | Meldung „Freigabe erteilt/abgelehnt“ | P | Zeile im Guard-Verlauf des Reiters Freigaben | L6 | – | G4 |
 | B08 | Kopf der Leiste mit „+“ | P | öffnet das Fenster „Sitzungen“ mit leerem Formular | – | ja | F1 |
 | B09 | Projektzeile | P | Projektname als kleine graue Überschrift, Zahl der Sitzungen rechts | L5 | – | G8 |
 | B10 | Sitzungszeile | P | Punkt, Name, darunter „N Worker · Zustand“; gewählte Zeile grau; Klick schickt `Abo` | L1, L5 | ja | G8 |
-| B11 | „Fortsetzen“ | P | Kontextmenü und Fenster „Sitzungen“; nur bei beendeter Sitzung | L3 | – | Pilot-Tabelle |
+| B11 | „Fortsetzen“ | P | Kontextmenü und Fenster „Sitzungen“; nur bei beendeter Sitzung; nie für eine Sitzung mit opencode, im Fenster dann gesperrt mit Grund (Projektentscheid, 27.11.2026) | L3 | – | Pilot-Tabelle |
 | B12 | „Namen ändern …“ | P | Kontextmenü; Name auch im Formular beim Start | L3 | – | Pilot-Tabelle |
 | B14 | „Ordner im Finder zeigen“ | N | – | – | – | Pilot-Tabelle |
 | B15 | „Sitzung schließen“ | P | schickt `Beenden`; bei beendeter Sitzung gesperrt mit Grund | – | – | – |
 | B16 | „Endgültig löschen …“ | P | nur bei beendeter Sitzung, mit Rückfrage | L3 | – | Pilot-Tabelle |
-| B17 | „Wiederbeleben …“ | P | bei abgestürzter Sitzung | L3 | – | Pilot-Tabelle |
+| B17 | „Wiederbeleben …“ | P | bei abgestürzter Sitzung, nie mit opencode (Projektentscheid, 27.11.2026) | L3 | – | Pilot-Tabelle |
 | B18 | Gesprächszeile in der Leiste | E | – | – | – | Projektentscheid 23.11., G8 |
 | B19 | Umsortieren durch Ziehen | P | Reihenfolge der Sitzungen je Projekt, je Gerät gemerkt | L8 | – | Pilot-Tabelle |
 | B20 | Maschinenkarte | N | – | – | – | Pilot-Tabelle |
@@ -253,7 +263,7 @@ braucht, fehlen bis dahin, etwa die Worker-Zahl in B10 oder der Ordner in B02. B
 | B53 | Inhaltssuche | P | Feld „Im Inhalt suchen“ unter dem Pfad | L9 | – | G10 |
 | B54 | Aktivitäts-Blatt | N | – | – | – | Pilot-Tabelle |
 | B55 | Protokolle-Blatt | N | – | – | – | Pilot-Tabelle |
-| B56 | Freigaben-Blatt | P | wie heute: „Anträge“, „Angehaltene Worker“, „Guard-Verlauf“ mit Zahl; Freigeben, Ablehnen, Begründung, Zum Worker | L6 | ja | G4 |
+| B56 | Freigaben-Blatt | P | wie heute: „Anträge“, „Angehaltene Worker“, „Guard-Verlauf“ mit Zahl; Freigeben, Ablehnen, Begründung, Zum Worker; ohne `Freigabe` in der `Ereignisliste` (Browser) statt der Knöpfe der Hinweis „Freigeben im App-Fenster“ (Projektentscheid, 27.11.2026) | L6 | ja | G4 |
 | B57 | Breite des Inspektors ziehen | P | OF2 Punkt 3 | L8 | – | Pilot-Tabelle |
 | B58 | Editor-Tab-Zeile | N | erscheint erst mit offener Datei | – | – | G7 |
 | B59 | Datei öffnen | N | – | – | – | Pilot-Tabelle |
@@ -265,7 +275,7 @@ braucht, fehlen bis dahin, etwa die Worker-Zahl in B10 oder der Ordner in B02. B
 | B66 | Meldung „Ergebnis da“ | N | – | – | – | Pilot-Tabelle |
 | B67 | Kurzmeldung | P | unten mittig über dem Terminal, 4 s; Ansage über die Live-Region | – | – | – |
 | B68 | Fenster „Sitzungen“ | P | wie heute, als Fenster in der Oberfläche: Liste aller bekannten Sitzungen nach Ordner, auch der beendeten; Formular mit Name und Effort (beide ab L10), Arbeitsordner, Harness, Modell, Route, Kunde und „Starten“; unten „Beenden“ und „Fortsetzen“ für die gewählte Sitzung | L3, L5, L10 | ja | F1 |
-| B69 | Modell und Effort beim Start | P | Modelle je Route aus `Startwahl`; Effort innerhalb der Grenzen der Admins, vorbelegt mit der Vorgabe des Nutzers; Kontextfenster nach dem Pilot | L10 | ja | E2 |
+| B69 | Modell und Effort beim Start | P | Modelle je Route aus `Startwahl`; Effort innerhalb der Grenzen der Admins, vorbelegt mit der Vorgabe des Nutzers; erlaubt die Route keinen Effort, steht statt des Felds der Grund „Bei dieser Route nicht wählbar“ (Projektentscheid, 27.11.2026); Kontextfenster nach dem Pilot | L10 | ja | E2 |
 | B70 | Frühere Sitzungen | E | geht in B68 auf; „Modell wechseln“ nach dem Pilot | – | – | F1 |
 | B71 | Meldung bei abgelehntem Start | P | `fehler`, `fehler-code`, `fehler-text`, Ansage; im Fenster „Sitzungen“ unter „Starten“ | – | ja | – |
 | B72 | Einstellungen des Nutzers | P | OF9 Punkt 3, 5, 6 | L4 | ja | F2, E2, E3 |

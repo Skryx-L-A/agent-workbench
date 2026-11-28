@@ -6,12 +6,18 @@
 //! Values (decision of the lead, 26.11.2026, finding of the Copilot start): the line also carries the values of exactly
 //! two fields, `data[].id` of `GET /models` and `error.code` of an error answer (status 400 or above). A value stands in
 //! the line only if it is not token-like ([`tokenaehnlich`], checked first) and fits `^[A-Za-z0-9._-]{1,64}$`
-//! ([`wortform`]); every other value of the two fields only raises `wert_verworfen`. No other field gives a value.
+//! ([`wortform`]); every other value of the two fields only raises `wert_verworfen`. No other field gives a value
+//! of its own; the fields of the next paragraph give only a value of a fixed list.
+//!
+//! Effort and model list (decision of the operator, 27.11.2026): the line names the reasoning effort of the request
+//! (`reasoning_effort` and `reasoning.effort` at the root of a JSON body) and, for `GET /models`, `policy.state` and
+//! `capabilities.supports.reasoning_effort` of each named model. These values are never copied: each is mapped onto a
+//! fixed list ([`STUFEN`], [`ZUSTAENDE`]), and every other present value becomes [`ANDERER`].
 //!
 //! Without the switch there is no diagnosis, in every build. The answer itself goes on through the leak lock as before;
 //! this module only reads a copy of the body.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Value, json};
 
@@ -42,6 +48,112 @@ pub const TOKEN_PRAEFIXE: [&str; 7] =
 pub const TEIL_MAX: usize = 19;
 /// The two fields whose values the line carries, in path form.
 pub const WERT_FELDER: [&str; 2] = ["data[].id", "error.code"];
+
+/// The levels of a reasoning effort the line names: the union of `capabilities.supports.reasoning_effort` in the measured
+/// answer of `GET /models` (decision of the operator, 27.11.2026), in this order.
+pub const STUFEN: [&str; 6] = ["none", "low", "medium", "high", "xhigh", "max"];
+/// The states of `policy.state` the line names.
+pub const ZUSTAENDE: [&str; 2] = ["enabled", "disabled"];
+/// The value for a present value that is not on the fixed list, or a field of an unexpected form.
+pub const ANDERER: &str = "anderer";
+
+/// The value of the list `liste` that `wert` equals, else [`ANDERER`]; never the text of `wert` itself.
+fn fest(liste: &[&'static str], wert: &Value) -> &'static str {
+    wert.as_str()
+        .and_then(|w| liste.iter().find(|l| **l == w))
+        .copied()
+        .unwrap_or(ANDERER)
+}
+
+/// The value at the path `teile` below `v`: `Ok(None)` if a key is missing, `Err(())` if a level above the last one
+/// is no object (an unexpected form).
+fn bei<'a>(v: &'a Value, teile: &[&str]) -> Result<Option<&'a Value>, ()> {
+    let mut jetzt = v;
+    for t in teile {
+        match jetzt.as_object() {
+            Some(o) => match o.get(*t) {
+                Some(n) => jetzt = n,
+                None => return Ok(None),
+            },
+            None => return Err(()),
+        }
+    }
+    Ok(Some(jetzt))
+}
+
+/// One value of the fixed list `liste` at the path `teile`: `None` if the field is missing, [`ANDERER`] for another
+/// value or an unexpected form.
+fn fest_bei(v: &Value, teile: &[&str], liste: &[&'static str]) -> Option<&'static str> {
+    match bei(v, teile) {
+        Ok(None) => None,
+        Ok(Some(w)) => Some(fest(liste, w)),
+        Err(()) => Some(ANDERER),
+    }
+}
+
+/// The reasoning effort of one request body.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Anfrage {
+    /// `reasoning_effort` at the root: a level of [`STUFEN`], [`ANDERER`], or `None` if missing.
+    pub oben: Option<&'static str>,
+    /// `reasoning.effort`: a level of [`STUFEN`], [`ANDERER`], or `None` if missing.
+    pub unter: Option<&'static str>,
+}
+
+/// The reasoning effort of the request body `koerper`. A body that is no JSON object names nothing.
+#[must_use]
+pub fn anfrage(koerper: &[u8]) -> Anfrage {
+    match serde_json::from_slice::<Value>(koerper) {
+        Ok(v) if v.is_object() => Anfrage {
+            oben: fest_bei(&v, &["reasoning_effort"], &STUFEN),
+            unter: fest_bei(&v, &["reasoning", "effort"], &STUFEN),
+        },
+        _ => Anfrage::default(),
+    }
+}
+
+/// The levels of `capabilities.supports.reasoning_effort` of one model.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Stufen {
+    /// The field is missing.
+    Fehlt,
+    /// The field is no list, or a level above it is no object.
+    Anders,
+    /// The levels of [`STUFEN`] in the list, in that order, each once; [`ANDERER`] last, once, for any other element.
+    Liste(Vec<&'static str>),
+}
+
+/// The values of one model of `GET /models`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Modell {
+    /// `policy.state`: a state of [`ZUSTAENDE`], [`ANDERER`], or `None` if missing.
+    pub zustand: Option<&'static str>,
+    /// `capabilities.supports.reasoning_effort`.
+    pub stufen: Stufen,
+}
+
+/// The values of one element of `data`.
+fn modell(e: &Value) -> Modell {
+    let stufen = match bei(e, &["capabilities", "supports", "reasoning_effort"]) {
+        Ok(None) => Stufen::Fehlt,
+        Ok(Some(Value::Array(l))) => {
+            let mut s: Vec<&'static str> = STUFEN
+                .iter()
+                .copied()
+                .filter(|st| l.iter().any(|x| x.as_str() == Some(*st)))
+                .collect();
+            if l.iter().any(|x| fest(&STUFEN, x) == ANDERER) {
+                s.push(ANDERER);
+            }
+            Stufen::Liste(s)
+        }
+        Ok(Some(_)) | Err(()) => Stufen::Anders,
+    };
+    Modell {
+        zustand: fest_bei(e, &["policy", "state"], &ZUSTAENDE),
+        stufen,
+    }
+}
 
 /// `true` if `wert` fits `^[A-Za-z0-9._-]{1,64}$` as a whole.
 #[must_use]
@@ -76,9 +188,11 @@ pub fn zulaessig(geheim: &[Geheim], wert: &Value) -> bool {
     wortform(w)
 }
 
-/// The values of the two fields of one answer.
+/// The values of the fields of one answer.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Werte {
+    /// For each name of `ids`: the values of its first element in `data`.
+    pub modelle: BTreeMap<String, Modell>,
     /// `data[].id` of `GET /models`, sorted, each once, at most [`WERTE_MAX`].
     pub ids: Vec<String>,
     /// `error.code` of an error answer.
@@ -95,16 +209,23 @@ pub fn werte(v: &Value, geheim: &[Geheim], modelle: bool, fehler: bool) -> Werte
     let mut w = Werte::default();
     if modelle && let Some(liste) = v.get("data").and_then(Value::as_array) {
         let mut ids = BTreeSet::new();
-        for id in liste.iter().filter_map(|e| e.as_object()?.get("id")) {
+        let mut modelle = BTreeMap::new();
+        for e in liste {
+            let Some(id) = e.as_object().and_then(|o| o.get("id")) else {
+                continue;
+            };
             match id.as_str() {
                 Some(t) if zulaessig(geheim, id) => {
                     ids.insert(t.to_owned());
+                    modelle.entry(t.to_owned()).or_insert_with(|| modell(e));
                 }
                 _ => w.verworfen += 1,
             }
         }
         w.abgeschnitten = ids.len() > WERTE_MAX;
         w.ids = ids.into_iter().take(WERTE_MAX).collect();
+        modelle.retain(|id, _| w.ids.binary_search(id).is_ok());
+        w.modelle = modelle;
     }
     if fehler && let Some(code) = v.get("error").and_then(|e| e.as_object()?.get("code")) {
         match code.as_str() {
@@ -177,6 +298,7 @@ fn sammeln(wert: &Value, praefix: &str, tiefe: usize, alle: &mut BTreeSet<String
 pub struct Sammler {
     daten: Vec<u8>,
     zu_gross: bool,
+    anfrage: Anfrage,
 }
 
 impl Sammler {
@@ -184,6 +306,15 @@ impl Sammler {
     #[must_use]
     pub fn neu() -> Self {
         Sammler::default()
+    }
+
+    /// An empty copy for the request whose reasoning effort is `anfrage`.
+    #[must_use]
+    pub fn mit_anfrage(anfrage: Anfrage) -> Self {
+        Sammler {
+            anfrage,
+            ..Sammler::default()
+        }
     }
 
     /// Takes the next bytes of the body; above [`KOERPER_MAX`] the copy is dropped and the form is `zu_gross`.
@@ -201,10 +332,11 @@ impl Sammler {
 
     /// The journal line for the answer of `methode` `pfad` at `ziel` with `status`: [`PRAEFIX`] and the canonical JSON
     /// object with `abgeschnitten`, `form` (`json`, `kein_json`, `zu_gross` or `geheimnis`), `methode`, `namen`,
-    /// `pfad`, `status`, `wert_verworfen`, `werte` (exactly `data[].id` and `error.code`), `ziel` and `zu`, then LF.
+    /// `pfad`, `status`, `wert_verworfen`, `werte` (exactly `anfrage.reasoning.effort`, `anfrage.reasoning_effort`, `data[].id`,
+    /// `error.code` and `modelle`), `ziel` and `zu`, then LF. The two values of the request stand in every form.
     /// `zu` is `true` for every form but `json`, for a cut list and for a name after [`bleibt_zu`]. A held secret in the
-    /// names (in any form of the leak lock) gives the form `geheimnis`, no names and no values. Values only for the form
-    /// `json`: `data[].id` only for `GET /models`, `error.code` only for a status of 400 or above.
+    /// names (in any form of the leak lock) gives the form `geheimnis`, no names and no values of the answer. Values of the
+    /// answer only for the form `json`: `data[].id` only for `GET /models`, `error.code` only for a status of 400 or above.
     #[must_use]
     pub fn zeile(
         &self,
@@ -242,8 +374,11 @@ impl Sammler {
             "status": status,
             "wert_verworfen": w.verworfen,
             "werte": {
+                "anfrage.reasoning.effort": self.anfrage.unter,
+                "anfrage.reasoning_effort": self.anfrage.oben,
                 "data[].id": w.ids,
                 "error.code": w.code,
+                "modelle": modelle_json(&w.modelle),
             },
             "ziel": ziel,
             "zu": zu,
@@ -251,6 +386,27 @@ impl Sammler {
         let text = json::kanonisch(&wert).unwrap_or_default();
         format!("{PRAEFIX}{text}\n")
     }
+}
+
+/// The object `modelle` of the line: each name with exactly `capabilities.supports.reasoning_effort` (a list, `null` or
+/// [`ANDERER`]) and `policy.state` (a state, `null` or [`ANDERER`]).
+fn modelle_json(modelle: &BTreeMap<String, Modell>) -> Value {
+    let mut m = serde_json::Map::new();
+    for (id, e) in modelle {
+        let stufen = match &e.stufen {
+            Stufen::Fehlt => Value::Null,
+            Stufen::Anders => json!(ANDERER),
+            Stufen::Liste(l) => json!(l),
+        };
+        m.insert(
+            id.clone(),
+            json!({
+                "capabilities.supports.reasoning_effort": stufen,
+                "policy.state": e.zustand,
+            }),
+        );
+    }
+    Value::Object(m)
 }
 
 #[cfg(test)]
@@ -472,6 +628,27 @@ mod tests {
         )
     }
 
+    /// The values of a model without `policy` and `capabilities`.
+    const LEER: Value = Value::Null;
+
+    /// The object `werte` of a line without a reasoning effort in the request; `LEER` as a model stands for both values
+    /// `null`.
+    fn ohne_anfrage(ids: Value, code: Value, modelle: Value) -> Value {
+        let mut m = modelle;
+        for (_, e) in m.as_object_mut().expect("object").iter_mut() {
+            if e.is_null() {
+                *e = json!({"capabilities.supports.reasoning_effort": null, "policy.state": null});
+            }
+        }
+        let mut w = serde_json::Map::new();
+        w.insert("anfrage.reasoning.effort".into(), Value::Null);
+        w.insert("anfrage.reasoning_effort".into(), Value::Null);
+        w.insert("data[].id".into(), ids);
+        w.insert("error.code".into(), code);
+        w.insert("modelle".into(), m);
+        Value::Object(w)
+    }
+
     /// The body of `GET /models` with these ids.
     fn modelle(ids: &[&str]) -> Vec<u8> {
         let data: Vec<Value> = ids.iter().map(|i| json!({ "id": i })).collect();
@@ -487,7 +664,11 @@ mod tests {
         let (z, text) = zeile_bei(body, &[], "GET", "/models", 200);
         assert_eq!(
             z["werte"],
-            json!({"data[].id": ["claude-sonnet-5.5", "gpt-6-luna"], "error.code": null})
+            ohne_anfrage(
+                json!(["claude-sonnet-5.5", "gpt-6-luna"]),
+                Value::Null,
+                json!({"claude-sonnet-5.5": LEER, "gpt-6-luna": LEER})
+            )
         );
         assert_eq!(z["wert_verworfen"], 0);
         assert_eq!(z["abgeschnitten"], json!(false));
@@ -507,7 +688,7 @@ mod tests {
                 "object"
             ])
         );
-        assert_eq!(z["werte"].as_object().expect("object").len(), 2);
+        assert_eq!(z["werte"].as_object().expect("object").len(), 5);
     }
 
     /// Case: a value in another field (`data[].name`, `access_token`, `error.message`, `id` at the root) gives no
@@ -518,7 +699,11 @@ mod tests {
         let (z, text) = zeile_bei(body, &[], "GET", "/models", 200);
         assert_eq!(
             z["werte"],
-            json!({"data[].id": ["gpt-6-luna"], "error.code": null})
+            ohne_anfrage(
+                json!(["gpt-6-luna"]),
+                Value::Null,
+                json!({ "gpt-6-luna": LEER })
+            )
         );
         for fremd in [
             "tok-wert-1",
@@ -536,7 +721,7 @@ mod tests {
             let (z, text) = zeile_bei(body, &[], m, p, 200);
             assert_eq!(
                 z["werte"],
-                json!({"data[].id": [], "error.code": null}),
+                ohne_anfrage(json!([]), Value::Null, json!({})),
                 "{m} {p}"
             );
             assert!(!text.contains("gpt-6-luna"), "{text}");
@@ -663,7 +848,7 @@ mod tests {
         let (z, text) = zeile_bei(body, &[], "POST", "/chat/completions", 400);
         assert_eq!(
             z["werte"],
-            json!({"data[].id": [], "error.code": "model_not_supported"})
+            ohne_anfrage(json!([]), json!("model_not_supported"), json!({}))
         );
         assert_eq!(z["wert_verworfen"], 0);
         assert!(
@@ -719,10 +904,218 @@ mod tests {
         let body = format!(r#"{{"data":[{{"id":"gpt-6-luna"}}],"{MARKE}":1}}"#);
         let (z, text) = zeile_bei(body.as_bytes(), &geheim, "GET", "/models", 200);
         assert_eq!(z["form"], "geheimnis");
-        assert_eq!(z["werte"], json!({"data[].id": [], "error.code": null}));
+        assert_eq!(z["werte"], ohne_anfrage(json!([]), Value::Null, json!({})));
         assert!(!text.contains("gpt-6-luna"), "{text}");
         let (z, _) = zeile_bei(b"gpt-6-luna", &[], "GET", "/models", 200);
-        assert_eq!(z["werte"], json!({"data[].id": [], "error.code": null}));
+        assert_eq!(z["werte"], ohne_anfrage(json!([]), Value::Null, json!({})));
         assert_eq!(z["wert_verworfen"], 0);
+    }
+    /// The line of `POST /chat/completions` for the request body `anfrage` and the answer `body` with `status`.
+    fn zeile_mit_anfrage(anfrage: &[u8], body: &[u8], status: u16) -> (Value, String) {
+        let mut s = Sammler::mit_anfrage(self::anfrage(anfrage));
+        s.schieben(body);
+        let z = s.zeile(&[], "copilot", "POST", "/chat/completions", status);
+        let json = z.strip_prefix(PRAEFIX).expect("prefix");
+        (
+            serde_json::from_str(json.trim_end()).expect("line is JSON"),
+            z,
+        )
+    }
+
+    /// Case: a known effort of the request stands in the line, at the root and below `reasoning`, each level of
+    /// `STUFEN`; counter check: the other field stays `null`.
+    #[test]
+    fn bekannter_effort_steht_in_der_zeile() {
+        for st in STUFEN {
+            let b = format!(r#"{{"model":"gpt-6-luna","reasoning_effort":"{st}"}}"#);
+            let (z, _) = zeile_mit_anfrage(b.as_bytes(), b"{}", 200);
+            assert_eq!(z["werte"]["anfrage.reasoning_effort"], st, "{st}");
+            assert_eq!(z["werte"]["anfrage.reasoning.effort"], Value::Null, "{st}");
+            let b = format!(r#"{{"reasoning":{{"effort":"{st}","summary":"auto"}}}}"#);
+            let (z, _) = zeile_mit_anfrage(b.as_bytes(), b"{}", 200);
+            assert_eq!(z["werte"]["anfrage.reasoning.effort"], st, "{st}");
+            assert_eq!(z["werte"]["anfrage.reasoning_effort"], Value::Null, "{st}");
+        }
+        assert_eq!(
+            anfrage(br#"{"reasoning_effort":"low","reasoning":{"effort":"max"}}"#),
+            Anfrage {
+                oben: Some("low"),
+                unter: Some("max")
+            }
+        );
+        // the 400 of the first start becomes readable: the effort of the request and the code of the answer in one line
+        let (z, _) = zeile_mit_anfrage(
+            br#"{"reasoning_effort":"xhigh"}"#,
+            br#"{"error":{"code":"invalid_reasoning_effort","message":"m"}}"#,
+            400,
+        );
+        assert_eq!(z["werte"]["anfrage.reasoning_effort"], "xhigh");
+        assert_eq!(z["werte"]["error.code"], "invalid_reasoning_effort");
+    }
+
+    /// Case: an unknown effort becomes `anderer` and its text stands nowhere in the line, also a value in word form, a
+    /// level in another case, a token-like value, a held text, a number, `null`, a list and an object.
+    #[test]
+    fn unbekannter_effort_wird_anderer() {
+        let fremd = [
+            r#""minimal""#,
+            r#""HIGH""#,
+            r#""high ""#,
+            r#""ghu_effort0815wert""#,
+            r#""effort-wert-4711""#,
+            "3",
+            "null",
+            r#"["high"]"#,
+            r#"{"stufe":"high"}"#,
+            "true",
+        ];
+        for f in fremd {
+            for b in [
+                format!(r#"{{"reasoning_effort":{f}}}"#),
+                format!(r#"{{"reasoning":{{"effort":{f}}}}}"#),
+            ] {
+                let (z, text) = zeile_mit_anfrage(b.as_bytes(), b"{}", 200);
+                let w = &z["werte"];
+                let feld = if b.contains("reasoning_effort") {
+                    "anfrage.reasoning_effort"
+                } else {
+                    "anfrage.reasoning.effort"
+                };
+                assert_eq!(w[feld], ANDERER, "{b}");
+                for t in ["minimal", "HIGH", "ghu_", "effort-wert", "stufe"] {
+                    assert!(!text.contains(t), "{t}: {text}");
+                }
+            }
+        }
+        // `reasoning` of another form than an object is `anderer` too
+        for r in [r#""high""#, "1", r#"["high"]"#, "null"] {
+            let b = format!(r#"{{"reasoning":{r}}}"#);
+            assert_eq!(anfrage(b.as_bytes()).unter, Some(ANDERER), "{b}");
+            assert_eq!(anfrage(b.as_bytes()).oben, None, "{b}");
+        }
+    }
+
+    /// Case: a request without an effort names `null` in both fields; so does a body that is no JSON object. The two
+    /// values of the request stand in every form of the answer.
+    #[test]
+    fn anfrage_ohne_effort() {
+        for b in [
+            &br#"{"model":"gpt-6-luna","messages":[{"role":"user","content":"reasoning_effort high"}]}"#[..],
+            br#"{"reasoning":{"summary":"auto"}}"#,
+            br#"{"x":{"reasoning_effort":"high"}}"#,
+            br#"[{"reasoning_effort":"high"}]"#,
+            br#""high""#,
+            b"kein json",
+            b"",
+        ] {
+            assert_eq!(anfrage(b), Anfrage::default(), "{}", String::from_utf8_lossy(b));
+        }
+        let (z, _) = zeile_mit_anfrage(br#"{"model":"m"}"#, b"{}", 200);
+        assert_eq!(z["werte"]["anfrage.reasoning_effort"], Value::Null);
+        assert_eq!(z["werte"]["anfrage.reasoning.effort"], Value::Null);
+        // without the request (`Sammler::neu`) both stay `null`
+        let (z, _) = zeile_bei(b"{}", &[], "POST", "/chat/completions", 200);
+        assert_eq!(z["werte"]["anfrage.reasoning_effort"], Value::Null);
+        // the values of the request also stand for an answer that is no JSON
+        let (z, _) = zeile_mit_anfrage(br#"{"reasoning_effort":"medium"}"#, b"kein json", 502);
+        assert_eq!(z["form"], "kein_json");
+        assert_eq!(z["werte"]["anfrage.reasoning_effort"], "medium");
+    }
+
+    /// Case: the model list as measured names `policy.state` and the levels of each model; `data[].name` and the
+    /// other fields give no value.
+    #[test]
+    fn modellliste_mit_zustand_und_stufen() {
+        let body = br#"{"data":[
+            {"id":"gpt-6-luna","name":"n-wert","policy":{"state":"enabled","terms":"t-wert"},
+             "capabilities":{"family":"f-wert","supports":{"reasoning_effort":["none","low","medium","high","xhigh","max"],"streaming":true}}},
+            {"id":"claude-opus-5.5","policy":{"state":"disabled"},
+             "capabilities":{"supports":{"reasoning_effort":["max","low","medium","high","xhigh"]}}},
+            {"id":"gpt-4.1","policy":{"state":"enabled"},"capabilities":{"supports":{"streaming":true}}},
+            {"id":"gpt-4o"},
+            {"id":"gemini-4-argon","capabilities":{"supports":{"reasoning_effort":["low","medium","high"]}}}
+        ],"object":"list"}"#;
+        let (z, text) = zeile_bei(body, &[], "GET", "/models", 200);
+        assert_eq!(
+            z["werte"]["modelle"],
+            json!({
+                "claude-opus-5.5": {"capabilities.supports.reasoning_effort": ["low","medium","high","xhigh","max"], "policy.state": "disabled"},
+                "gemini-4-argon": {"capabilities.supports.reasoning_effort": ["low","medium","high"], "policy.state": null},
+                "gpt-4.1": {"capabilities.supports.reasoning_effort": null, "policy.state": "enabled"},
+                "gpt-4o": {"capabilities.supports.reasoning_effort": null, "policy.state": null},
+                "gpt-6-luna": {"capabilities.supports.reasoning_effort": ["none","low","medium","high","xhigh","max"], "policy.state": "enabled"},
+            })
+        );
+        assert_eq!(z["wert_verworfen"], 0);
+        assert_eq!(z["zu"], json!(false));
+        for fremd in ["n-wert", "t-wert", "f-wert"] {
+            assert!(!text.contains(fremd), "{fremd}: {text}");
+        }
+        // counter check: the same body on another path gives no model values
+        let (z, _) = zeile_bei(body, &[], "POST", "/chat/completions", 200);
+        assert_eq!(z["werte"]["modelle"], json!({}));
+    }
+
+    /// Case: a model list of an unexpected form gives `anderer` or `null`, never a text of the body, and never a model
+    /// whose name did not pass; a twice named model keeps its first values; beyond 200 names no further model.
+    #[test]
+    fn modellliste_mit_unerwarteter_form() {
+        let body = br#"{"data":[
+            {"id":"m-1","policy":"enabled","capabilities":"c-wert"},
+            {"id":"m-2","policy":{"state":"ENABLED"},"capabilities":{"supports":["reasoning_effort"]}},
+            {"id":"m-3","policy":{"state":4},"capabilities":{"supports":{"reasoning_effort":"high"}}},
+            {"id":"m-4","policy":{"state":"z-wert"},"capabilities":{"supports":{"reasoning_effort":["high","minimal",3,null,"high"]}}},
+            {"id":"m-5","policy":null,"capabilities":{"supports":{"reasoning_effort":[]}}},
+            {"id":"m-1","policy":{"state":"disabled"}},
+            {"id":"gho_abc","policy":{"state":"enabled"}},
+            {"id":"m 6","policy":{"state":"enabled"}},
+            "m-7",
+            {"name":"m-8","policy":{"state":"enabled"}}
+        ]}"#;
+        let (z, text) = zeile_bei(body, &[], "GET", "/models", 200);
+        assert_eq!(
+            z["werte"]["data[].id"],
+            json!(["m-1", "m-2", "m-3", "m-4", "m-5"])
+        );
+        assert_eq!(
+            z["werte"]["modelle"],
+            json!({
+                "m-1": {"capabilities.supports.reasoning_effort": "anderer", "policy.state": "anderer"},
+                "m-2": {"capabilities.supports.reasoning_effort": "anderer", "policy.state": "anderer"},
+                "m-3": {"capabilities.supports.reasoning_effort": "anderer", "policy.state": "anderer"},
+                "m-4": {"capabilities.supports.reasoning_effort": ["high", "anderer"], "policy.state": "anderer"},
+                "m-5": {"capabilities.supports.reasoning_effort": [], "policy.state": "anderer"},
+            })
+        );
+        assert_eq!(z["wert_verworfen"], 2);
+        for fremd in [
+            "c-wert", "z-wert", "ENABLED", "minimal", "gho_abc", "m 6", "m-7", "m-8",
+        ] {
+            assert!(!text.contains(fremd), "{fremd}: {text}");
+        }
+        // `data` that is no list, and elements that are no objects, give no model
+        for b in [
+            &br#"{"data":{"id":"m-1","policy":{"state":"enabled"}}}"#[..],
+            br#"{"data":"m-1"}"#,
+            br#"{"data":[["m-1"],1,null]}"#,
+            br#"[{"id":"m-1"}]"#,
+        ] {
+            let (z, _) = zeile_bei(b, &[], "GET", "/models", 200);
+            assert_eq!(
+                z["werte"]["modelle"],
+                json!({}),
+                "{}",
+                String::from_utf8_lossy(b)
+            );
+            assert_eq!(z["werte"]["data[].id"], json!([]));
+        }
+        // beyond 200 names the cut model has no values either
+        let ids: Vec<String> = (0..=WERTE_MAX).map(|i| format!("m-{i:03}")).collect();
+        let alle: Vec<&str> = ids.iter().map(String::as_str).collect();
+        let (z, text) = zeile_bei(&modelle(&alle), &[], "GET", "/models", 200);
+        let m = z["werte"]["modelle"].as_object().expect("object");
+        assert_eq!(m.len(), WERTE_MAX);
+        assert!(m.contains_key("m-199") && !m.contains_key("m-200"));
+        assert!(!text.contains("m-200"), "{text}");
     }
 }

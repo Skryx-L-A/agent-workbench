@@ -75,14 +75,25 @@ pub struct Sitzung {
 }
 
 impl Sitzung {
-    /// "läuft" or "beendet, Code <n>".
+    /// The state as one line, the only text of it in both views (words of [`crate::woerter`]): „läuft“, „beendet · Code 129“ or
+    /// „abgestürzt · Code 137“.
     #[must_use]
     pub fn zustand_text(&self) -> String {
+        use crate::woerter::{CODE, TRENNER, ZUSTAND_ABGESTUERZT, ZUSTAND_BEENDET, ZUSTAND_LAEUFT};
         if self.laeuft {
-            "läuft".to_owned()
+            ZUSTAND_LAEUFT.to_owned()
+        } else if self.abgestuerzt() {
+            format!("{ZUSTAND_ABGESTUERZT}{TRENNER}{CODE} {}", self.code)
         } else {
-            format!("beendet, Code {}", self.code)
+            format!("{ZUSTAND_BEENDET}{TRENNER}{CODE} {}", self.code)
         }
+    }
+
+    /// Whether its program can continue or revive it: opencode cannot (`lauf` ends with 69 `lauf.fortsetzung_unmoeglich`), so
+    /// neither view offers „Fortsetzen“ or „Wiederbeleben“ for it.
+    #[must_use]
+    pub fn fortsetzbar(&self) -> bool {
+        !OHNE_FORTSETZUNG.contains(&self.harness.as_str())
     }
 
     /// The name shown: the name of L5 when it is not empty, else the id.
@@ -128,6 +139,12 @@ impl Sitzung {
             .collect()
     }
 }
+
+/// The programs that cannot continue a conversation (decision of 27.11.2026: opencode).
+pub const OHNE_FORTSETZUNG: [&str; 1] = ["opencode"];
+
+/// The text of [`Verbindung::Zu`] after the end of the stream; only then a reload helps (B05 with „Neu laden“).
+pub const GETRENNT: &str = "getrennt";
 
 /// The state of the connection to the bridge.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -231,6 +248,10 @@ pub struct Kern {
     /// The kinds of event this connection carries (`dienst` DI-E5, message `Ereignisliste`); `None` before the message, without it
     /// or in another form. Each connection has its own list.
     pub ereignisse: Option<Vec<String>>,
+    /// The protection layers in effect (message `Schutzstand`, proposal); `None` until the service sends it.
+    pub schutz: Option<ziel::Schutzstand>,
+    /// The deadlines per MCP server (message `Fristen`); `None` until the service sends it.
+    pub fristen: Option<Vec<ziel::Frist>>,
 }
 
 impl Default for Kern {
@@ -262,6 +283,8 @@ impl Default for Kern {
             pane: None,
             worker_abos: HashMap::new(),
             ereignisse: None,
+            schutz: None,
+            fristen: None,
         }
     }
 }
@@ -312,9 +335,9 @@ impl Kern {
     }
 
     /// The stream ended.
+    /// The pictures stay: every terminal keeps its last picture after the end, and no frame is taken any more.
     pub fn ende(&mut self) -> Vec<Wirkung> {
-        self.empfang = None;
-        self.verbindung = Verbindung::Zu("getrennt, Seite neu laden");
+        self.verbindung = Verbindung::Zu(GETRENNT);
         vec![Wirkung::Ansage("Verbindung getrennt".into())]
     }
 
@@ -352,6 +375,9 @@ impl Kern {
     }
 
     fn raster(&mut self, nutz: &[u8], jetzt: f64) -> Vec<Wirkung> {
+        if matches!(self.verbindung, Verbindung::Zu(_)) {
+            return Vec::new();
+        }
         let Some(empfang) = self.empfang.as_mut() else {
             return Vec::new();
         };
@@ -423,6 +449,16 @@ impl Kern {
         }
     }
 
+    /// The two messages of the page of supervision, `Schutzstand` and `Fristen`: information only.
+    fn aufsicht_nehmen(&mut self, n: &Value) -> Vec<Wirkung> {
+        if n.get("art").and_then(Value::as_str) == Some("Fristen") {
+            self.fristen = ziel::fristen_lesen(n);
+        } else {
+            self.schutz = ziel::schutzstand_lesen(n);
+        }
+        Vec::new()
+    }
+
     fn nachricht(&mut self, n: &Value, groesse: (usize, usize)) -> Vec<Wirkung> {
         match n.get("art").and_then(Value::as_str) {
             Some("Sitzungsliste") => self.sitzungsliste(n, groesse),
@@ -430,6 +466,7 @@ impl Kern {
                 self.start.startwahl(n);
                 Vec::new()
             }
+            Some("Schutzstand" | "Fristen") => self.aufsicht_nehmen(n),
             Some("Ereignisliste") => {
                 self.ereignisse = ziel::ereignisliste_lesen(n);
                 Vec::new()
@@ -969,6 +1006,20 @@ mod tests {
     }
 
     #[test]
+    fn a_session_of_opencode_is_not_continued() {
+        let mut k = Kern::default();
+        k.offen(false);
+        liste(
+            &mut k,
+            &json!({"art": "Sitzungsliste", "sitzungen": [
+                {"id": "s-1", "zustand": "beendet", "code": 0, "harness": "opencode"},
+                {"id": "s-2", "zustand": "beendet", "code": 0, "harness": "pi"}]}),
+        );
+        assert!(!k.sitzungen[0].fortsetzbar());
+        assert!(k.sitzungen[1].fortsetzbar());
+    }
+
+    #[test]
     fn the_first_list_subscribes_the_first_running_session() {
         let mut k = Kern::default();
         k.offen(false);
@@ -987,7 +1038,7 @@ mod tests {
                 Wirkung::FokusTerminal
             ]
         );
-        assert_eq!(k.sitzungen[0].zustand_text(), "beendet, Code 1");
+        assert_eq!(k.sitzungen[0].zustand_text(), "beendet · Code 1");
         // the next list announces the end once
         let w = liste(
             &mut k,

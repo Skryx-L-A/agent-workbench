@@ -1073,7 +1073,10 @@ fn antwortform_nennt_modellnamen_und_fehlercode() {
     .expect("line");
     assert_eq!(
         v["werte"],
-        json!({"data[].id": ["claude-sonnet-5.5", "gpt-6-luna"], "error.code": null})
+        json!({"anfrage.reasoning.effort": null, "anfrage.reasoning_effort": null,
+            "data[].id": ["claude-sonnet-5.5", "gpt-6-luna"], "error.code": null,
+            "modelle": {"claude-sonnet-5.5": {"capabilities.supports.reasoning_effort": null, "policy.state": null},
+                "gpt-6-luna": {"capabilities.supports.reasoning_effort": null, "policy.state": null}}})
     );
     assert_eq!(v["wert_verworfen"], 1);
     for fremd in ["name-wert", "tok-wert", "gpt 6"] {
@@ -1085,7 +1088,7 @@ fn antwortform_nennt_modellnamen_und_fehlercode() {
     assert_eq!(d.antwortform_zahl(), 2);
     let zeile = d.antwortform_letzte().expect("the journal line");
     assert!(
-        zeile.contains(r#""werte":{"data[].id":[],"error.code":"model_not_supported"}"#),
+        zeile.contains(r#""werte":{"anfrage.reasoning.effort":null,"anfrage.reasoning_effort":null,"data[].id":[],"error.code":"model_not_supported","modelle":{}}"#),
         "{zeile}"
     );
     assert!(zeile.contains(r#""status":400"#), "{zeile}");
@@ -1098,6 +1101,124 @@ fn antwortform_nennt_modellnamen_und_fehlercode() {
             "{wert} not in the chain"
         );
     }
+}
+
+/// The reasoning effort of a chat request and the levels of the model list (decision of the operator, 27.11.2026):
+/// with the switch the line of `GET /models` names `policy.state` and the levels of each model, and the line of an
+/// answer 400 to `POST /chat/completions` names the effort of the request, a known level as itself, any other as
+/// `anderer`, never its text. The requests and answers pass unchanged; no value stands in the chain.
+#[test]
+fn antwortform_nennt_effort_und_stufen() {
+    let modelle = br#"{"data":[{"id":"gpt-6-luna","policy":{"state":"enabled","terms":"t-wert"},"capabilities":{"supports":{"reasoning_effort":["none","low","medium","high","xhigh","max"]}}},{"id":"gpt-4.1","policy":{"state":"enabled"}}]}"#;
+    let fehler = br#"{"error":{"code":"invalid_reasoning_effort","message":"nachricht-wert"}}"#;
+    let a = attrappe(vec![
+        vec![http(
+            "200 OK",
+            "content-type: application/json\r\n",
+            modelle,
+        )],
+        vec![http(
+            "400 Bad Request",
+            "content-type: application/json\r\n",
+            fehler,
+        )],
+        vec![http(
+            "400 Bad Request",
+            "content-type: application/json\r\n",
+            fehler,
+        )],
+        vec![http("200 OK", "content-type: application/json\r\n", b"{}")],
+    ]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(a.port, &heim, &ERSTSTART, Some(&ERSTSTART));
+    let mut c = verbinden(&d);
+    let letzte = |d: &Dienst| -> Value {
+        let z = d.antwortform_letzte().expect("the journal line");
+        serde_json::from_str(
+            z.strip_prefix("halter.antwortform: ")
+                .expect("prefix")
+                .trim_end(),
+        )
+        .expect("line")
+    };
+    c.senden(&aufruf("GET", "/models", b""));
+    assert_eq!(teil_bytes(&c.bis_schluss()), modelle);
+    let v = letzte(&d);
+    assert_eq!(
+        v["werte"]["modelle"],
+        json!({"gpt-4.1": {"capabilities.supports.reasoning_effort": null, "policy.state": "enabled"},
+            "gpt-6-luna": {"capabilities.supports.reasoning_effort": ["none","low","medium","high","xhigh","max"], "policy.state": "enabled"}})
+    );
+    assert_eq!(v["werte"]["anfrage.reasoning_effort"], Value::Null);
+    // an unknown effort: `anderer`, the text of the request stands nowhere
+    let unbekannt = br#"{"model":"gpt-6-luna","reasoning_effort":"stufe-wert-0815","messages":[]}"#;
+    c.senden(&aufruf("POST", "/chat/completions", unbekannt));
+    assert_eq!(teil_bytes(&c.bis_schluss()), fehler);
+    let v = letzte(&d);
+    assert_eq!(v["werte"]["anfrage.reasoning_effort"], "anderer");
+    assert_eq!(v["werte"]["error.code"], "invalid_reasoning_effort");
+    assert_eq!(v["status"], 400);
+    // a known effort below `reasoning`
+    c.senden(&aufruf(
+        "POST",
+        "/chat/completions",
+        br#"{"reasoning":{"effort":"xhigh"}}"#,
+    ));
+    assert_eq!(teil_bytes(&c.bis_schluss()), fehler);
+    let v = letzte(&d);
+    assert_eq!(v["werte"]["anfrage.reasoning.effort"], "xhigh");
+    assert_eq!(v["werte"]["anfrage.reasoning_effort"], Value::Null);
+    // without an effort both stay `null`
+    c.senden(&aufruf(
+        "POST",
+        "/chat/completions",
+        br#"{"model":"gpt-6-luna"}"#,
+    ));
+    assert_eq!(c.bis_schluss().last().expect("end")["ok"], json!(true));
+    let v = letzte(&d);
+    assert_eq!(v["werte"]["anfrage.reasoning_effort"], Value::Null);
+    assert_eq!(v["werte"]["anfrage.reasoning.effort"], Value::Null);
+    assert_eq!(d.antwortform_zahl(), 4);
+    // the requests reached the target unchanged
+    let anfragen = a.anfragen.lock().expect("lock");
+    assert_eq!(anfragen.len(), 4);
+    assert_eq!(zaehlen(&anfragen[1], unbekannt), 1);
+    drop(anfragen);
+    let zeile = d.antwortform_letzte().expect("line");
+    for fremd in ["stufe-wert-0815", "nachricht-wert", "t-wert"] {
+        assert_eq!(zaehlen(zeile.as_bytes(), fremd.as_bytes()), 0, "{fremd}");
+    }
+    let k = kette_text(&heim);
+    for wert in [
+        "stufe-wert-0815",
+        "anderer",
+        "invalid_reasoning_effort",
+        "xhigh",
+        "enabled",
+    ] {
+        assert_eq!(
+            zaehlen(k.as_bytes(), wert.as_bytes()),
+            0,
+            "{wert} not in the chain"
+        );
+    }
+}
+
+/// Without the switch a chat request with an effort gives no line.
+#[test]
+fn ohne_schalter_kein_effort() {
+    let a = attrappe(vec![vec![http("200 OK", "", b"{}")]]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(a.port, &heim, &ERSTSTART, None);
+    let mut c = verbinden(&d);
+    c.senden(&aufruf(
+        "POST",
+        "/chat/completions",
+        br#"{"reasoning_effort":"high"}"#,
+    ));
+    assert_eq!(c.bis_schluss().last().expect("end")["ok"], json!(true));
+    assert_eq!(d.antwortform_zahl(), 0);
+    assert_eq!(d.antwortform_letzte(), None);
 }
 
 /// Without the switch `GET /models` gives no line and no value.

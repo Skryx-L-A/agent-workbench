@@ -7,4 +7,4 @@ erster re crates/halter/src/main.rs:52:9: replace linux::orte -> Orte with Defau
 
 # halter, `Sammler::neu`: its body is `Sammler::default()`, so `Default::default()` is the same call (measured: the
 # struct derives `Default`, and `neu` adds nothing to it).
-gleichwertig re crates/halter/src/antwortform.rs:98:9: replace Sammler::neu -> Self with Default::default\(\)
+gleichwertig re crates/halter/src/antwortform.rs:308:9: replace Sammler::neu -> Self with Default::default\(\)

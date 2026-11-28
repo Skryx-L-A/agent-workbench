@@ -20,6 +20,7 @@ use crate::oberflaeche::{
     symbol_kreuz, symbol_schild, token, wirken,
 };
 use crate::start::Wahlfeld;
+use crate::woerter::{self, TRENNER};
 use crate::ziel::{self, Einstellung};
 
 fn schliessen(a: A) {
@@ -63,14 +64,24 @@ fn wahl(
     }
 }
 
-fn option_text(s: &Sitzung) -> String {
-    let mut t = vec![s.anzeigename().to_owned()];
-    // the id after a name; a session without a name shows its id once
-    if s.anzeigename() != s.id {
-        t.push(s.id.clone());
+/// The id after a name; a session without a name shows its id once.
+fn option_id(s: &Sitzung) -> Option<String> {
+    (s.anzeigename() != s.id).then(|| s.id.clone())
+}
+
+/// The known sessions grouped by working folder like today (F1), in the order of their first session; without any folder (before
+/// L5) one group without a heading.
+fn nach_ordner(sitzungen: &[Sitzung]) -> Vec<(Option<String>, Vec<Sitzung>)> {
+    let mit_ordner = sitzungen.iter().any(|s| s.ordner().is_some());
+    let mut gruppen: Vec<(Option<String>, Vec<Sitzung>)> = Vec::new();
+    for s in sitzungen {
+        let o = mit_ordner.then(|| s.ordner().unwrap_or(woerter::OHNE_ORDNER).to_owned());
+        match gruppen.iter_mut().find(|(x, _)| *x == o) {
+            Some((_, l)) => l.push(s.clone()),
+            None => gruppen.push((o, vec![s.clone()])),
+        }
     }
-    t.extend(s.teile().iter().map(|x| (*x).to_owned()));
-    format!("{}, {}", t.join(" "), s.zustand_text())
+    gruppen
 }
 
 /// The window "Sitzungen" (F1, B68): the known sessions, the start form, "Beenden" and "Fortsetzen" for the chosen one.
@@ -88,33 +99,39 @@ pub(crate) fn sitzungen(a: A) -> Element {
         .and_then(|g| sitzungen.iter().find(|s| s.id == *g).cloned());
     let aktiv_opt = gewaehlt.as_ref().map(|s| format!("opt-{}", s.id));
     let info = gewaehlt.as_ref().map_or_else(
-        || "Eine Sitzung wählen: Beenden und Fortsetzen gelten für sie.".to_owned(),
+        || woerter::SITZUNG_WAEHLEN.to_owned(),
         |s| {
             let mut t = vec![s.anzeigename().to_owned(), s.zustand_text()];
             if let Some(o) = s.ordner() {
                 t.push(o.to_owned());
             }
-            t.join(" · ")
+            t.join(TRENNER)
         },
     );
     let beenden_grund = match &gewaehlt {
-        None => "Keine Sitzung gewählt",
-        Some(s) if !s.laeuft => "Sitzung ist beendet",
+        None => woerter::GRUND_KEINE_GEWAEHLT,
+        Some(s) if !s.laeuft => woerter::GRUND_IST_BEENDET,
         Some(_) => "",
     };
     let fortsetzen_grund = match &gewaehlt {
-        None => "Keine Sitzung gewählt",
-        Some(s) if s.laeuft => "Sitzung läuft",
+        None => woerter::GRUND_KEINE_GEWAEHLT,
+        Some(s) if s.laeuft => woerter::GRUND_LAEUFT,
+        Some(s) if !s.fortsetzbar() => woerter::GRUND_NICHT_FORTSETZBAR,
         Some(s)
             if s.herkunft
                 .as_ref()
                 .is_some_and(|h| h.fortgesetzt_als.is_some()) =>
         {
-            "Sitzung ist schon fortgesetzt"
+            woerter::GRUND_SCHON_FORTGESETZT
         }
         Some(_) => "",
     };
-    let ids: Vec<String> = sitzungen.iter().map(|s| s.id.clone()).collect();
+    let gruppen = nach_ordner(&sitzungen);
+    // the arrow keys follow the order on screen
+    let ids: Vec<String> = gruppen
+        .iter()
+        .flat_map(|(_, l)| l.iter().map(|s| s.id.clone()))
+        .collect();
     let ids2 = ids.clone();
     // Name with version 2 of the start structure (`Startwahl` with `fassung: 2`), whatever the route; Effort only while the chosen
     // route carries efforts (decision of 27.11.2026; SE2 point 2, SE7 point 2)
@@ -130,7 +147,7 @@ pub(crate) fn sitzungen(a: A) -> Element {
             div { class: "fenster-kopf", h2 { "Sitzungen" } }
             div { class: "fenster-leib",
                 div { class: "fenster-spalte liste-spalte",
-                    p { class: "fenster-hinweis", "Jede bekannte Sitzung, auch die beendeten." }
+                    p { class: "fenster-hinweis", {woerter::SITZUNGEN_HINWEIS} }
                     ul { class: "bekannte", id: "bekannte", role: "listbox", tabindex: "0", "aria-label": "Bekannte Sitzungen",
                         "aria-activedescendant": aktiv_opt,
                         onkeydown: move |e: KeyboardEvent| {
@@ -147,22 +164,38 @@ pub(crate) fn sitzungen(a: A) -> Element {
                             };
                             w.set(Some(ids[n].clone()));
                         },
-                        for s in sitzungen.iter() {
-                            {
-                                let id = s.id.clone();
-                                let gew = gewaehlt_id.as_deref() == Some(s.id.as_str());
-                                rsx! {
-                                    li { key: "{s.id}", id: "opt-{s.id}", role: "option", class: if gew { "option gewaehlt" } else { "option" },
-                                        "aria-selected": if gew { "true" } else { "false" },
-                                        onclick: move |_| { let mut w = a.fensterwahl; w.set(Some(id.clone())); fokus("bekannte"); },
-                                        span { class: punkt_klasse(Some(s)) }
-                                        span { class: "option-leib", "{option_text(s)}" }
+                        for (ordner, liste) in gruppen {
+                            li { key: "g-{ordner.clone().unwrap_or_default()}", role: "group", class: "ordner-gruppe",
+                                "aria-label": ordner.clone(),
+                                if let Some(o) = ordner.clone() {
+                                    div { class: "ordner-kopf", "aria-hidden": "true", title: "{o}", span { dir: "ltr", "{o}" } }
+                                }
+                                ul { class: "ordner-sitzungen", role: "presentation",
+                                    for s in liste {
+                                        {
+                                            let id = s.id.clone();
+                                            let gew = gewaehlt_id.as_deref() == Some(s.id.as_str());
+                                            let kennung = option_id(&s);
+                                            let zustand = s.zustand_text();
+                                            rsx! {
+                                                li { key: "{s.id}", id: "opt-{s.id}", role: "option", class: if gew { "option gewaehlt" } else { "option" },
+                                                    "aria-selected": if gew { "true" } else { "false" },
+                                                    onclick: move |_| { let mut w = a.fensterwahl; w.set(Some(id.clone())); fokus("bekannte"); },
+                                                    span { class: punkt_klasse(Some(&s)) }
+                                                    span { class: "option-leib",
+                                                        span { class: "option-name", "{s.anzeigename()}" }
+                                                        if let Some(k) = kennung { " " span { class: "option-id", "{k}" } }
+                                                        span { class: "option-zustand", "{TRENNER}{zustand}" }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                    if ids2.is_empty() { p { class: "fenster-hinweis", "Noch keine Sitzung." } }
+                    if ids2.is_empty() { p { class: "fenster-hinweis", {woerter::KEINE_SITZUNG_BEKANNT} } }
                 }
                 form { class: "fenster-spalte form-spalte", id: "start", "aria-label": "Sitzung starten",
                     onsubmit: move |e: FormEvent| {
@@ -183,24 +216,30 @@ pub(crate) fn sitzungen(a: A) -> Element {
                             div { class: "form-zeile",
                                 label { class: "form-name", r#for: "wahl-name", "Name" }
                                 input { class: "feld", id: "wahl-name", "data-testid": "name-eingabe", r#type: "text", value: "{f.name}",
-                                    placeholder: "optional", autocomplete: "off", spellcheck: "false",
+                                    placeholder: woerter::NAME_OPTIONAL, autocomplete: "off", spellcheck: "false",
                                     oninput: move |e: FormEvent| { let mut k = a.kern; k.write().start.name = e.value(); } }
                             }
                         }
                         div { class: "form-zeile",
                             label { class: "form-name", r#for: "wahl-arbeitsordner", "Arbeitsordner" }
                             input { class: "feld", id: "wahl-arbeitsordner", "data-testid": "arbeitsordner-eingabe", r#type: "text",
-                                value: "{f.arbeitsordner}", placeholder: "/pfad/zum/projekt",
+                                value: "{f.arbeitsordner}", placeholder: woerter::PFAD_PLATZHALTER,
                                 autocapitalize: "off", autocomplete: "off", "autocorrect": "off", spellcheck: "false",
                                 oninput: move |e: FormEvent| { let mut k = a.kern; k.write().start.arbeitsordner = e.value(); } }
                         }
                     }
                     h3 { class: "gruppe-titel", "Programm und Modell" }
                     div { class: "karte", "data-bw": "B69",
-                        {wahl(a, "wahl-harness", "harness-wahl", "Harness", f.harness.clone(), |k, v| k.start.harness_waehlen(&v))}
-                        {wahl(a, "wahl-modell", "modell-wahl", "Modell", f.modell.clone(), |k, v| k.start.modell.wert = v)}
+                        {wahl(a, "wahl-harness", "harness-wahl", woerter::PROGRAMM, f.harness.clone(), |k, v| k.start.harness_waehlen(&v))}
+                        {wahl(a, "wahl-modell", "modell-wahl", woerter::MODELL, f.modell.clone(), |k, v| k.start.modell.wert = v)}
                         if mit_effort {
-                            {wahl(a, "wahl-effort", "effort-wahl", "Effort", f.effort.clone(), |k, v| k.start.effort.wert = v)}
+                            {wahl(a, "wahl-effort", "effort-wahl", woerter::DENKSTUFE, f.effort.clone(), |k, v| k.start.effort.wert = v)}
+                        } else if f.fassung2 {
+                            // the row stays with its reason, the form does not jump; no field without effect (OF8)
+                            div { class: "form-zeile", "data-testid": "effort-grund",
+                                span { class: "form-name", {woerter::DENKSTUFE} }
+                                span { class: "form-grund", {woerter::GRUND_KEINE_DENKSTUFE} }
+                            }
                         }
                         {wahl(a, "wahl-route", "route-wahl", "Route", f.route.clone(), |k, v| k.start.route_waehlen(&v))}
                     }
@@ -222,12 +261,12 @@ pub(crate) fn sitzungen(a: A) -> Element {
                         let g = a.fensterwahl.peek().clone();
                         if let Some(g) = g { let w = a.kern.read().beenden(&g); wirken(a, w); }
                     },
-                    "Beenden" }
+                    {woerter::BEENDEN} }
                 if verwaltung {
                     button { r#type: "button", class: "knopf-rand", "data-testid": "sitzung-fortsetzen", "data-bw": "B11",
                         disabled: !fortsetzen_grund.is_empty(), title: "{fortsetzen_grund}",
                         onclick: move |_| { let g = a.fensterwahl.peek().clone(); if let Some(g) = g { senden(&ziel::fortsetzen(&g)); } },
-                        "Fortsetzen" }
+                        {woerter::FORTSETZEN} }
                 }
                 button { r#type: "button", class: "knopf-rand", "data-testid": "sitzungen-schliessen", "data-bw": "B76",
                     onclick: move |_| schliessen(a), "Schließen" }
@@ -287,7 +326,7 @@ pub(crate) fn loeschen(a: A, id: String) -> Element {
             onkeydown: move |e: KeyboardEvent| falle("frage", &e),
             onmounted: move |_| fokus("frage-nein"),
             h2 { "„{name}“ endgültig löschen?" }
-            p { class: "fenster-hinweis", "Die Sitzung verschwindet aus der Liste. Ihr Gespräch wird mit entfernt. Arbeitsordner und Protokoll bleiben erhalten." }
+            p { class: "fenster-hinweis", "Die Sitzung verschwindet aus der Liste. Dein Gespräch wird mit gelöscht. Arbeitsordner und Protokoll bleiben erhalten." }
             div { class: "form-fuss",
                 button { r#type: "button", id: "frage-nein", class: "knopf-rand", onclick: move |_| schliessen(a), "Abbrechen" }
                 button { r#type: "button", class: "knopf-voll gefahr", onclick: move |_| { senden(&ziel::loeschen(&id)); schliessen(a); }, "Endgültig löschen" }
@@ -303,159 +342,158 @@ pub(crate) fn loeschen(a: A, id: String) -> Element {
 const SEITEN_NUTZER: [(&str, &str, &str); 4] = [
     (
         "aussehen",
-        "Aussehen",
-        "Farben und Schrift auf diesem Gerät.",
+        woerter::seite::AUSSEHEN,
+        woerter::seite::AUSSEHEN_KURZ,
     ),
-    ("sitzung", "Sitzung", "Vorgaben für neue Sitzungen."),
+    (
+        "sitzung",
+        woerter::seite::SITZUNG,
+        woerter::seite::SITZUNG_KURZ,
+    ),
     (
         "modelle",
-        "Harnesses und Modelle",
-        "Deine Auswahl aus der Freigabe.",
+        woerter::seite::PROGRAMME,
+        woerter::seite::PROGRAMME_KURZ,
     ),
-    ("regeln", "Regeln", "Was gerade für dich gilt."),
+    (
+        "regeln",
+        woerter::seite::REGELN,
+        woerter::seite::REGELN_KURZ,
+    ),
 ];
 /// The pages of the admin area.
 const SEITEN_ADMIN: [(&str, &str, &str); 4] = [
     (
         "admin.modelle",
-        "Harnesses und Modelle",
-        "Freigabe und Effort je Stufe.",
+        woerter::seite::PROGRAMME,
+        woerter::seite::PROGRAMME_ADMIN_KURZ,
     ),
     (
         "admin.erlaubnisse",
-        "Erlaubnisse",
-        "Was Worker ohne Rückfrage dürfen.",
+        woerter::seite::ERLAUBNISSE,
+        woerter::seite::ERLAUBNISSE_KURZ,
     ),
     (
         "admin.aufsicht",
-        "Aufsicht und Wachen",
-        "Wer mitliest und eingreift.",
+        woerter::seite::AUFSICHT,
+        woerter::seite::AUFSICHT_KURZ,
     ),
     (
         "admin.routen",
-        "Routen und Datenklassen",
-        "Wohin welche Daten gehen.",
+        woerter::seite::ROUTEN,
+        woerter::seite::ROUTEN_KURZ,
     ),
 ];
 
-/// The keys of the catalog of the pilot (`regelebenen` 15.1) with page, group, title and a description of at most one line. The keys
-/// `aussehen.*` and `terminal.schriftgroesse` stay on the page "Aussehen" of this device (L8) and are not listed here.
-const KATALOG: [(&str, &str, &str, &str, &str); 13] = [
+/// The keys of the catalog of the pilot (`regelebenen` 15.1) with page and group; title and description come from
+/// [`woerter::werte`]. The keys `aussehen.*` and `terminal.schriftgroesse` stay on the page "Aussehen" of this device (L8).
+const KATALOG: [(&str, &str, woerter::Zeile); 15] = [
     (
-        "sitzung.harness",
         "sitzung",
-        "Neue Sitzungen",
-        "Harness",
-        "Womit eine neue Sitzung startet.",
+        woerter::gruppe::NEUE_SITZUNGEN,
+        woerter::werte::HARNESS,
     ),
     (
-        "sitzung.modell",
         "sitzung",
-        "Neue Sitzungen",
-        "Modell",
-        "Vorgabe für das Modell.",
+        woerter::gruppe::NEUE_SITZUNGEN,
+        woerter::werte::MODELL,
     ),
     (
-        "sitzung.effort",
         "sitzung",
-        "Neue Sitzungen",
-        "Effort",
-        "Wie gründlich das Modell denkt.",
+        woerter::gruppe::NEUE_SITZUNGEN,
+        woerter::werte::EFFORT,
     ),
     (
-        "harnesses",
         "admin.modelle",
-        "Freigabe",
-        "Harnesses je Datenklasse",
-        "Was Nutzer je Klasse wählen dürfen.",
+        woerter::gruppe::FREIGABE,
+        woerter::werte::HARNESSES,
     ),
     (
-        "modelle",
         "admin.modelle",
-        "Freigabe",
-        "Modelle je Datenklasse",
-        "Was Nutzer je Klasse wählen dürfen.",
+        woerter::gruppe::FREIGABE,
+        woerter::werte::MODELLE,
     ),
     (
-        "effort.grenzen",
         "admin.modelle",
-        "Effort",
-        "Grenzen des Efforts",
-        "Höchster Effort je Harness und Klasse.",
+        woerter::gruppe::EFFORT,
+        woerter::werte::EFFORT_GRENZEN,
     ),
     (
-        "optionen.copilot_ohne_rueckfrage",
         "admin.erlaubnisse",
-        "Copilot",
-        "Ohne Rückfrage",
-        "Werkzeuge der Firmenliste ohne Frage.",
+        woerter::gruppe::COPILOT,
+        woerter::werte::OHNE_RUECKFRAGE,
     ),
     (
-        "optionen.copilot_telemetrie",
         "admin.erlaubnisse",
-        "Copilot",
-        "Telemetrie",
-        "Das Telemetrie-Ziel der Copilot CLI.",
+        woerter::gruppe::COPILOT,
+        woerter::werte::TELEMETRIE,
     ),
     (
-        "optionen.copilot_eingeschraenktes_token",
         "admin.erlaubnisse",
-        "Copilot",
-        "Eingeschränktes Token",
-        "Statt der Geräte-Anmeldung.",
+        woerter::gruppe::COPILOT,
+        woerter::werte::TOKEN,
     ),
     (
-        "optionen.lokale_ca",
         "admin.erlaubnisse",
-        "Netz",
-        "Lokale CA zulassen",
-        "Cloud-Sitzungen über die lokale CA.",
+        woerter::gruppe::NETZ,
+        woerter::werte::LOKALE_CA,
     ),
     (
-        "optionen.herstellerzugang",
         "admin.erlaubnisse",
-        "Hersteller",
-        "Herstellerzugang",
-        "Zugang des Herstellers.",
+        woerter::gruppe::HERSTELLER,
+        woerter::werte::HERSTELLERZUGANG,
     ),
     (
-        "optionen.herabstufen",
         "admin.routen",
-        "Datenklassen",
-        "Herabstufen",
-        "Die Automatik darf eine Klasse senken.",
+        woerter::gruppe::DATENKLASSEN,
+        woerter::werte::HERABSTUFEN,
     ),
     (
-        "leseklassen",
         "admin.routen",
-        "Datenklassen",
-        "Leseklassen",
-        "Wer welche Klasse lesen darf.",
+        woerter::gruppe::DATENKLASSEN,
+        woerter::werte::LESEKLASSEN,
+    ),
+    (
+        "admin.aufsicht",
+        woerter::gruppe::FRISTEN,
+        woerter::werte::FREIGABEFRIST,
+    ),
+    (
+        "admin.aufsicht",
+        woerter::gruppe::FRISTEN,
+        woerter::werte::EINLOESEFRIST,
     ),
 ];
 
 fn seite_von(schluessel: &str) -> &'static str {
     KATALOG
         .iter()
-        .find(|(k, ..)| *k == schluessel)
-        .map_or("", |(_, s, ..)| *s)
+        .find(|(_, _, (k, ..))| *k == schluessel)
+        .map_or("", |(s, ..)| *s)
 }
 
 fn katalog(schluessel: &str) -> (String, String, String) {
-    KATALOG.iter().find(|(k, ..)| *k == schluessel).map_or_else(
-        || ("Weitere".into(), schluessel.to_owned(), String::new()),
-        |(_, _, g, t, b)| ((*g).to_owned(), (*t).to_owned(), (*b).to_owned()),
-    )
+    KATALOG
+        .iter()
+        .find(|(_, _, (k, ..))| *k == schluessel)
+        .map_or_else(
+            || ("Weitere".into(), schluessel.to_owned(), String::new()),
+            |(_, g, (_, t, b))| ((*g).to_owned(), (*t).to_owned(), (*b).to_owned()),
+        )
 }
 
 /// The origin as text (`regelebenen` 15.5): "Firma", "Gruppe <name>" or "du".
 fn herkunft_text(e: &Einstellung) -> String {
     match e.herkunft.as_str() {
-        "firma" => "Firma".into(),
-        "gruppe" => format!("Gruppe {}", e.gruppe.clone().unwrap_or_default())
-            .trim()
-            .to_owned(),
-        "nutzer" => "du".into(),
+        "firma" => woerter::HERKUNFT_FIRMA.into(),
+        "gruppe" => format!(
+            "{} {}",
+            woerter::HERKUNFT_GRUPPE,
+            e.gruppe.clone().unwrap_or_default()
+        )
+        .trim()
+        .to_owned(),
+        "nutzer" => woerter::HERKUNFT_DU.into(),
         x => x.to_owned(),
     }
 }
@@ -463,10 +501,123 @@ fn herkunft_text(e: &Einstellung) -> String {
 fn wert_text(v: &Value) -> String {
     match v {
         Value::String(s) => s.clone(),
-        Value::Bool(true) => "an".into(),
-        Value::Bool(false) => "aus".into(),
+        Value::Bool(true) => woerter::AN.into(),
+        Value::Bool(false) => woerter::AUS.into(),
         Value::Null => "–".into(),
         x => x.to_string(),
+    }
+}
+
+/// The choices of the user for model and effort when the catalog names none: the models of the routes and every effort the admins
+/// allow on a route (`Startwahl`); the effective value stays a choice even when no route names it.
+fn wahlen_ergaenzen(werte: &mut [Einstellung], start: &crate::start::Startform) {
+    let mut modelle: Vec<String> = start
+        .modelle
+        .iter()
+        .filter_map(|(_, m)| m.clone())
+        .collect();
+    let mut efforts: Vec<String> = Vec::new();
+    for e in start.efforts.iter().flat_map(|(_, l)| l.iter()) {
+        for x in &e.erlaubt {
+            if !efforts.contains(x) {
+                efforts.push(x.clone());
+            }
+        }
+    }
+    for e in werte.iter_mut().filter(|e| e.wahl.is_empty()) {
+        let mut wahl = match e.schluessel.as_str() {
+            "sitzung.modell" => std::mem::take(&mut modelle),
+            "sitzung.effort" => efforts.clone(),
+            _ => continue,
+        };
+        if wahl.is_empty() {
+            continue;
+        }
+        if let Some(w) = e.wert.as_str()
+            && !wahl.iter().any(|x| x == w)
+        {
+            wahl.insert(0, w.to_owned());
+        }
+        wahl.dedup();
+        e.wahl = wahl;
+    }
+}
+
+/// A deadline in milliseconds in the largest whole unit, like the app window: „30 s“, „5 min“, „24 h“, else in milliseconds.
+fn frist_text(ms: u64) -> String {
+    match ms {
+        m if m >= 3_600_000 && m % 3_600_000 == 0 => format!("{} h", m / 3_600_000),
+        m if m >= 60_000 && m % 60_000 == 0 => format!("{} min", m / 60_000),
+        m if m >= 1000 && m % 1000 == 0 => format!("{} s", m / 1000),
+        m => format!("{m} ms"),
+    }
+}
+
+/// The choices of a deadline of a release (`regelebenen` 15.1.2) with the effective value when it is none of them.
+fn frist_wahlen(feste: &[u64], wert: &Value) -> Vec<u64> {
+    let mut l: Vec<u64> = feste.to_vec();
+    if let Some(w) = wert.as_u64()
+        && !l.contains(&w)
+    {
+        l.push(w);
+        l.sort_unstable();
+    }
+    l
+}
+
+/// A list of names as text: „claude, copilot“; an empty list allows nothing.
+fn namen_text(v: &Value) -> String {
+    match v {
+        Value::Array(l) if l.is_empty() => "keine Freigabe".into(),
+        Value::Array(l) => l.iter().map(wert_text).collect::<Vec<_>>().join(", "),
+        x => wert_text(x),
+    }
+}
+
+/// A value of an object or a list in plain text, one line each (`regelebenen` 15.1): a list per data class („intern: claude,
+/// copilot“), a limit of the effort („copilot · kundendaten: low“), never raw JSON.
+fn klartext(schluessel: &str, v: &Value) -> Vec<String> {
+    match v {
+        Value::Object(o) if o.is_empty() => {
+            vec![if schluessel == "harnesses" || schluessel == "modelle" {
+                "keine Einschränkung".into()
+            } else {
+                "keine Angabe".into()
+            }]
+        }
+        Value::Object(o) => o
+            .iter()
+            .map(|(k, w)| format!("{k}: {}", namen_text(w)))
+            .collect(),
+        Value::Array(l) if l.is_empty() => vec![if schluessel == "effort.grenzen" {
+            "kein Effort wählbar".into()
+        } else {
+            "keine Angabe".into()
+        }],
+        Value::Array(l) => l
+            .iter()
+            .map(|e| match e {
+                Value::Object(o) if o.contains_key("erlaubt") => {
+                    let wer: Vec<String> = ["harness", "modell", "klasse"]
+                        .iter()
+                        .filter_map(|f| o.get(*f).map(wert_text))
+                        .collect();
+                    let wer = if wer.is_empty() {
+                        "alle".to_owned()
+                    } else {
+                        wer.join(crate::woerter::TRENNER)
+                    };
+                    format!("{wer}: {}", namen_text(&o["erlaubt"]))
+                }
+                Value::Object(o) => o
+                    .iter()
+                    .map(|(k, w)| format!("{k}: {}", namen_text(w)))
+                    .collect::<Vec<_>>()
+                    .join(crate::woerter::TRENNER),
+                x => wert_text(x),
+            })
+            .collect(),
+        x => vec![wert_text(x)],
     }
 }
 
@@ -505,9 +656,17 @@ fn symbol_schloss() -> Element {
 #[allow(clippy::too_many_lines)]
 pub(crate) fn einstellungen(a: A, seite: &'static str) -> Element {
     let k = a.kern.read();
-    let werte = k.ziel_einstellungen.clone();
+    let mut werte = k.ziel_einstellungen.clone();
+    // model and effort of the user are choices (E2): the models of the routes and the efforts the admins allow, from `Startwahl`
+    if let Some(w) = werte.as_mut() {
+        wahlen_ergaenzen(w, &k.start);
+    }
     // the area of the admins only when `Einstellungen` version 2 says `admin: true` (`regelebenen` 15.10, B78)
     let admin = werte.is_some() && k.admin;
+    // the protection layers in effect: information on the page "Aufsicht und Meldungen", only with the message (OF8 point 3)
+    let schutz = k.schutz.clone();
+    let fristen = k.fristen.clone();
+    let auskunft = schutz.is_some() || fristen.is_some();
     drop(k);
     let hat = |seite: &str| {
         werte
@@ -523,7 +682,7 @@ pub(crate) fn einstellungen(a: A, seite: &'static str) -> Element {
     let admin_seiten: Vec<(&str, &str, &str)> = SEITEN_ADMIN
         .iter()
         .copied()
-        .filter(|(k, ..)| admin && hat(k))
+        .filter(|(k, ..)| admin && (hat(k) || (*k == "admin.aufsicht" && auskunft)))
         .collect();
     let seite = if nutzer_seiten
         .iter()
@@ -541,6 +700,9 @@ pub(crate) fn einstellungen(a: A, seite: &'static str) -> Element {
         .copied()
         .unwrap_or(SEITEN_NUTZER[0]);
     let ist_admin_seite = seite.starts_with("admin.");
+    let schutz_hier = schutz.filter(|_| seite == "admin.aufsicht");
+    let fristen_hier = fristen.filter(|_| seite == "admin.aufsicht");
+    let auskunft_hier = schutz_hier.is_some() || fristen_hier.is_some();
     rsx! {
         div { class: "fenster-grund" }
         div { class: "fenster einstellungen", id: "einstellungen-fenster", role: "dialog", "aria-modal": "true", "aria-label": "Einstellungen",
@@ -548,7 +710,7 @@ pub(crate) fn einstellungen(a: A, seite: &'static str) -> Element {
             onkeydown: move |e: KeyboardEvent| falle("einstellungen-fenster", &e),
             onmounted: move |_| fokus("seite-aktiv"),
             nav { class: "einst-seiten", "aria-label": "Seiten der Einstellungen",
-                h3 { class: "einst-bereich", "Für dich" }
+                h3 { class: "einst-bereich", {woerter::BEREICH_NUTZER} }
                 for (k, n, _) in nutzer_seiten {
                     button { key: "{k}", r#type: "button", class: if k == seite { "einst-seite gewaehlt" } else { "einst-seite" },
                         id: if k == seite { "seite-aktiv" } else { "" },
@@ -560,7 +722,7 @@ pub(crate) fn einstellungen(a: A, seite: &'static str) -> Element {
                 }
                 if admin {
                     div { class: "admin-bereich", "data-testid": "admin-einstellungen", "data-bw": "B78",
-                        h3 { class: "einst-bereich", "Verwaltung" span { class: "marke admin", "Admin" } }
+                        h3 { class: "einst-bereich", {woerter::VERWALTUNG} span { class: "marke admin", {woerter::ADMIN} } }
                         for (k, n, _) in admin_seiten {
                             button { key: "{k}", r#type: "button", class: if k == seite { "einst-seite gewaehlt" } else { "einst-seite" },
                                 id: if k == seite { "seite-aktiv" } else { "" },
@@ -577,16 +739,209 @@ pub(crate) fn einstellungen(a: A, seite: &'static str) -> Element {
                 div { class: "einst-kopf",
                     span { class: if ist_admin_seite { "einst-gross admin" } else { "einst-gross" }, {seiten_symbol(seite)} }
                     div {
-                        h2 { "{titel}" if ist_admin_seite { span { class: "marke admin", "Admin" } } }
+                        h2 { "{titel}" if ist_admin_seite { span { class: "marke admin", {woerter::ADMIN} } } }
                         p { class: "einst-unter", "{beschreibung}" }
                     }
-                    button { r#type: "button", class: "knopf-symbol einst-zu", "aria-label": "Schließen", "data-bw": "B76",
+                    button { r#type: "button", class: "knopf-symbol einst-zu", "aria-label": woerter::SCHLIESSEN, "data-bw": "B76",
                         onclick: move |_| schliessen(a), {symbol_kreuz()} }
                 }
                 if seite == "aussehen" {
                     {aussehen_seite(a)}
                 } else {
-                    {werte_seite(seite, werte.unwrap_or_default())}
+                    {werte_seite(seite, werte.unwrap_or_default(), auskunft_hier)}
+                    if let Some(f) = fristen_hier {
+                        {fristen_teil(f)}
+                    }
+                    if let Some(x) = schutz_hier {
+                        {schutz_teil(x)}
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// A deadline in the table in seconds: „60 s“; a deadline below a whole second in milliseconds.
+fn sekunden_text(ms: u64) -> String {
+    if ms.is_multiple_of(1000) {
+        format!("{} {}", ms / 1000, woerter::EINHEIT_SEKUNDEN)
+    } else {
+        format!("{ms} ms")
+    }
+}
+
+/// One cell of the table of deadlines: the deadline, its origin and the class of the origin chip.
+type Fristzelle = Option<(String, String, &'static str)>;
+
+/// The deadlines per MCP server (message `Fristen`): a table to read, one row per server, each deadline with its origin.
+fn fristen_teil(f: Vec<ziel::Frist>) -> Element {
+    let mut server: Vec<String> = Vec::new();
+    for x in &f {
+        if !server.contains(&x.server) {
+            server.push(x.server.clone());
+        }
+    }
+    let zelle = |s: &str, k: &str| {
+        f.iter()
+            .find(|x| x.server == s && x.schluessel == k)
+            .map(|x| {
+                let h = if x.herkunft == "firmendatei" {
+                    woerter::HERKUNFT_FIRMENDATEI
+                } else if x.herkunft == "katalog" {
+                    woerter::HERKUNFT_KATALOG
+                } else {
+                    x.herkunft.as_str()
+                };
+                (
+                    sekunden_text(x.wert),
+                    h.to_owned(),
+                    if x.herkunft == "firmendatei" {
+                        "herkunft firma"
+                    } else {
+                        "herkunft geraet"
+                    },
+                )
+            })
+    };
+    let zeilen: Vec<(String, Vec<Fristzelle>)> = server
+        .iter()
+        .map(|s| {
+            (
+                s.clone(),
+                vec![
+                    zelle(s, woerter::werte::FREIGABEFRIST.0),
+                    zelle(s, woerter::werte::EINLOESEFRIST.0),
+                ],
+            )
+        })
+        .collect();
+    rsx! {
+        div { class: "gruppe", "data-testid": "fristen-je-server",
+            h3 { class: "gruppe-titel", {woerter::FRISTEN_JE_SERVER} }
+            div { class: "karte",
+                table { class: "fristen",
+                    thead { tr {
+                        th { scope: "col", {woerter::SERVER} }
+                        th { scope: "col", {woerter::werte::FREIGABEFRIST.1} }
+                        th { scope: "col", {woerter::werte::EINLOESEFRIST.1} }
+                    } }
+                    tbody {
+                        for (s, zellen) in zeilen {
+                            tr { key: "{s}",
+                                th { scope: "row", "{s}" }
+                                for (i, z) in zellen.into_iter().enumerate() {
+                                    td { key: "{i}",
+                                        if let Some((w, h, k)) = z {
+                                            span { class: "fristen-wert", "{w}" }
+                                            span { class: "{k}", "{h}" }
+                                        } else {
+                                            "–"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// A date of the service (`JJJJ-MM-TT`) as a German date; another form stays as it is.
+fn datum_text(d: &str) -> String {
+    match d.split('-').collect::<Vec<_>>()[..] {
+        [j, m, t] if j.len() == 4 && m.len() == 2 && t.len() == 2 => format!("{t}.{m}.{j}"),
+        _ => d.to_owned(),
+    }
+}
+
+/// A time in ms since 1970 as local date and time: day, month, year, then hours and minutes with two digits.
+fn zeit_text(ms: f64) -> String {
+    let d = js_sys::Date::new(&wasm_bindgen::JsValue::from_f64(ms));
+    format!(
+        "{:02}.{:02}.{}, {:02}:{:02}",
+        d.get_date(),
+        d.get_month() + 1,
+        d.get_full_year(),
+        d.get_hours(),
+        d.get_minutes()
+    )
+}
+
+/// The reason of `lauf` in plain text.
+fn grund_text(g: &str) -> String {
+    woerter::LAUF_GRUENDE
+        .iter()
+        .find(|(k, _)| *k == g)
+        .map_or_else(|| g.to_owned(), |(_, t)| (*t).to_owned())
+}
+
+/// The protection layers in effect: only what was measured, each with its date, no control and no sign that means „on“ (decision
+/// of 27.11.2026); the network destinations as a number per origin, never a host.
+fn schutz_teil(x: ziel::Schutzstand) -> Element {
+    let einschluss = x.probelauf.as_deref().map_or_else(
+        || woerter::SCHUTZ_NICHT_BEKANNT.to_owned(),
+        |d| format!("{} {}", woerter::SCHUTZ_PROBELAUF, datum_text(d)),
+    );
+    let halter = x.eingerichtet.as_deref().map_or_else(
+        || woerter::SCHUTZ_NICHT_BEKANNT.to_owned(),
+        |d| format!("{} {}", woerter::SCHUTZ_EINGERICHTET, datum_text(d)),
+    );
+    let start = x.letzter_start.as_ref().map_or_else(
+        || woerter::SCHUTZ_KEIN_START.to_owned(),
+        |(ms, e)| {
+            let ergebnis = if e == "gestartet" {
+                woerter::SCHUTZ_GESTARTET.to_owned()
+            } else {
+                grund_text(e)
+            };
+            format!("{}, {ergebnis}", zeit_text(*ms))
+        },
+    );
+    let netz: Vec<(String, String, u64)> = x
+        .netzziele
+        .iter()
+        .map(|(h, n)| {
+            let (klasse, text) = match h.split_once(' ') {
+                Some(("gruppe", g)) => ("gruppe", format!("{} {g}", woerter::HERKUNFT_GRUPPE)),
+                _ => match h.as_str() {
+                    "firma" => ("firma", woerter::HERKUNFT_FIRMA.to_owned()),
+                    "nutzer" => ("nutzer", woerter::HERKUNFT_DU.to_owned()),
+                    y => ("", y.to_owned()),
+                },
+            };
+            (format!("herkunft {klasse}"), text, *n)
+        })
+        .collect();
+    let zeilen = [
+        (woerter::SCHUTZ_EINSCHLUSS, einschluss),
+        (woerter::SCHUTZ_HALTER, halter),
+        (woerter::SCHUTZ_LETZTER_START, start),
+    ];
+    rsx! {
+        div { class: "gruppe", "data-testid": "schutzstand",
+            h3 { class: "gruppe-titel", {woerter::SCHUTZ} }
+            p { class: "fenster-hinweis schutz-kurz", {woerter::SCHUTZ_KURZ} }
+            div { class: "karte",
+                for (name, wert) in zeilen {
+                    div { key: "{name}", class: "einst-zeile",
+                        div { class: "zeile-text", div { class: "zeile-name", {name} } }
+                        span { class: "zeile-wert schutz-wert", "{wert}" }
+                    }
+                }
+                if netz.is_empty() {
+                    div { class: "einst-zeile",
+                        div { class: "zeile-text", div { class: "zeile-name", {woerter::SCHUTZ_NETZZIELE} } }
+                        span { class: "zeile-wert", "0" }
+                    }
+                }
+                for (i, (klasse, herkunft, n)) in netz.into_iter().enumerate() {
+                    div { key: "n{i}", class: "einst-zeile",
+                        div { class: "zeile-text", div { class: "zeile-name", {woerter::SCHUTZ_NETZZIELE} } }
+                        span { class: "{klasse}", "{herkunft}" }
+                        span { class: "zeile-wert", "{n}" }
+                    }
                 }
             }
         }
@@ -618,39 +973,39 @@ fn aussehen_seite(a: A) -> Element {
     let au = a.aussehen.read().clone();
     let schrift = au.schrift.to_string();
     rsx! {
-        h3 { class: "gruppe-titel", "Farben" }
+        h3 { class: "gruppe-titel", {woerter::gruppe::FARBEN} }
         div { class: "karte", "data-bw": "B77",
             div { class: "einst-zeile",
                 span { class: "zeile-symbol", {seiten_symbol("aussehen")} }
-                div { class: "zeile-text", div { class: "zeile-name", "Thema" } div { class: "zeile-beschreibung", "Hell, dunkel oder wie das System." } }
-                span { class: "herkunft geraet", "dieses Gerät" }
-                {segment(a, "Thema", THEMEN, &au.thema, |x, v| v.clone_into(&mut x.thema))}
+                div { class: "zeile-text", div { class: "zeile-name", {woerter::aussehen::THEMA.1} } div { class: "zeile-beschreibung", {woerter::aussehen::THEMA.2} } }
+                span { class: "herkunft nutzer", {woerter::HERKUNFT_DU} }
+                {segment(a, woerter::THEMA, THEMEN, &au.thema, |x, v| v.clone_into(&mut x.thema))}
             }
             div { class: "einst-zeile",
                 span { class: "zeile-symbol farbmuster", span { class: "muster grau" } span { class: "muster blauschwarz" } }
-                div { class: "zeile-text", div { class: "zeile-name", "Farben im dunklen Thema" } div { class: "zeile-beschreibung", "Neutral grau wie heute oder blauschwarz." } }
-                span { class: "herkunft geraet", "dieses Gerät" }
-                {segment(a, "Farben im dunklen Thema", FARBSAETZE, &au.farbsatz, |x, v| v.clone_into(&mut x.farbsatz))}
+                div { class: "zeile-text", div { class: "zeile-name", {woerter::aussehen::FARBSATZ.1} } div { class: "zeile-beschreibung", {woerter::aussehen::FARBSATZ.2} } }
+                span { class: "herkunft nutzer", {woerter::HERKUNFT_DU} }
+                {segment(a, woerter::FARBSATZ, FARBSAETZE, &au.farbsatz, |x, v| v.clone_into(&mut x.farbsatz))}
             }
             div { class: "einst-zeile",
                 span { class: "zeile-symbol", {seiten_symbol("sitzung")} }
-                div { class: "zeile-text", div { class: "zeile-name", "Terminal" } div { class: "zeile-beschreibung", "Vorgabe: dunkel wie heute." } }
-                span { class: "herkunft geraet", "dieses Gerät" }
-                {segment(a, "Terminal", TERMINALS, &au.terminal, |x, v| v.clone_into(&mut x.terminal))}
+                div { class: "zeile-text", div { class: "zeile-name", {woerter::aussehen::TERMINAL.1} } div { class: "zeile-beschreibung", {woerter::aussehen::TERMINAL.2} } }
+                span { class: "herkunft nutzer", {woerter::HERKUNFT_DU} }
+                {segment(a, woerter::TERMINAL, TERMINALS, &au.terminal, |x, v| v.clone_into(&mut x.terminal))}
             }
         }
-        h3 { class: "gruppe-titel", "Schrift" }
+        h3 { class: "gruppe-titel", {woerter::gruppe::SCHRIFT} }
         div { class: "karte",
             div { class: "einst-zeile",
                 span { class: "zeile-symbol schrift-symbol", "Aa" }
-                div { class: "zeile-text", div { class: "zeile-name", "Schriftgröße im Terminal" } div { class: "zeile-beschreibung", "Gilt sofort in jedem Terminal." } }
-                span { class: "herkunft geraet", "dieses Gerät" }
-                select { class: "feld", "aria-label": "Schriftgröße im Terminal",
+                div { class: "zeile-text", div { class: "zeile-name", {woerter::aussehen::SCHRIFTGROESSE.1} } div { class: "zeile-beschreibung", {woerter::aussehen::SCHRIFTGROESSE.2} } }
+                span { class: "herkunft nutzer", {woerter::HERKUNFT_DU} }
+                select { class: "feld", "aria-label": woerter::SCHRIFTGROESSE,
                     onchange: move |e: FormEvent| {
                         if let Ok(v) = e.value().parse::<u32>() { let mut s = a.aussehen; let mut x = s.write(); x.schrift = v; x.merken(); }
                     },
                     for g in SCHRIFTGROESSEN {
-                        option { key: "{g}", value: "{g}", selected: g.to_string() == schrift, "{g} px" }
+                        option { key: "{g}", value: "{g}", selected: g.to_string() == schrift, {format!("{g} {}", woerter::EINHEIT_PUNKT)} }
                     }
                 }
             }
@@ -662,7 +1017,8 @@ fn aussehen_seite(a: A) -> Element {
 /// The rows of one page: key, title, description.
 type Zeilen = Vec<(Einstellung, String, String)>;
 
-fn werte_seite(seite: &str, werte: Vec<Einstellung>) -> Element {
+/// The rows of one page; `auskunft`: the page carries a section to read, so no rows is no gap.
+fn werte_seite(seite: &str, werte: Vec<Einstellung>, auskunft: bool) -> Element {
     let mut gruppen: Vec<(String, Zeilen)> = Vec::new();
     let mut werte: Vec<Einstellung> = werte
         .into_iter()
@@ -671,7 +1027,7 @@ fn werte_seite(seite: &str, werte: Vec<Einstellung>) -> Element {
     werte.sort_by_key(|e| {
         KATALOG
             .iter()
-            .position(|(k, ..)| *k == e.schluessel)
+            .position(|(_, _, (k, ..))| *k == e.schluessel)
             .unwrap_or(usize::MAX)
     });
     for e in werte {
@@ -682,7 +1038,7 @@ fn werte_seite(seite: &str, werte: Vec<Einstellung>) -> Element {
         }
     }
     rsx! {
-        if gruppen.is_empty() { p { class: "fenster-hinweis", "Der Dienst hat für diese Seite keine Werte geschickt." } }
+        if gruppen.is_empty() && !auskunft { p { class: "fenster-hinweis", {woerter::KEINE_WERTE} } }
         for (g, zeilen) in gruppen {
             div { key: "g-{g}", class: "gruppe",
                 h3 { class: "gruppe-titel", "{g}" }
@@ -700,14 +1056,15 @@ fn werte_seite(seite: &str, werte: Vec<Einstellung>) -> Element {
 fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
     let herkunft = herkunft_text(&e);
     let herkunft_klasse = format!("herkunft {}", e.herkunft);
+    let wirksam = klartext(&e.schluessel, &e.wert).join("; ");
     // the reason of a lock with its fixed short text (`regelebenen` 15.5, OF9 point 6)
     let gesperrt_grund = match e.grund.as_deref() {
-        Some("nur_admin") => "Vorgabe der Firma".to_owned(),
-        Some("nur_strenger") => "Nur strenger als die Vorgabe".to_owned(),
-        Some("fest") => "Im Pilot fest aus".to_owned(),
+        Some("nur_admin") => woerter::GRUND_NUR_ADMIN.to_owned(),
+        Some("nur_strenger") => woerter::GRUND_NUR_STRENGER.to_owned(),
+        Some("fest") => woerter::GRUND_FEST.to_owned(),
         Some(x) => x.to_owned(),
         None if e.aenderbar => String::new(),
-        None => format!("Vorgabe: {herkunft}"),
+        None => format!("{} {herkunft}", woerter::GRUND_VORGABE),
     };
     // the user sets their own level, an admin the level of the company (`regelebenen` 15.9)
     let ebene = if e.bereich == "admin" {
@@ -717,7 +1074,7 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
     };
     let (k1, k2) = (e.schluessel.clone(), e.schluessel.clone());
     let (b1, b2) = (e.bereich.clone(), e.bereich.clone());
-    let (eb1, eb2) = (ebene.clone(), ebene);
+    let (eb1, eb2) = (ebene.clone(), ebene.clone());
     let steuerung = match &e.wert {
         Value::Bool(an) => {
             let an = *an;
@@ -727,6 +1084,59 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
                     disabled: !e.aenderbar, title: "{gesperrt_grund}",
                     onclick: move |_| senden(&ziel::einstellung_setzen(&k1, &json!(!an), &b1, &eb1)),
                     span { class: "schalter-knopf" }
+                }
+            }
+        }
+        // a deadline of a release as a choice in s, min or h (`regelebenen` 15.1.2)
+        Value::Number(n)
+            if matches!(
+                e.schluessel.as_str(),
+                "aufsicht.freigabefrist_ms" | "aufsicht.einloesefrist_ms"
+            ) =>
+        {
+            let w = n.as_u64().unwrap_or_default();
+            let feste: &[u64] = if e.schluessel == "aufsicht.freigabefrist_ms" {
+                &woerter::werte::FREIGABEFRIST_WAHLEN
+            } else {
+                &woerter::werte::EINLOESEFRIST_WAHLEN
+            };
+            let wahl = frist_wahlen(feste, &e.wert);
+            let (k4, b4, eb4) = (e.schluessel.clone(), e.bereich.clone(), ebene.clone());
+            rsx! {
+                select { class: "feld", "aria-label": "{titel}", disabled: !e.aenderbar, title: "{gesperrt_grund}",
+                    onchange: move |x: FormEvent| {
+                        if let Ok(v) = x.value().parse::<u64>() { senden(&ziel::einstellung_setzen(&k4, &json!(v), &b4, &eb4)); }
+                    },
+                    for o in wahl {
+                        option { key: "{o}", value: "{o}", selected: o == w, {frist_text(o)} }
+                    }
+                }
+            }
+        }
+        // the effort as a segment like in the window "Sitzungen" of the app window: the default of the program first (E2)
+        Value::String(_) | Value::Null
+            if e.schluessel == "sitzung.effort" && !e.wahl.is_empty() =>
+        {
+            let w = e.wert.as_str().unwrap_or_default().to_owned();
+            let mut wahl: Vec<(String, String)> =
+                vec![(String::new(), woerter::VORGABE_DES_PROGRAMMS.to_owned())];
+            wahl.extend(e.wahl.iter().map(|x| (x.clone(), x.clone())));
+            let (k3, b3, eb3) = (e.schluessel.clone(), e.bereich.clone(), ebene.clone());
+            rsx! {
+                div { class: "segment", role: "radiogroup", "aria-label": "{titel}", title: "{gesperrt_grund}",
+                    for (wert, text) in wahl {
+                        {
+                            let an = wert == w;
+                            let (k, b, eb) = (k3.clone(), b3.clone(), eb3.clone());
+                            let neu = if wert.is_empty() { Value::Null } else { json!(wert) };
+                            rsx! {
+                                button { key: "{wert}", r#type: "button", role: "radio", class: if an { "gewaehlt" } else { "" },
+                                    "aria-checked": if an { "true" } else { "false" }, disabled: !e.aenderbar,
+                                    onclick: move |_| senden(&ziel::einstellung_setzen(&k, &neu, &b, &eb)),
+                                    "{text}" }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -741,6 +1151,16 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
                 }
             }
         }
+        v @ (Value::Object(_) | Value::Array(_)) => {
+            let zeilen = klartext(&e.schluessel, v);
+            rsx! {
+                div { class: "zeile-werte",
+                    for (i, z) in zeilen.into_iter().enumerate() {
+                        div { key: "{i}", class: "zeile-wert", "{z}" }
+                    }
+                }
+            }
+        }
         v => rsx! { span { class: "zeile-wert", "{wert_text(v)}" } },
     };
     rsx! {
@@ -751,8 +1171,56 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
                 if !beschreibung.is_empty() { div { class: "zeile-beschreibung", "{beschreibung}" } }
                 if !gesperrt_grund.is_empty() { div { class: "zeile-grund", {symbol_schloss()} span { "{gesperrt_grund}" } } }
             }
-            span { class: "{herkunft_klasse}", title: "Wirksam: {wert_text(&e.wert)}, Herkunft: {herkunft}", "{herkunft}" }
+            span { class: "{herkunft_klasse}", title: "Wirksam: {wirksam}, Herkunft: {herkunft}", "{herkunft}" }
             {steuerung}
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{datum_text, grund_text, klartext};
+
+    #[test]
+    fn dates_and_reasons_of_the_protection_layers_read_plainly() {
+        assert_eq!(datum_text("2026-11-27"), "27.11.2026");
+        assert_eq!(datum_text("gestern"), "gestern");
+        assert_eq!(
+            grund_text("lauf.einschluss_fehlt"),
+            "Einschluss nicht verfügbar"
+        );
+        assert_eq!(grund_text("lauf.neu"), "lauf.neu");
+    }
+    use serde_json::json;
+
+    #[test]
+    fn admin_values_read_as_plain_text_per_data_class() {
+        assert_eq!(
+            klartext(
+                "harnesses",
+                &json!({"intern": ["claude", "copilot"], "kundendaten": ["pi"]})
+            ),
+            ["intern: claude, copilot", "kundendaten: pi"]
+        );
+        assert_eq!(klartext("modelle", &json!({})), ["keine Einschränkung"]);
+        assert_eq!(
+            klartext("modelle", &json!({"intern": []})),
+            ["intern: keine Freigabe"]
+        );
+        assert_eq!(
+            klartext("effort.grenzen", &json!([])),
+            ["kein Effort wählbar"]
+        );
+        assert_eq!(
+            klartext(
+                "effort.grenzen",
+                &json!([{"harness": "copilot", "klasse": "kundendaten", "erlaubt": ["low"]},
+                        {"harness": "pi", "modell": "qwen3:8b", "erlaubt": ["off", "low"]}])
+            ),
+            ["copilot · kundendaten: low", "pi · qwen3:8b: off, low"]
+        );
+        for z in klartext("leseklassen", &json!([{"a": 1}, "b"])) {
+            assert!(!z.contains('{') && !z.contains('['), "{z}");
         }
     }
 }

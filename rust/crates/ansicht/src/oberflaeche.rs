@@ -28,6 +28,7 @@ use crate::fenster;
 use crate::kern::{Kern, Sitzung, Verbindung, Wirkung, klemme};
 use crate::netz::{self, Sender, Zerleger};
 use crate::tasten::{self, Deutung};
+use crate::woerter;
 use crate::zeile;
 use crate::ziel::{self, Agent};
 
@@ -273,6 +274,8 @@ pub(crate) fn falle(id: &str, e: &KeyboardEvent) {
     };
     let halte = halte_in(&w);
     if halte.is_empty() {
+        // a window without a tab stop (the worker list) keeps the focus on itself
+        e.prevent_default();
         return;
     }
     let aktiv = dokument().and_then(|d| d.active_element());
@@ -327,6 +330,11 @@ fn strom_ende(a: A) {
     });
     let mut k = a.kern;
     let w = k.write().ende();
+    // without the core nothing can be operated: windows and menus close, the view stays readable (B05)
+    let mut u = a.ueber;
+    u.set(Ueber::Nichts);
+    let mut m = a.menue;
+    m.set(None);
     wirken(a, w);
 }
 
@@ -488,6 +496,8 @@ pub fn app() -> Element {
     let ueber = a.ueber.read().clone();
     let au = a.aussehen.read().clone();
     let insp = au.inspektor_offen;
+    // after the end of the stream every control is locked; the terminals keep their last picture (B05)
+    let gesperrt = matches!(a.kern.read().verbindung, Verbindung::Zu(_)).then_some("");
     let zeilenhoehe = au.zeilenhoehe();
     let stil = format!(
         "--leiste-breite:{:.0}px;--inspektor-breite:{:.0}px;--term-schrift:{}px;--term-zeile:{}px;",
@@ -517,9 +527,9 @@ pub fn app() -> Element {
                     }
                 }
             },
-            {titelleiste(a)}
+            {titelleiste(a, gesperrt)}
             {kanalwarnung(a)}
-            div { id: "app", class: if insp { "mit-inspektor" } else { "" },
+            div { id: "app", class: if insp { "mit-inspektor" } else { "" }, "inert": gesperrt,
                 if au.leiste_offen {
                     {leiste(a)}
                     div { class: "griff", id: "griff-links", "data-bw": "B24", "aria-hidden": "true",
@@ -619,7 +629,7 @@ pub(crate) fn zustand_wort(z: &str) -> &str {
 }
 
 #[allow(clippy::too_many_lines)]
-fn titelleiste(a: A) -> Element {
+fn titelleiste(a: A, gesperrt: Option<&'static str>) -> Element {
     let k = a.kern.read();
     let s = k.aktive_sitzung().cloned();
     let anzahl = k.anfragen.len();
@@ -645,7 +655,7 @@ fn titelleiste(a: A) -> Element {
         .map(|w| w.iter().filter(|x| x.laeuft()).count());
     let blase = *a.ueber.read() == Ueber::Workerliste;
     rsx! {
-        header { id: "titelleiste", class: if au.leiste_offen { "mit-leiste" } else { "" },
+        header { id: "titelleiste", class: if au.leiste_offen { "mit-leiste" } else { "" }, "inert": gesperrt,
             button { r#type: "button", id: "leiste-knopf", class: "knopf-symbol", "data-bw": "B80", "aria-label": "Leiste ein- und ausblenden",
                 "aria-expanded": if au.leiste_offen { "true" } else { "false" }, title: "Leiste ein- und ausblenden",
                 onclick: move |_| { let mut s = a.aussehen; let mut x = s.write(); x.leiste_offen = !x.leiste_offen; x.merken(); },
@@ -728,9 +738,16 @@ fn kanalwarnung(a: A) -> Element {
     let Verbindung::Zu(text) = k.verbindung else {
         return rsx! {};
     };
+    // over the centre, the bar below does not move (B05); a reload only helps after the end of the stream
+    let neu_laden = text == crate::kern::GETRENNT;
     rsx! {
-        div { id: "kanalwarnung", "data-bw": "B05", "data-zustand": "zu",
-            "Verbindung zum Kern fehlt: {text}"
+        div { id: "kanalwarnung", "data-bw": "B05", "data-zustand": "zu", role: "status",
+            span { class: "kw-text", "Verbindung zum Kern fehlt: {text}" }
+            if neu_laden {
+                button { r#type: "button", class: "knopf-rand", id: "neu-laden",
+                    onclick: move |_| { if let Some(w) = web_sys::window() { let _ = w.location().reload(); } },
+                    "Neu laden" }
+            }
         }
     }
 }
@@ -834,20 +851,16 @@ fn sitzungszeile(a: A, s: &Sitzung, aktiv: Option<&str>, agenten: Option<&[Agent
     } else {
         label
     };
-    // second line: "N Worker · läuft" with L1, else the state and harness and model
+    // second line: "N Worker · läuft" with L1, else the state alone
     let zusatz = if let Some(ag) = agenten {
         let n = ag
             .iter()
             .filter(|x| x.sitzung == s.id && x.laeuft())
             .count();
-        format!(
-            "{n} Worker · {}",
-            if s.laeuft { "läuft" } else { zustand.as_str() }
-        )
+        format!("{n} Worker{}{}", woerter::TRENNER, s.zustand_text())
     } else {
-        let mut z = vec![zustand.clone()];
-        z.extend(teile.iter().map(|x| (*x).to_owned()));
-        z.join(" · ")
+        // without L1 the number of workers is unknown: only the state; harness and model stand in the title bar (B02, G8)
+        s.zustand_text()
     };
     let testid = format!("sitzung-{}", s.id);
     let id_klick = s.id.clone();
@@ -936,7 +949,7 @@ fn kontextmenue(a: A) -> Element {
                     let _ = e.focus();
                 }
             },
-            if b11 && !s.laeuft && s.herkunft.as_ref().is_none_or(|h| h.fortgesetzt_als.is_none()) {
+            if b11 && !s.laeuft && s.fortsetzbar() && s.herkunft.as_ref().is_none_or(|h| h.fortgesetzt_als.is_none()) {
                 button { r#type: "button", role: "menuitem", "data-bw": "B11",
                     onclick: move |_| { schliessen(); senden(&ziel::fortsetzen(&i1)); }, "Fortsetzen" }
             }
@@ -947,9 +960,9 @@ fn kontextmenue(a: A) -> Element {
             button { r#type: "button", role: "menuitem", "data-bw": "B15", disabled: !s.laeuft,
                 title: if s.laeuft { "" } else { "Sitzung ist beendet" },
                 onclick: move |_| { let w = a.kern.read().beenden(&i3); schliessen(); wirken(a, w); },
-                "Sitzung schließen"
+                {woerter::BEENDEN}
             }
-            if b17 && s.abgestuerzt() {
+            if b17 && s.abgestuerzt() && s.fortsetzbar() {
                 button { r#type: "button", role: "menuitem", "data-bw": "B17",
                     onclick: move |_| { schliessen(); senden(&ziel::wiederbeleben(&i4)); }, "Wiederbeleben …" }
             }
@@ -1417,6 +1430,9 @@ fn freigaben_blatt(a: A) -> Element {
                                     button { r#type: "button", class: "knopf-voll", "data-bw": "B07",
                                         onclick: move |_| freigabe_senden(&id2, true, &feld_id2), "Freigeben" }
                                 }
+                            } else {
+                                // without `Freigabe` in the list of the connection (`freigabe_nur_lokal`): where to decide, no buttons
+                                p { class: "antrag-hinweis", "Freigeben im App-Fenster" }
                             }
                         }
                     }
@@ -1522,35 +1538,38 @@ fn ordner_blatt(a: A) -> Element {
 
 fn workerliste(a: A) -> Element {
     let worker = a.kern.read().worker_der_sitzung().unwrap_or_default();
-    // the bubble hangs under the pill (B26), like today
+    let n = worker.len();
+    // the bubble hangs under the pill (B26) with its tip on the middle of the pill, like today
     let lage = element("statuspille").map_or_else(String::new, |p| {
         let r = p.get_bounding_client_rect();
-        let links = (r.left() + r.width() / 2.0 - 165.0).max(8.0);
+        let mitte = r.left() + r.width() / 2.0;
+        let links = (mitte - 165.0).max(8.0);
         format!(
-            "left:{links:.0}px;right:auto;top:{:.0}px;",
-            r.bottom() + 8.0
+            "left:{links:.0}px;right:auto;top:{:.0}px;--spitze:{:.0}px;",
+            r.bottom() + 10.0,
+            mitte - links
         )
     });
     rsx! {
         div { class: "menue-grund", onclick: move |_| { let mut u = a.ueber; u.set(Ueber::Nichts); } }
-        div { class: "blase", id: "worker-liste", role: "dialog", "aria-label": "Worker", "data-testid": "worker-liste", "data-bw": "B29", style: "{lage}",
+        div { class: "blase mit-spitze", id: "worker-liste", role: "dialog", "aria-label": "Worker", "data-testid": "worker-liste", "data-bw": "B29",
+            style: "{lage}", tabindex: "-1",
             onkeydown: move |e: KeyboardEvent| falle("worker-liste", &e),
-            onmounted: move |_| fokus("blase-zu"),
+            onmounted: move |_| fokus("worker-liste"),
             div { class: "blase-kopf",
-                h3 { "Worker" }
-                button { r#type: "button", id: "blase-zu", class: "knopf-symbol klein", "aria-label": "Schließen", "data-bw": "B76",
-                    onclick: move |_| { let mut u = a.ueber; u.set(Ueber::Nichts); fokus("statuspille"); }, {symbol_kreuz()} }
+                h3 { "Worker " span { class: "blatt-zahl", "{n}" } }
             }
             if worker.is_empty() { p { class: "blatt-leer", "Diese Sitzung hat keine Worker." } }
             for w in worker {
                 div { key: "{w.worker}", class: "blase-zeile",
                     span { class: agent_punkt(&w) }
                     div { class: "blase-text",
-                        div { span { class: "wname", "{w.rolle}" } " " span { class: "wmodell", "{w.modell}" } }
-                        div { class: "wzustand", "{zustand_wort(&w.zustand)}" }
+                        span { class: "wname", "{w.rolle}" } " " span { class: "wmodell", "{w.modell}" }
                     }
+                    span { class: "wzustand", "{zustand_wort(&w.zustand)}" }
                 }
             }
+            p { class: "blase-fuss", "data-bw": "B76", "Escape schließt" }
         }
     }
 }

@@ -9,21 +9,13 @@ use wasm_bindgen::{JsCast, JsValue};
 /// The prefix of every key in the storage.
 const PRAEFIX: &str = "werkbank.ansicht.";
 
-/// Theme: like the system (default), light or dark (OF3 point 2).
-pub const THEMEN: [(&str, &str); 3] = [
-    ("system", "Wie das System"),
-    ("hell", "Hell"),
-    ("dunkel", "Dunkel"),
-];
+/// Theme: like the system (default), light or dark (OF3 point 2); the texts of [`crate::woerter`].
+pub const THEMEN: [(&str, &str); 3] = crate::woerter::THEMEN;
 /// Colour set of the dark theme: grey (default, like today) or blue-black (version of 23.11.2026).
-pub const FARBSAETZE: [(&str, &str); 2] = [("grau", "Grau"), ("blauschwarz", "Blauschwarz")];
+pub const FARBSAETZE: [(&str, &str); 2] = crate::woerter::FARBSAETZE;
 /// Terminal: dark (default, like today), light or like the theme.
-pub const TERMINALS: [(&str, &str); 3] = [
-    ("dunkel", "Dunkel"),
-    ("hell", "Hell"),
-    ("thema", "Wie das Thema"),
-];
-/// Font sizes of the terminal in pixels (OF4 point 2, default 13).
+pub const TERMINALS: [(&str, &str); 3] = crate::woerter::TERMINALS;
+/// Font sizes of the terminal in points, 1 point = 1 CSS pixel (OF4 point 2, default 13).
 pub const SCHRIFTGROESSEN: [u32; 6] = [11, 12, 13, 14, 15, 16];
 
 /// Limits of the widths (OF2 point 3).

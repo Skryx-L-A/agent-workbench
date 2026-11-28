@@ -221,12 +221,16 @@ pub fn herkunft_lesen(eintrag: &Value) -> Option<Herkunft> {
 
 /// The catalog of the pilot (`regelebenen` 15.1): key, area (`nutzer` or `admin`) and the values of a choice. The message
 /// `Einstellungen` names neither area nor choices; they are fixed here like the harness table in the service.
-pub const KATALOG: [(&str, &str, &[&str]); 17] = [
+pub const KATALOG: [(&str, &str, &[&str]); 19] = [
     ("aussehen.thema", "nutzer", &["system", "hell", "dunkel"]),
     ("aussehen.farbsatz", "nutzer", &["grau", "blauschwarz"]),
     ("aussehen.terminal", "nutzer", &["dunkel", "hell", "thema"]),
     ("terminal.schriftgroesse", "nutzer", &[]),
-    ("sitzung.harness", "nutzer", &["claude", "copilot", "pi"]),
+    (
+        "sitzung.harness",
+        "nutzer",
+        &["claude", "copilot", "pi", "opencode"],
+    ),
     ("sitzung.modell", "nutzer", &[]),
     ("sitzung.effort", "nutzer", &[]),
     ("harnesses", "admin", &[]),
@@ -239,6 +243,8 @@ pub const KATALOG: [(&str, &str, &[&str]); 17] = [
     ("optionen.copilot_eingeschraenktes_token", "admin", &[]),
     ("optionen.herstellerzugang", "admin", &[]),
     ("leseklassen", "admin", &[]),
+    ("aufsicht.freigabefrist_ms", "admin", &[]),
+    ("aufsicht.einloesefrist_ms", "admin", &[]),
 ];
 
 /// One setting of `Einstellungen` version 2 (`regelebenen` 15.5).
@@ -304,6 +310,91 @@ pub fn einstellungen_lesen(n: &Value) -> Option<(bool, Vec<Einstellung>)> {
 #[must_use]
 pub fn einstellung_setzen(schluessel: &str, wert: &Value, bereich: &str, ebene: &str) -> Value {
     json!({"art": "EinstellungSetzen", "schluessel": schluessel, "wert": wert, "bereich": bereich, "ebene": ebene})
+}
+
+// ---- protection layers in effect: read only, page "Aufsicht und Meldungen" (proposal, like the gaps L1 to L11) ----
+
+/// The message `Schutzstand` (decision of 27.11.2026; the service sends it at connect and after each change to every viewer). Only
+/// what was measured, each with its date:
+/// `{"art": "Schutzstand", "einschluss": {"probelauf": "<JJJJ-MM-TT>" | null}, "halter": {"eingerichtet": "<JJJJ-MM-TT>" | null},
+/// "letzter_start": {"zeit": <ms>, "ergebnis": "gestartet" | "<lauf.*>"} | null, "netzziele": [{"herkunft", "anzahl"}]}`.
+/// Numbers per origin, never a host. Information only: the view shows it and sends nothing back.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Schutzstand {
+    /// The date of the green trial run of the confinement at the installation, if known.
+    pub probelauf: Option<String>,
+    /// The date the holder was set up at the installation, if known.
+    pub eingerichtet: Option<String>,
+    /// The last start since the service started: time in ms and `gestartet` or the reason of `lauf`.
+    pub letzter_start: Option<(f64, String)>,
+    /// The number of released network destinations per origin, as the service names the origin.
+    pub netzziele: Vec<(String, u64)>,
+}
+
+/// A date field: a string or `null`; anything else is not the form (`Err`).
+fn datum(v: &Value, objekt: &str, feld: &str) -> Result<Option<String>, ()> {
+    match v
+        .get(objekt)
+        .and_then(Value::as_object)
+        .and_then(|o| o.get(feld))
+    {
+        Some(Value::Null) => Ok(None),
+        Some(Value::String(d)) => Ok(Some(d.clone())),
+        _ => Err(()),
+    }
+}
+
+/// Reads `Schutzstand`; a message in another form gives `None`, and the section stays away (OF8 point 3).
+#[must_use]
+pub fn schutzstand_lesen(n: &Value) -> Option<Schutzstand> {
+    let netzziele = n
+        .get("netzziele")?
+        .as_array()?
+        .iter()
+        .map(|z| Some((text(z, "herkunft")?, z.get("anzahl")?.as_u64()?)))
+        .collect::<Option<Vec<_>>>()?;
+    let letzter_start = match n.get("letzter_start")? {
+        Value::Null => None,
+        l => Some((l.get("zeit")?.as_f64()?, text(l, "ergebnis")?)),
+    };
+    Some(Schutzstand {
+        probelauf: datum(n, "einschluss", "probelauf").ok()?,
+        eingerichtet: datum(n, "halter", "eingerichtet").ok()?,
+        letzter_start,
+        netzziele,
+    })
+}
+
+/// One deadline of a MCP server of the message `Fristen` (decision of 27.11.2026, form agreed with the app window):
+/// `{"art": "Fristen", "fristen": [{"schluessel": "aufsicht.freigabefrist_ms" | "aufsicht.einloesefrist_ms", "server": "<name>",
+/// "wert": <ms>, "herkunft": "firmendatei" | "katalog"}]}`. Information only.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Frist {
+    /// The key of the deadline.
+    pub schluessel: String,
+    /// The MCP server.
+    pub server: String,
+    /// The deadline in milliseconds.
+    pub wert: u64,
+    /// `firmendatei` or `katalog`.
+    pub herkunft: String,
+}
+
+/// Reads `Fristen`; a message in another form gives `None`, and the table stays away (OF8 point 3).
+#[must_use]
+pub fn fristen_lesen(n: &Value) -> Option<Vec<Frist>> {
+    n.get("fristen")?
+        .as_array()?
+        .iter()
+        .map(|f| {
+            Some(Frist {
+                schluessel: text(f, "schluessel")?,
+                server: text(f, "server")?,
+                wert: f.get("wert")?.as_u64()?,
+                herkunft: text(f, "herkunft")?,
+            })
+        })
+        .collect()
 }
 
 // ---- L6: requests, decisions and the guard history (`zustandskern` R-L6, `dienst` DI-L6) ----
@@ -521,6 +612,57 @@ pub fn struktur_fassung2(mut fassung1: Value, name: Option<&str>, effort: Option
         o.insert("effort".into(), effort.map_or(Value::Null, |e| json!(e)));
     }
     fassung1
+}
+
+#[cfg(test)]
+mod tests_schutz {
+    use super::{fristen_lesen, schutzstand_lesen};
+
+    #[test]
+    fn the_deadlines_per_server_are_read_in_one_form_only() {
+        let n = json!({"art": "Fristen", "fristen": [
+            {"schluessel": "aufsicht.freigabefrist_ms", "server": "suche", "wert": 60000, "herkunft": "firmendatei"},
+            {"schluessel": "aufsicht.einloesefrist_ms", "server": "suche", "wert": 300_000, "herkunft": "katalog"}]});
+        let f = fristen_lesen(&n).expect("agreed form");
+        assert_eq!(
+            (f.len(), f[0].wert, f[1].herkunft.as_str()),
+            (2, 60000, "katalog")
+        );
+        assert!(
+            fristen_lesen(&json!({"art": "Fristen", "fristen": [{"server": "suche", "wert": 1}]}))
+                .is_none()
+        );
+        assert!(fristen_lesen(&json!({"art": "Fristen"})).is_none());
+    }
+    use serde_json::json;
+
+    #[test]
+    fn the_protection_layers_are_read_in_one_form_only() {
+        let n = json!({"art": "Schutzstand", "einschluss": {"probelauf": "2026-11-27"}, "halter": {"eingerichtet": null},
+                       "letzter_start": {"zeit": 1_764_280_680_000_u64, "ergebnis": "lauf.einschluss_fehlt"},
+                       "netzziele": [{"herkunft": "firma", "anzahl": 3}, {"herkunft": "gruppe g-eins", "anzahl": 1}]});
+        let s = schutzstand_lesen(&n).expect("the form of 27.11.2026");
+        assert_eq!(s.probelauf.as_deref(), Some("2026-11-27"));
+        assert_eq!(s.eingerichtet, None);
+        assert_eq!(
+            s.letzter_start.as_ref().map(|(_, e)| e.as_str()),
+            Some("lauf.einschluss_fehlt")
+        );
+        assert_eq!(
+            s.netzziele,
+            [("firma".to_owned(), 3), ("gruppe g-eins".to_owned(), 1)]
+        );
+        let ohne_start = json!({"art": "Schutzstand", "einschluss": {"probelauf": null}, "halter": {"eingerichtet": "2026-11-27"},
+                                "letzter_start": null, "netzziele": []});
+        assert!(schutzstand_lesen(&ohne_start).is_some_and(|s| s.letzter_start.is_none()));
+        // the form of the first proposal and an „an“ are not this form
+        assert!(schutzstand_lesen(&json!({"art": "Schutzstand", "einschluss": true, "halter": true, "letzter_start": null,
+                                          "netzziele": []})).is_none());
+        assert!(
+            schutzstand_lesen(&json!({"art": "Schutzstand", "einschluss": {"probelauf": "x"}}))
+                .is_none()
+        );
+    }
 }
 
 #[cfg(test)]
