@@ -1,5 +1,5 @@
 {
- "beschreibung": "Freigabe im Lauf ohne und mit sitzung: der Weg bis zur Stelle (Messung des Stands vor dem Nachtrag; die neue Erwartung liegt in faelle-ausstehend)",
+ "beschreibung": "Freigabe im Lauf ohne und mit sitzung über dienst.sock: freigabe_nur_lokal vor jeder Prüfung, keine Anfrage an die Stelle (die Ansicht sendet keinen nachweis)",
  "datensatz": "A",
  "name": "dil6_heute",
  "regeln": [
@@ -58,8 +58,7 @@
      "a-1"
     ],
     "art": "Freigabe",
-    "entscheidung": "erteilen",
-    "nachweis": "n-1"
+    "entscheidung": "erteilen"
    }
   },
   {
@@ -71,7 +70,6 @@
     ],
     "art": "Freigabe",
     "entscheidung": "erteilen",
-    "nachweis": "n-1",
     "sitzung": "s-1"
    }
   },

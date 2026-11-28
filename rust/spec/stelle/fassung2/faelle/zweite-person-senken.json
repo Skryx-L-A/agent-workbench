@@ -98,6 +98,7 @@
             {
               "anfrage": "mf-1795179540000-1",
               "server": "brain",
+              "sitzung": "s-1",
               "werkzeug": "brain_senken",
               "vorschau": "Klasse kundendaten nach intern VORSCHAU-5K",
               "vorschau_sha256": "e1525fc2e16cb0d389efade56f15bb3befdfcb196fc9f776b7ed6b6e7d631308",

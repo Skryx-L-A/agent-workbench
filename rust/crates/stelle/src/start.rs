@@ -72,6 +72,10 @@ pub struct Start {
     pub sitzung: Option<String>,
     /// Harness.
     pub harness: String,
+    /// Model name.
+    pub modell: String,
+    /// Effort (start structure version 2), `None` in version 1 and for `null`.
+    pub effort: Option<String>,
     /// Route key.
     pub route: String,
     /// Customer key or `None`.
@@ -99,6 +103,8 @@ fn gegen_einstellungen<S: Startform>(
     Ok(Start {
         sitzung: sitzung.map(str::to_owned),
         harness: start.harness().to_owned(),
+        modell: start.modell().to_owned(),
+        effort: start.effort().map(str::to_owned),
         route: start.route().to_owned(),
         kunde: start.kunde().map(str::to_owned),
         route_art,

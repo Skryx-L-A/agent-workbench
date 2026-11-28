@@ -32,6 +32,11 @@
       }
      }
     },
+    "gruppennamen": {
+     "type": "object", "maxProperties": 256, "propertyNames": {"$ref": "#/$defs/kennung"},
+     "additionalProperties": {"type": "string", "pattern": "^[^\\u0000-\\u001f\\u007f]{1,64}$"},
+     "description": "Schluessel einer Gruppe -> Anzeigename; jede Gruppe in gruppen, kein Name doppelt (Abschnitt 3.1)"
+    },
     "nutzerregeln": {
      "type": "array", "maxItems": 4096,
      "items": {

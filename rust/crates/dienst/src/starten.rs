@@ -845,9 +845,9 @@ mod tests {
             nummer_max: 255,
             rahmen_max: 255,
             beendet_max: 256,
+            stelle: None,
             bestand: None,
             gespraeche: None,
-            stelle: None,
         }
     }
 

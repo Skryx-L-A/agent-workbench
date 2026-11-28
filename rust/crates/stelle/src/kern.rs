@@ -6,7 +6,7 @@ use serde_json::{Map, Value, json};
 use crate::start::{self, Sicht};
 use crate::{
     Anfrage, Anfragezustand, Antwort, Code, Ende, Ereignis, Ergebnis, Offen, Protokollzeile,
-    Schreibaufruf, Sitzung, Vorgang, ZEIT_MAX, Zustand, form,
+    Schreibaufruf, Sitzung, Vorgang, ZEIT_MAX, Zusage, Zustand, form,
 };
 
 /// Largest deadline in milliseconds (contract 2: 1 to 86400000).
@@ -20,6 +20,10 @@ const VORSCHAU_MAX: usize = 65_536;
 const NACHWEIS_MAX: usize = 4096;
 /// Largest number `n` of a request identifier `mf-<laden_ms>-<n>`: the form allows at most ten digits.
 pub(crate) const ANFRAGE_MAX: u64 = 9_999_999_999;
+/// Largest number `n` of a promise identifier `zs-<laden_ms>-<n>` (section 15.3, stage 11).
+pub(crate) const ZUSAGE_MAX: u64 = 9_999_999_999;
+/// How long a promise holds (section 15.3, stage 12).
+pub(crate) const ZUSAGE_FRIST_MS: i64 = 30_000;
 
 type Pruefung = fn(&Value) -> bool;
 
@@ -33,6 +37,14 @@ fn ist_werkzeug(v: &Value) -> bool {
 
 fn ist_anfrage(v: &Value) -> bool {
     v.as_str().is_some_and(form::anfrage)
+}
+
+fn ist_modell(v: &Value) -> bool {
+    v.as_str().is_some_and(form::modell)
+}
+
+fn ist_kunde(v: &Value) -> bool {
+    v.is_null() || ist_kennung(v)
 }
 
 fn ist_pseudonym(v: &Value) -> bool {
@@ -81,6 +93,21 @@ const EINLOESEN: [(&str, Pruefung); 4] = [
     ("werkzeug", ist_werkzeug),
 ];
 const STAND: [(&str, Pruefung); 1] = [("anfrage", ist_anfrage)];
+const PSEUDONYM: [(&str, Pruefung); 1] = [("kennung", ist_kennung)];
+const WORKER: [(&str, Pruefung); 8] = [
+    ("effort", ist_kennung),
+    ("harness", ist_kennung),
+    ("kunde", ist_kunde),
+    ("laufend", ist_laufend),
+    ("modell", ist_modell),
+    ("rolle", ist_kennung),
+    ("route", ist_kennung),
+    ("sitzung", ist_kennung),
+];
+
+fn ist_laufend(v: &Value) -> bool {
+    form::ganzzahl_in(v, 0, crate::worker::LAUFEND_MAX)
+}
 
 /// The input is an object with exactly these fields, each with its form.
 fn felder(eingabe: &Value, pruefungen: &[(&str, Pruefung)]) -> bool {
@@ -92,15 +119,41 @@ fn felder(eingabe: &Value, pruefungen: &[(&str, Pruefung)]) -> bool {
     })
 }
 
-/// The bytes of the start of `sitzung.starten`: `{"start": {"text": …}}` or `{"start": {"b64": …}}`.
-fn startbytes(eingabe: &Value) -> Option<Vec<u8>> {
-    let o = eingabe.as_object().filter(|o| o.len() == 1)?;
+/// The input of `sitzung.starten`: `{"start": {"text": …}}` or `{"start": {"b64": …}}`, with `orchestrator` and `zusage` as
+/// optional fields of the operation (section 15.2). `zusage` without `orchestrator` is no valid input.
+struct Starteingabe {
+    bytes: Vec<u8>,
+    orchestrator: Option<String>,
+    zusage: Option<String>,
+}
+
+fn starteingabe(eingabe: &Value) -> Option<Starteingabe> {
+    let o = eingabe.as_object()?;
+    if o.keys()
+        .any(|k| !matches!(k.as_str(), "start" | "orchestrator" | "zusage"))
+    {
+        return None;
+    }
+    let text = |k: &str, gilt: fn(&str) -> bool| match o.get(k) {
+        None => Some(None),
+        Some(v) => v.as_str().filter(|t| gilt(t)).map(|t| Some(t.to_owned())),
+    };
+    let orchestrator = text("orchestrator", form::kennung)?;
+    let zusage = text("zusage", form::zusage)?;
+    if zusage.is_some() && orchestrator.is_none() {
+        return None;
+    }
     let start = o.get("start")?.as_object().filter(|s| s.len() == 1)?;
-    match start.iter().next()? {
+    let bytes = match start.iter().next()? {
         (k, Value::String(t)) if k == "text" => Some(t.clone().into_bytes()),
         (k, Value::String(t)) if k == "b64" => form::base64(t),
         _ => None,
-    }
+    }?;
+    Some(Starteingabe {
+        bytes,
+        orchestrator,
+        zusage,
+    })
 }
 
 /// The text of a field of a checked input.
@@ -123,14 +176,12 @@ fn digest(eingabe: &Value) -> String {
 
 /// The challenge of the human (section 6) as bytes.
 fn herausforderung(kennung: &str, a: &Anfrage, entscheidung: &str) -> Vec<u8> {
-    let wert = json!({
-        "anfrage": kennung,
-        "art": "mcp.entscheidung",
-        "digest": a.digest,
-        "entscheidung": entscheidung,
-        "vorschau_sha256": a.vorschau_sha256,
-    });
-    kanonisch(&wert).unwrap_or_default().into_bytes()
+    crate::pruefer::herausforderung(
+        kennung,
+        &a.digest,
+        entscheidung,
+        a.vorschau_sha256.as_deref(),
+    )
 }
 
 /// The line `mcp.schreibaufruf` for the end of a request.
@@ -203,7 +254,16 @@ impl Lauf<'_> {
                 abgelaufen += 1;
             }
         }
+        // section 15.3: a promise holds while the time is below its end; an expired one goes without a line
+        let jetzt = self.jetzt;
+        self.z.zusagen.retain(|_, z| jetzt < z.bis);
         abgelaufen
+    }
+
+    /// The number n of a promise identifier of this state that is still held, or `None`.
+    fn zusage_nummer(&self, kennung: &str) -> Option<u64> {
+        let n: u64 = kennung.rsplit('-').next()?.parse().ok()?;
+        (self.z.zusage_kennung(n) == kennung && self.z.zusagen.contains_key(&n)).then_some(n)
     }
 
     /// The number n of a request identifier of this state, or `None`.
@@ -213,10 +273,11 @@ impl Lauf<'_> {
     }
 
     fn starten(mut self, eingabe: &Value) -> Ergebnis {
-        let Some(bytes) = startbytes(eingabe) else {
+        let Some(eingabe) = starteingabe(eingabe) else {
             return self.nein(Code::EingabeUngueltig, Sicht::default());
         };
-        let start = match start::pruefen(&bytes, start::Form::Datei, &self.z.einstellungen) {
+        let start = match start::pruefen(&eingabe.bytes, start::Form::Datei, &self.z.einstellungen)
+        {
             Ok(start) => start,
             Err(abgelehnt) => return self.nein(abgelehnt.code, *abgelehnt.sicht),
         };
@@ -226,9 +287,27 @@ impl Lauf<'_> {
             route: Some(start.route.clone()),
             sitzung: start.sitzung.clone(),
         };
-        let sitzung = start.sitzung.unwrap_or_default();
+        let sitzung = start.sitzung.clone().unwrap_or_default();
         if self.z.sitzungen.contains_key(&sitzung) {
             return self.nein(Code::SitzungVergeben, sicht);
+        }
+        // section 15.2, stage 4: a worker starts only with a held promise of its orchestrator whose values the start matches
+        // exactly; the start uses it up, a refusal does not
+        if let Some(orchestrator) = &eingabe.orchestrator {
+            let n = eingabe
+                .zusage
+                .as_deref()
+                .and_then(|k| self.zusage_nummer(k))
+                .filter(|n| {
+                    self.z
+                        .zusagen
+                        .get(n)
+                        .is_some_and(|z| z.bindet(orchestrator, &start))
+                });
+            let Some(n) = n else {
+                return self.nein(Code::ZusageUngueltig, sicht);
+            };
+            self.z.zusagen.remove(&n);
         }
         self.z.sitzungen.insert(
             sitzung.clone(),
@@ -236,6 +315,7 @@ impl Lauf<'_> {
                 route: start.route.clone(),
                 kunde: start.kunde,
                 harness: start.harness,
+                orchestrator: eingabe.orchestrator,
             },
         );
         self.zeilen.push(Protokollzeile::SitzungGestartet(sicht));
@@ -406,6 +486,7 @@ impl Lauf<'_> {
             .map(|(n, a)| Offen {
                 anfrage: self.z.kennung(*n),
                 server: a.server.clone(),
+                sitzung: a.sitzung.clone(),
                 werkzeug: a.werkzeug.clone(),
                 vorschau: a.vorschau.clone(),
                 vorschau_sha256: a.vorschau_sha256.clone(),
@@ -414,6 +495,107 @@ impl Lauf<'_> {
             })
             .collect();
         self.fertig(Antwort::Offene(offene))
+    }
+
+    /// `person.pseudonym`, stage 4 (section 14.4): the store of the shell, or `stelle.person_fehler`. A value of the
+    /// store that is no pseudonym counts as a failure.
+    fn pseudonym(self, eingabe: &Value) -> Ergebnis {
+        let ergebnis = self
+            .z
+            .personen
+            .as_ref()
+            .and_then(|p| p.pseudonym(feld(eingabe, "kennung"), self.jetzt))
+            .filter(|ps| form::pseudonym(ps));
+        match ergebnis {
+            Some(pseudonym) => self.fertig(Antwort::Pseudonym { pseudonym }),
+            None => self.nein(Code::PersonFehler, Sicht::default()),
+        }
+    }
+
+    /// The position of the class of a route in `klassen` (contract 2, the lowest first), or `None` for an unknown route.
+    fn klasse(&self, route: &str) -> Option<usize> {
+        let datei = &self.z.einstellungen.datei;
+        let klasse = datei.route(route)?.klasse();
+        datei.klassen().iter().position(|k| k == klasse)
+    }
+
+    /// The first stage of section 15.3 a request violates, after the rules (stage 1), in this order: session, worker,
+    /// route, class, customer, harness, model, effort, count, promises. `None`: the worker is free.
+    fn worker_grund(&self, eingabe: &Value) -> Option<Code> {
+        let regeln = self.z.worker.as_ref()?;
+        let Some(orchestrator) = self.z.sitzungen.get(feld(eingabe, "sitzung")) else {
+            return Some(Code::SitzungUnbekannt);
+        };
+        if orchestrator.orchestrator.is_some() {
+            return Some(Code::OrchestratorIstWorker);
+        }
+        let route = feld(eingabe, "route");
+        let Some(klasse) = self.klasse(route) else {
+            return Some(Code::RouteUnbekannt);
+        };
+        // only positions in `klassen` are compared; an orchestrator without a class position allows no worker (fail closed)
+        if self
+            .klasse(&orchestrator.route)
+            .is_none_or(|eigene| klasse > eigene)
+        {
+            return Some(Code::WorkerKlasseHoeher);
+        }
+        let kunde = eingabe.get("kunde").and_then(Value::as_str);
+        let laufend = eingabe
+            .get("laufend")
+            .and_then(Value::as_i64)
+            .unwrap_or(i64::MAX);
+        if kunde != orchestrator.kunde.as_deref() {
+            Some(Code::WorkerFremderKunde)
+        } else if !regeln.harness.contains(feld(eingabe, "harness")) {
+            Some(Code::HarnessNichtErlaubt)
+        } else if !regeln.modelle.contains(feld(eingabe, "modell")) {
+            Some(Code::ModellNichtErlaubt)
+        } else if !regeln.effort.contains(feld(eingabe, "effort")) {
+            Some(Code::EffortNichtErlaubt)
+        } else if laufend >= regeln.hoechstzahl {
+            Some(Code::WorkerHoechstzahl)
+        } else if self.z.zusage_zaehler >= ZUSAGE_MAX {
+            Some(Code::ZusagenErschoepft)
+        } else {
+            None
+        }
+    }
+
+    /// `worker.anfordern`, stage 4 (section 15.3): the checks, then a promise `zs-<laden_ms>-<n>` that holds 30 000 ms and
+    /// keeps the orchestrator and the values the worker must start with.
+    fn worker(mut self, eingabe: &Value) -> Ergebnis {
+        if self.z.worker.is_none() {
+            return self.nein(Code::VorgabeFehlt, Sicht::default());
+        }
+        if let Some(code) = self.worker_grund(eingabe) {
+            return self.nein(code, Sicht::default());
+        }
+        self.z.zusage_zaehler += 1;
+        let n = self.z.zusage_zaehler;
+        let bis = self.jetzt + ZUSAGE_FRIST_MS;
+        let sitzung = feld(eingabe, "sitzung").to_owned();
+        self.z.zusagen.insert(
+            n,
+            Zusage {
+                orchestrator: sitzung.clone(),
+                harness: feld(eingabe, "harness").to_owned(),
+                modell: feld(eingabe, "modell").to_owned(),
+                effort: feld(eingabe, "effort").to_owned(),
+                route: feld(eingabe, "route").to_owned(),
+                kunde: eingabe
+                    .get("kunde")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                bis,
+            },
+        );
+        let zusage = self.z.zusage_kennung(n);
+        self.fertig(Antwort::Frei {
+            sitzung,
+            zusage,
+            zusage_bis_ms: bis,
+        })
     }
 }
 
@@ -445,11 +627,13 @@ pub fn entscheide(zustand: &Zustand, ereignis: &Ereignis, jetzt_ms: i64) -> Erge
     let eingabe = vorgang.eingabe();
     let leer = |e: &Value| e.as_object().is_some_and(Map::is_empty);
     let form = match vorgang {
-        Vorgang::SitzungStarten(_) => startbytes(eingabe).is_some(),
+        Vorgang::SitzungStarten(_) => starteingabe(eingabe).is_some(),
         Vorgang::McpAnfragen(_) => felder(eingabe, &ANFRAGEN),
         Vorgang::McpEntscheiden(_) => felder(eingabe, &ENTSCHEIDEN),
         Vorgang::McpEinloesen(_) => felder(eingabe, &EINLOESEN),
         Vorgang::McpStand(_) => felder(eingabe, &STAND),
+        Vorgang::PersonPseudonym(_) => felder(eingabe, &PSEUDONYM),
+        Vorgang::WorkerAnfordern(_) => felder(eingabe, &WORKER),
         Vorgang::McpOffene(_) | Vorgang::AblaufPruefen(_) => leer(eingabe),
     };
     if !form {
@@ -461,6 +645,8 @@ pub fn entscheide(zustand: &Zustand, ereignis: &Ereignis, jetzt_ms: i64) -> Erge
         (Vorgang::McpAnfragen(_), _) => lauf.anfragen(eingabe),
         (Vorgang::McpOffene(_), _) => lauf.offene(),
         (Vorgang::AblaufPruefen(_), _) => lauf.fertig(Antwort::Geprueft { abgelaufen }),
+        (Vorgang::PersonPseudonym(_), _) => lauf.pseudonym(eingabe),
+        (Vorgang::WorkerAnfordern(_), _) => lauf.worker(eingabe),
         (_, None) => lauf.nein(Code::AnfrageUnbekannt, Sicht::default()),
         (Vorgang::McpEntscheiden(_), Some(n)) => lauf.entscheiden(eingabe, n),
         (Vorgang::McpEinloesen(_), Some(n)) => lauf.einloesen(eingabe, n),

@@ -288,20 +288,30 @@ lk_nvm_ordner() {
     done
 }
 
-# The fixed version of the harness opencode (decision of the operator, 27.11.2026): the program of the npm package opencode-ai 1.19.5
-# for linux-x64 (`opencode-linux-x64-1.19.5.tgz`, file `package/bin/opencode`; the postinstall of opencode-ai links it to
-# `bin/opencode.exe`). Only this file is entered; any other version or build of opencode is not.
+# The fixed version of the harness opencode (decision of the operator, 27.11.2026): the program of the npm package opencode-ai 1.19.5.
+# The package links one of two files to `bin/opencode.exe`, chosen by its postinstall from the CPU flag avx2 of /proc/cpuinfo:
+# `package/bin/opencode` of `opencode-linux-x64-1.19.5.tgz` (CPU with avx2) or the file of the same name of
+# `opencode-linux-x64-baseline-1.19.5.tgz` (CPU without avx2). Both sums are fixed and come from the maker; only the file that fits the CPU
+# is entered, any other version or build of opencode is not. (Measured 27.11.2026: in 1.19.5 the two files are byte-identical, so the
+# two sums are equal; they stay two constants, because a later version may differ.)
 LK_OPENCODE_SHA256=7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802c
+LK_OPENCODE_BASELINE_SHA256=7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802c
 
 # lk_summe <file>: the sha256 of the file as 64 hex digits, nothing on a fault.
 lk_summe() {
     sha256sum "$1" 2>/dev/null | cut -c1-64
 }
 
+# lk_avx2: succeeds when the CPU lists the flag avx2 (the same test as the postinstall of opencode-ai: the word avx2, any case, in
+# /proc/cpuinfo); a missing or unreadable file means no avx2.
+lk_avx2() {
+    [ -r "$LK_WURZEL/proc/cpuinfo" ] && grep -E -i -q '(^|[[:space:]])avx2([[:space:]]|$)' "$LK_WURZEL/proc/cpuinfo"
+}
+
 # lk_suche <name>: sets LK_<NAME> (real program) and LK_<NAME>_NODE (real node) when the harness is found for the user.
 # The search order: the nvm versions of the user (the highest version first), then the fixed folders; the first hit wins.
-# opencode is a program of its own without node: its real program must be the fixed version (LK_OPENCODE_SHA256), else it is
-# not entered and one fixed journal line says so (no path).
+# opencode is a program of its own without node: its real program must be the fixed version for the CPU (LK_OPENCODE_SHA256 with
+# avx2, LK_OPENCODE_BASELINE_SHA256 without), else it is not entered and one fixed journal line says so (no path).
 lk_suche() {
     name=$1
     treffer=""
@@ -335,7 +345,8 @@ lk_suche() {
             LK_COPILOT_NODE=$knoten
             ;;
         opencode)
-            if [ "$(lk_summe "$LK_WURZEL$echt")" = "$LK_OPENCODE_SHA256" ]; then
+            if lk_avx2; then soll=$LK_OPENCODE_SHA256; else soll=$LK_OPENCODE_BASELINE_SHA256; fi
+            if [ "$(lk_summe "$LK_WURZEL$echt")" = "$soll" ]; then
                 LK_OPENCODE=$echt
             else
                 log "werkbank: opencode nicht in der festen Fassung, nicht eingetragen"

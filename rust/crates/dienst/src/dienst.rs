@@ -67,9 +67,19 @@ const SCHLUESSEL_WECK: u64 = 0;
 const SCHLUESSEL_HOERER: u64 = u64::MAX;
 /// How many bytes the loop reads from one connection in one turn.
 const LESE_GROESSE: usize = 65536;
-/// The fields an event never has (DI3 and DI-L11 point 7): `t` and `betrachter` belong to the service, and an account comes only
-/// from the measured peer of the local way, never from the view. Each is the error `feld_verboten`, on both ways.
-const VERBOTEN: [&str; 7] = ["t", "betrachter", "konto", "wer", "person", "uid", "sid"];
+/// The fields an event never has (DI3 and DI-L11 point 7): `t` and `betrachter` belong to the service, an account comes only
+/// from the measured peer of the local way, never from the view, and `nachweis` is built only by the service on the local way
+/// (G4), never sent by the view. Each is the error `feld_verboten`, on both ways, before the refusals of the switch.
+const VERBOTEN: [&str; 8] = [
+    "t",
+    "betrachter",
+    "nachweis",
+    "konto",
+    "wer",
+    "person",
+    "uid",
+    "sid",
+];
 
 /// An event that waits for its step: the event, who gave it (for a rejection) and the index of the core.
 type Arbeit = (Value, Option<u64>, usize);
@@ -241,6 +251,10 @@ pub struct Dienst {
     post: Post,
     /// The local way (DI-L11), if the start file has `lokal`.
     lokal: Option<Lokal>,
+    /// The channel to the decision point (addendum "Kanal zur Stelle (L6, Nr. 98)"), only with `lauf.stelle`.
+    stelle: Option<crate::stelle::Faden>,
+    /// What the service knows of the requests of the point.
+    stelle_stand: crate::stelle::Stand,
     halt: Arc<AtomicBool>,
     runden: Arc<AtomicU64>,
     /// The cores in the order of their start: the room core first (only with `lauf`), then the session of `kind` (number 0), then
@@ -377,6 +391,8 @@ impl Dienst {
                 return Err(f);
             }
         };
+        let stelle =
+            crate::stelle::Faden::aus_lauf(cfg.lauf.as_ref().and_then(|l| l.stelle.clone()));
         // the ends of the sessions of the Bestand come first in the order of the ends
         let enden = sitzungen
             .iter()
@@ -390,6 +406,8 @@ impl Dienst {
             weck_schreib,
             post,
             lokal,
+            stelle,
+            stelle_stand: crate::stelle::Stand::default(),
             halt: Arc::new(AtomicBool::new(false)),
             runden: Arc::new(AtomicU64::new(0)),
             sitzungen,
@@ -556,7 +574,8 @@ impl Dienst {
         let mut puffer = vec![0_u8; LESE_GROESSE];
         while !self.halt.load(Ordering::SeqCst) {
             self.runden.fetch_add(1, Ordering::Relaxed);
-            let frist = warte_dauer(hat_rueckstand(&self.betrachter), self.bis_frist());
+            let bis = self.bis_frist();
+            let frist = warte_dauer(hat_rueckstand(&self.betrachter), bis);
             // the keys that are ready in the order of their readiness (a viewer number, or the key of the wake socket or the
             // listener, which no viewer has: `lesen_von` ignores it, the listener is accepted from below)
             for nr in self.bereit.warten(frist) {
@@ -568,6 +587,7 @@ impl Dienst {
             }
             self.annehmen();
             self.meldungen_abfragen();
+            self.stelle_runde();
             self.kinder_lesen();
             self.flush_alle();
             self.takt_pruefen();
@@ -1426,6 +1446,11 @@ impl Dienst {
             self.flush_alle();
             return;
         }
+        if art == "Freigabe" {
+            self.freigabe_ereignis(nr, objekt);
+            self.flush_alle();
+            return;
+        }
         let Some(name) = self.betrachter.get(&nr).map(|b| b.name.clone()) else {
             return;
         };
@@ -1543,6 +1568,159 @@ impl Dienst {
             .and_then(|x| x.get("kundenraum"))
             .and_then(Value::as_str);
         raum.is_some() && raum == kundenraum
+    }
+
+    // ---------------------------------------------------------------------------------------------- Freigabe (DI-L6, Kanal zur Stelle)
+
+    /// `Freigabe` of a viewer (addendum points 10 and 11). The switch of `ereignis_rahmen` (`weiche::weiche`, DI-E5 point 4) lets
+    /// only a `Freigabe` of the local way with `lauf.stelle` come here; `freigabe_nur_lokal` and `stelle_nicht_erreichbar` before
+    /// it are the switch's. Here: the fields that would name or prove who decides (`feld_verboten`, an error as for `t` and
+    /// `betrachter`), then the checks, then `mcp.entscheiden` on the thread of the channel. Every refusal goes to the sender only;
+    /// the core never sees a `Freigabe` of the view.
+    fn freigabe_ereignis(&mut self, nr: u64, e: &Map<String, Value>) {
+        if crate::stelle::VERBOTEN.iter().any(|k| e.contains_key(*k)) {
+            return self.fehler(nr, "feld_verboten");
+        }
+        if let Err(grund) = self.freigabe_lokal(nr, e) {
+            self.ablehnen(nr, &grund);
+        }
+    }
+
+    /// The measured account of viewer `nr` (`uid-<uid>` or `sid-<SID>`): only the account of the local way (DI-L11 point 2), never
+    /// a field of the event or of the start file. A viewer of `dienst.sock` has none.
+    fn konto_von(&self, nr: u64) -> Option<String> {
+        let wer = self.betrachter.get(&nr)?.wer.as_ref()?;
+        crate::stelle::konto_aus(&wer.json())
+    }
+
+    /// A release of the local way with `lauf.stelle`: DI-L6 point 4 (form, count, request, room, state); then the measured account
+    /// and the key; then the proof of the service and `mcp.entscheiden` with `anfrage`, `entscheidung` and `nachweis` (the reason
+    /// stays here).
+    fn freigabe_lokal(&mut self, nr: u64, e: &Map<String, Value>) -> Result<(), Value> {
+        use crate::stelle::{Auftrag, Fehlschlag, KONTO_OHNE_PERSON, NICHT_ERREICHBAR, ablehnung};
+        let grund = |g: &str| json!({"grund": g});
+        let f = crate::stelle::freigabe_form(e).map_err(grund)?;
+        let offen = self.stelle_stand.anfragen.get(&f.anfrage).cloned();
+        let k = offen.as_ref().and_then(|o| self.finde(&o.sitzung));
+        let zustand = k.and_then(|k| {
+            let z = self.sitzungen.get(k)?.kern.zustand();
+            z.get("anfragen")?
+                .get(&f.anfrage)?
+                .as_str()
+                .map(str::to_owned)
+        });
+        crate::stelle::freigabe_lage(
+            k.is_some(),
+            k.is_some_and(|k| self.im_raum(nr, k)),
+            zustand.as_deref(),
+            self.stelle_stand.wartend.contains_key(&f.anfrage),
+        )
+        .map_err(grund)?;
+        let (Some(offen), Some(faden)) = (offen, &self.stelle) else {
+            return Err(ablehnung(&Fehlschlag::Dienst(NICHT_ERREICHBAR)));
+        };
+        let konto = self.konto_von(nr).ok_or_else(|| grund(KONTO_OHNE_PERSON))?;
+        let nachweis =
+            crate::stelle::nachweis_bilden(faden.nachweis.as_ref(), &konto, &offen, f.entscheidung)
+                .map_err(grund)?;
+        let auftrag = Auftrag::Entscheiden {
+            nr,
+            anfrage: f.anfrage.clone(),
+            entscheidung: f.entscheidung.to_owned(),
+            nachweis,
+        };
+        if !faden.auftrag(auftrag) {
+            return Err(ablehnung(&Fehlschlag::Dienst(NICHT_ERREICHBAR)));
+        }
+        self.stelle_stand
+            .wartend
+            .insert(f.anfrage, (nr, f.begruendung));
+        Ok(())
+    }
+
+    /// The answer of the point to a release: a decision gives the core `AnfrageStand` with the reason of the event (DI-L6 point
+    /// 5), a failure the rejection to the sender. An answer without a waiting release is dropped.
+    fn stelle_entschieden(
+        &mut self,
+        nr: u64,
+        anfrage: &str,
+        ergebnis: Result<crate::stelle::Entschieden, crate::stelle::Fehlschlag>,
+    ) {
+        let Some((_, begruendung)) = self.stelle_stand.wartend.remove(anfrage) else {
+            return;
+        };
+        let ent = match ergebnis {
+            Err(f) => return self.ablehnen(nr, &crate::stelle::ablehnung(&f)),
+            Ok(ent) => ent,
+        };
+        let zustand = match ent {
+            crate::stelle::Entschieden::Erteilt => "erteilt",
+            crate::stelle::Entschieden::Abgelehnt => "abgelehnt",
+        };
+        let k = self
+            .stelle_stand
+            .anfragen
+            .get(anfrage)
+            .and_then(|o| self.finde(&o.sitzung));
+        if let Some(k) = k {
+            // the reason only when there is one: the core takes `begruendung` only as a text (R-L6 point 2)
+            let mut e = json!({"t": self.jetzt(), "art": "AnfrageStand", "id": anfrage, "zustand": zustand});
+            if let Some(b) = begruendung {
+                e["begruendung"] = json!(b);
+            }
+            self.ereignis(k, e, Some(nr));
+        }
+    }
+
+    /// The answers of the channel; open requests the cores do not know yet become `Anfrage` (DI-L6 point 3). Then `mcp.offene`
+    /// again once a second while a viewer is connected.
+    fn stelle_runde(&mut self) {
+        use crate::stelle::{Auftrag, Rueckmeldung};
+        let rueck = self
+            .stelle
+            .as_ref()
+            .map(crate::stelle::Faden::abholen)
+            .unwrap_or_default();
+        for r in rueck {
+            match r {
+                Rueckmeldung::Entschieden {
+                    nr,
+                    anfrage,
+                    ergebnis,
+                } => self.stelle_entschieden(nr, &anfrage, ergebnis),
+                Rueckmeldung::Offene(Ok(liste)) => {
+                    let wand = crate::stelle::wanduhr_ms();
+                    for o in liste {
+                        if self.stelle_stand.anfragen.contains_key(&o.anfrage) {
+                            continue;
+                        }
+                        let Some(k) = self.finde(&o.sitzung) else {
+                            continue;
+                        };
+                        let jetzt = self.jetzt();
+                        let frist =
+                            jetzt.saturating_add(o.frist_bis_ms.saturating_sub(wand).max(0));
+                        let e = json!({"t": jetzt, "art": "Anfrage", "id": o.anfrage, "sitzung": o.sitzung,
+                                       "werkzeug": o.werkzeug, "vorschau": o.vorschau, "frist": frist});
+                        self.stelle_stand.anfragen.insert(o.anfrage.clone(), o);
+                        self.ereignis(k, e, None);
+                    }
+                }
+                // a failed fetch makes no new request; the known ones stay as the cores know them
+                Rueckmeldung::Offene(Err(_)) => {}
+            }
+        }
+        let faellig = self
+            .stelle_stand
+            .offene_zuletzt
+            .is_none_or(|t| t.elapsed() >= crate::stelle::OFFENE_TAKT);
+        if let Some(faden) = &self.stelle
+            && !self.betrachter.is_empty()
+            && faellig
+            && faden.auftrag(Auftrag::Offene)
+        {
+            self.stelle_stand.offene_zuletzt = Some(Instant::now());
+        }
     }
 
     // ---------------------------------------------------------------------------------------------- Starten, Beenden (DI12)

@@ -144,6 +144,30 @@ impl Lauf {
         self.bilder(1);
     }
 
+    /// Every node in the order of the tree (depth first from the roots).
+    fn reihe(&self) -> Vec<NodeId> {
+        let kinder: BTreeSet<NodeId> = self
+            .baum
+            .values()
+            .flat_map(|n| n.children().iter().copied())
+            .collect();
+        let mut stapel: Vec<NodeId> = self
+            .baum
+            .keys()
+            .filter(|id| !kinder.contains(id))
+            .rev()
+            .copied()
+            .collect();
+        let mut aus = Vec::new();
+        while let Some(id) = stapel.pop() {
+            aus.push(id);
+            if let Some(n) = self.baum.get(&id) {
+                stapel.extend(n.children().iter().rev().copied());
+            }
+        }
+        aus
+    }
+
     fn fokus_kennung(&self) -> Option<String> {
         let n = self.baum.get(&self.fokus?)?;
         n.author_id()
@@ -515,14 +539,42 @@ fn shift_insert_asks_for_the_clipboard_outside_macos() {
 fn the_application_menu_holds_only_entries_of_shown_paths() {
     use fenster::menue::Tat;
     for (form, l) in [("ziel", ziel_abfahren()), ("heute", heute_abfahren())] {
+        // no menu button in the title row (as today): under macOS the menu bar of the system, under Windows and Linux
+        // the button in the foot of the sidebar next to the gear (G3), below the title row
+        let knopf = l.mit_kennung("B75");
+        assert_eq!(knopf.is_some(), !cfg!(target_os = "macos"), "{form}");
+        if let Some(k) = knopf {
+            let oben = l.baum.get(&k).and_then(Node::bounds).map(|b| b.y0);
+            let zahnrad = l
+                .mit_kennung("B23")
+                .and_then(|z| l.baum.get(&z))
+                .and_then(Node::bounds);
+            assert!(
+                oben.is_some_and(|y| y > 400.0),
+                "{form}: Menüknopf bei y={oben:?}"
+            );
+            assert_eq!(oben, zahnrad.map(|b| b.y0), "{form}: neben dem Zahnrad");
+        }
         let liste = l.f.anwendungsmenue();
         assert!(!liste.is_empty(), "{form}: Menü leer");
         for m in &liste {
             assert!(!m.eintraege.is_empty(), "{form}: {} ohne Einträge", m.titel);
             for e in &m.eintraege {
+                // quitting belongs to the menu itself (B75)
+                if e.tat == Tat::Beenden {
+                    assert_eq!(e.weg, "B75", "{form}");
+                    continue;
+                }
                 assert!(
                     l.f.zeigt(e.weg),
                     "{form}: {} gehört zu {}, das nicht sichtbar ist",
+                    e.text,
+                    e.weg
+                );
+                // every other entry also has its own path in the window
+                assert!(
+                    e.weg != "B75" && l.gesehen.contains(e.weg),
+                    "{form}: {} ({}) hat keinen eigenen Weg im Fenster",
                     e.text,
                     e.weg
                 );
@@ -625,4 +677,48 @@ fn every_control_has_a_name() {
         .map(|n| format!("{:?} {:?}", n.role(), n.author_id()))
         .collect();
     assert!(ohne.is_empty(), "Bedienelemente ohne Namen: {ohne:?}");
+}
+
+#[test]
+fn the_window_sessions_stands_by_folder_and_names_the_state_of_the_core() {
+    let mut l = Lauf::neu(Form::Ziel, |_| {});
+    l.klick(l.mit_kennung("B08"), "B08");
+    assert!(l.mit_kennung("B68").is_some(), "Fenster Sitzungen offen");
+    // the headings of the folders and the sessions under them, in the order of the tree
+    let liste: Vec<String> = l
+        .reihe()
+        .iter()
+        .filter_map(|id| l.baum.get(id))
+        .filter_map(|n| match n.role() {
+            Role::Heading if n.class_name() == Some("sitzungen-ordner") => {
+                Some(format!("# {}", n.label().unwrap_or_default()))
+            }
+            Role::ListBoxOption => n.label().map(str::to_owned),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        liste,
+        [
+            "# ~/AI/werkbank",
+            "Planung Pilot · läuft",
+            "Abnahme Fenster · läuft",
+            "# ~/AI/kunde-nord",
+            "Datenabgleich · beendet · Code 0",
+            "Import Altbestand · beendet · Code 137",
+        ]
+    );
+    // one state name: the row of the sidebar says what the window says
+    let zeile = l
+        .mit_kennung("sitzung-s-4")
+        .and_then(|id| l.baum.get(&id))
+        .and_then(|n| n.label().map(str::to_owned))
+        .unwrap_or_default();
+    assert!(zeile.contains("beendet · Code 137"), "{zeile}");
+    assert!(
+        l.baum
+            .values()
+            .all(|n| !n.label().unwrap_or_default().contains("abgestürzt")),
+        "kein zweiter Zustandsname"
+    );
 }

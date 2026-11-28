@@ -1,0 +1,641 @@
+{
+  "beschreibung": "Pruefreihenfolge von worker.anfordern (Abschnitt 15.3): Aufrufer, Eingabe, Sitzung, Route, Klasse, Kunde, Harness, Modell, Effort, Hoechstzahl; jede Ablehnung mit Zeile vorgang.abgelehnt ohne Anfrage.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "Nachtrag 27.11.2026",
+    "A92"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "worker_regeln": {
+    "text": "{\"fassung\":1,\"worker\":{\"hoechstzahl\":2,\"harness\":[\"claude\",\"pi\"],\"modelle\":[\"claude-sonnet-5-5\"],\"effort\":[\"niedrig\",\"mittel\"]}}"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600100,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:00.100Z\"}",
+            "sha256": "3b4cac145bf9952407fd491a4759153430d08d8ff5fbf8eb83006e76a2425b16"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600101,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"3b4cac145bf9952407fd491a4759153430d08d8ff5fbf8eb83006e76a2425b16\",\"zeit\":\"2026-11-20T13:00:00.101Z\"}",
+            "sha256": "a62f53f9014daa2a019ffd886957bc1ca509120d66ee00fecedeed59b042f496"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "agent",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600102,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"agent\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"a62f53f9014daa2a019ffd886957bc1ca509120d66ee00fecedeed59b042f496\",\"zeit\":\"2026-11-20T13:00:00.102Z\"}",
+            "sha256": "4c334f2fd7f1a27868c78091fe5305dc39bb82b30080b89fef9cef6a5adff4de"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "takt",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600103,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"takt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"4c334f2fd7f1a27868c78091fe5305dc39bb82b30080b89fef9cef6a5adff4de\",\"zeit\":\"2026-11-20T13:00:00.103Z\"}",
+            "sha256": "e365e75e1eafba3e7cc03600306fff37cc6f66cf31824fb82837f75d8d999087"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "unbekannt",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600104,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"unbekannt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"e365e75e1eafba3e7cc03600306fff37cc6f66cf31824fb82837f75d8d999087\",\"zeit\":\"2026-11-20T13:00:00.104Z\"}",
+            "sha256": "2da2c45a42d84af68224e34f99aca7a7556a1efcebaf43ddf55b06856bfcc2a6"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600200,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel",
+        "orchestrator": "s-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"2da2c45a42d84af68224e34f99aca7a7556a1efcebaf43ddf55b06856bfcc2a6\",\"zeit\":\"2026-11-20T13:00:00.200Z\"}",
+            "sha256": "c84f5a9bc895c10d60d20b7a1bea2104e72851baec68dc4e132bb3b1dd230368"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600201,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 1001,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"c84f5a9bc895c10d60d20b7a1bea2104e72851baec68dc4e132bb3b1dd230368\",\"zeit\":\"2026-11-20T13:00:00.201Z\"}",
+            "sha256": "0f26b49a99a892d0f470d86ed83712a5ba4f79612aa7640a74a5850b8af39de3"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600202,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": -1,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"0f26b49a99a892d0f470d86ed83712a5ba4f79612aa7640a74a5850b8af39de3\",\"zeit\":\"2026-11-20T13:00:00.202Z\"}",
+            "sha256": "4dca87550a85b5ca2ce3a45b025a48d3c186f37174583db776723814de51ce82"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600203,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "Claude Sonnet",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"4dca87550a85b5ca2ce3a45b025a48d3c186f37174583db776723814de51ce82\",\"zeit\":\"2026-11-20T13:00:00.203Z\"}",
+            "sha256": "c3b2efd3c28aac6f0c3270e5e89a3e73169ad1bf39e13eb7c82daf7c71f520db"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600209,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"c3b2efd3c28aac6f0c3270e5e89a3e73169ad1bf39e13eb7c82daf7c71f520db\",\"zeit\":\"2026-11-20T13:00:00.209Z\"}",
+            "sha256": "cfcb11765034f8a61c63985cbb42f895cfc7f206a9424d26b8a88f8f2138f53a"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600210,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"cfcb11765034f8a61c63985cbb42f895cfc7f206a9424d26b8a88f8f2138f53a\",\"zeit\":\"2026-11-20T13:00:00.210Z\"}",
+            "sha256": "87fb6a651115e46b3df4984bd855291350c5a87c64b347f805532c3f9e049137"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600211,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": 5
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"87fb6a651115e46b3df4984bd855291350c5a87c64b347f805532c3f9e049137\",\"zeit\":\"2026-11-20T13:00:00.211Z\"}",
+            "sha256": "d456d0d2ac5cf3c528fe871a18cf3c6dcb960641226b9cd0313a136ee714db9a"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600212,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "Cloud Beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"d456d0d2ac5cf3c528fe871a18cf3c6dcb960641226b9cd0313a136ee714db9a\",\"zeit\":\"2026-11-20T13:00:00.212Z\"}",
+            "sha256": "3427ec0be565e97f7413d4ff9979f5805c8ec8e968415241f226a6c1bb350095"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600204,
+      "eingabe": {
+        "sitzung": "s-9",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "r-fremd",
+        "kunde": null
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.sitzung_unbekannt",
+          "grund": "Sitzung unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.sitzung_unbekannt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"3427ec0be565e97f7413d4ff9979f5805c8ec8e968415241f226a6c1bb350095\",\"zeit\":\"2026-11-20T13:00:00.212Z\"}",
+            "sha256": "391be5a349b9228a91b492ac617196d49b42a4b4b1f58e0f639091dbdeab46ec"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600213,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "codex",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "r-fremd",
+        "kunde": null
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.route_unbekannt",
+          "grund": "Route unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.route_unbekannt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"391be5a349b9228a91b492ac617196d49b42a4b4b1f58e0f639091dbdeab46ec\",\"zeit\":\"2026-11-20T13:00:00.213Z\"}",
+            "sha256": "b5a39ed83f2af32af5e3b245331c29a0a18e8445186dbea08dd3a63232552b82"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600214,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "codex",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 0,
+        "route": "lokal-beispiel",
+        "kunde": null
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.worker_klasse_hoeher",
+          "grund": "Klasse hoeher als beim Orchestrator"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.worker_klasse_hoeher\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"b5a39ed83f2af32af5e3b245331c29a0a18e8445186dbea08dd3a63232552b82\",\"zeit\":\"2026-11-20T13:00:00.214Z\"}",
+            "sha256": "95545d5a58a881bba7b4796ff289da7ab963d5a1c7bc5a2869974210c9d87417"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600215,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "codex",
+        "modell": "gpt-9",
+        "effort": "hoch",
+        "laufend": 2,
+        "route": "cloud-beispiel",
+        "kunde": null
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.worker_fremder_kunde",
+          "grund": "Kunde weicht vom Orchestrator ab"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.worker_fremder_kunde\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"95545d5a58a881bba7b4796ff289da7ab963d5a1c7bc5a2869974210c9d87417\",\"zeit\":\"2026-11-20T13:00:00.215Z\"}",
+            "sha256": "085253984aabcf0bfda7aa8cf8801366370062f173504a8f304bbb676e46d586"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600205,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "codex",
+        "modell": "gpt-9",
+        "effort": "hoch",
+        "laufend": 2,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.harness_nicht_erlaubt",
+          "grund": "Harness nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.harness_nicht_erlaubt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"085253984aabcf0bfda7aa8cf8801366370062f173504a8f304bbb676e46d586\",\"zeit\":\"2026-11-20T13:00:00.215Z\"}",
+            "sha256": "5e705a41bfa38703598a719c177aa00268e442008c4a89f05081c74942cecc71"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600206,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "gpt-9",
+        "effort": "hoch",
+        "laufend": 2,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.modell_nicht_erlaubt",
+          "grund": "Modell nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.modell_nicht_erlaubt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"5e705a41bfa38703598a719c177aa00268e442008c4a89f05081c74942cecc71\",\"zeit\":\"2026-11-20T13:00:00.215Z\"}",
+            "sha256": "19f05b27fc51b9b7ab97941e266ddebbf7959a7422765127094566ba935119ed"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600207,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "hoch",
+        "laufend": 2,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.effort_nicht_erlaubt",
+          "grund": "Effort nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.effort_nicht_erlaubt\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"19f05b27fc51b9b7ab97941e266ddebbf7959a7422765127094566ba935119ed\",\"zeit\":\"2026-11-20T13:00:00.215Z\"}",
+            "sha256": "40b9afb820a5011385318198bcfc715958b3099898f2532f4b2afae745ed4104"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600208,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "mittel",
+        "laufend": 2,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.worker_hoechstzahl",
+          "grund": "Hoechstzahl der Worker erreicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.worker_hoechstzahl\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"40b9afb820a5011385318198bcfc715958b3099898f2532f4b2afae745ed4104\",\"zeit\":\"2026-11-20T13:00:00.215Z\"}",
+            "sha256": "272774c84433fa55bc7287212901050b6e8cccf43d999404f3beae2436347ede"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "zeilen": 22,
+    "letzte": "272774c84433fa55bc7287212901050b6e8cccf43d999404f3beae2436347ede"
+  }
+}

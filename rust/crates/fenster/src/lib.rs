@@ -5,17 +5,21 @@
 //! - [`weg`]: the narrow interface to the service; [`attrappe`] stands behind it until the local path (gap L11) exists.
 //! - [`bedienwege`]: the table of section 2 and the rule which operating path shows (OF7, OF8).
 //! - [`gestalt`]: every measure and role colour (OF2, OF3). [`merken`]: what the window keeps per device (L8).
+//! - [`akzent`]: the accent colour of the system under macOS for the frame of the active tile.
 //! - [`tasten`], [`terminal`]: keyboard and terminal picture. [`ziel`]: the fields of the gaps, read only for the mock-up.
 //! - [`bild`]: pictures without a window (OF13).
 //!
 //! The logic of the sessions lives in the view core of the crate `ansicht` ([`ansicht::kern::Kern`]), the same the
 //! browser view uses; the window has no second copy of it.
 
+pub mod akzent;
 pub mod attrappe;
 pub mod bedienwege;
 pub mod bild;
+pub mod einstellungstexte;
 pub mod fenster;
 pub mod gestalt;
+pub mod kasten;
 pub mod menue;
 pub mod merken;
 pub mod symbole;
@@ -126,11 +130,17 @@ pub fn szenen() -> Vec<(&'static str, Szene, bool)> {
             false,
         ),
         ("worker-kacheln", Szene::WorkerKacheln, false),
+        ("worker-einzeln", Szene::WorkerEinzeln, false),
         ("worker-liste", Szene::WorkerListe, false),
         ("sitzungen-leer", Szene::SitzungenLeer, false),
         (
             "sitzungen-beendet",
             Szene::SitzungenGewaehlt("s-3".to_owned()),
+            false,
+        ),
+        (
+            "sitzungen-laufend",
+            Szene::SitzungenGewaehlt("s-1".to_owned()),
             false,
         ),
         (
@@ -144,8 +154,18 @@ pub fn szenen() -> Vec<(&'static str, Szene, bool)> {
             false,
         ),
         (
-            "einstellungen-harnesses-nutzer",
+            "einstellungen-programme-nutzer",
             Szene::Einstellungen(Seite::Harnesses),
+            false,
+        ),
+        (
+            "einstellungen-erlaubnisse-nutzer",
+            Szene::Einstellungen(Seite::Erlaubnisse),
+            false,
+        ),
+        (
+            "einstellungen-aufsicht-nutzer",
+            Szene::Einstellungen(Seite::Aufsicht),
             false,
         ),
         (
@@ -159,8 +179,18 @@ pub fn szenen() -> Vec<(&'static str, Szene, bool)> {
             true,
         ),
         (
-            "einstellungen-harnesses-admin",
-            Szene::Einstellungen(Seite::Harnesses),
+            "einstellungen-programme-admin",
+            Szene::Einstellungen(Seite::AdminHarnesses),
+            true,
+        ),
+        (
+            "einstellungen-erlaubnisse-admin",
+            Szene::Einstellungen(Seite::AdminErlaubnisse),
+            true,
+        ),
+        (
+            "einstellungen-aufsicht-admin",
+            Szene::Einstellungen(Seite::AdminAufsicht),
             true,
         ),
     ]
@@ -177,21 +207,28 @@ pub fn bilder(ordner: &std::path::Path) -> std::io::Result<Vec<std::path::PathBu
     let mut aus = Vec::new();
     for (name, szene, admin) in szenen() {
         for (thema, dunkel) in [("hell", false), ("dunkel", true)] {
-            let ctx = egui::Context::default();
-            einrichten(&ctx);
-            let (mut f, griff) = mit_attrappe(Form::Ziel);
-            griff.borrow_mut().admin_setzen(admin);
-            // first frames take the stream and subscribe, then the situation
-            let mut lw = bild::Leinwand::neu(1280, 800, egui::Color32::BLACK);
-            bild::aufnehmen(&ctx, &mut f, &mut lw, 3, dunkel);
-            f.szene(&szene);
-            bild::aufnehmen(&ctx, &mut f, &mut lw, 16, dunkel);
+            let lw = bild_der_szene(&szene, admin, dunkel);
             let pfad = ordner.join(format!("{name}-{thema}.png"));
             std::fs::write(&pfad, lw.png())?;
             aus.push(pfad);
         }
     }
     Ok(aus)
+}
+
+/// One picture of OF13: the situation `szene` at 1280 by 800 points on the target state of the mock-up.
+#[must_use]
+pub fn bild_der_szene(szene: &Szene, admin: bool, dunkel: bool) -> bild::Leinwand {
+    let ctx = egui::Context::default();
+    einrichten(&ctx);
+    let (mut f, griff) = mit_attrappe(Form::Ziel);
+    griff.borrow_mut().admin_setzen(admin);
+    // first frames take the stream and subscribe, then the situation
+    let mut lw = bild::Leinwand::neu(1280, 800, egui::Color32::BLACK);
+    bild::aufnehmen(&ctx, &mut f, &mut lw, 3, dunkel);
+    f.szene(szene);
+    bild::aufnehmen(&ctx, &mut f, &mut lw, 16, dunkel);
+    lw
 }
 
 #[cfg(test)]
@@ -219,6 +256,56 @@ mod tests {
         aus.textures_delta.clear();
         // Ubuntu Light of egui against Ubuntu at weight 700: the bold cut is loaded and its axis takes effect
         assert!(breite[1] > breite[0] * 1.05, "{breite:?}");
+    }
+
+    #[test]
+    fn the_plain_part_of_the_settings_has_one_colour() {
+        // the settings stand where the window puts them (between the title row and the foot of the sidebar); below the
+        // groups of a page (the page "Programme und Modelle" reaches down to about 55 % of the height) and right of the
+        // list of pages the window is one colour up to its straight edges (no dotted line from corner to corner, no
+        // strokes along the edges); only the lower right corner is left out
+        let voll = fenster::einstellungen_lage(egui::Rect::from_min_size(
+            egui::Pos2::ZERO,
+            egui::vec2(1280.0, 800.0),
+        ));
+        let h = voll.height();
+        let r = MASSE.radius_fenster;
+        let rand = 2.0;
+        let flaeche = egui::Rect::from_min_max(
+            egui::pos2(
+                voll.left() + MASSE.einstellungsleiste + rand,
+                voll.top() + 0.6 * h,
+            ),
+            egui::pos2(voll.right() - rand, voll.bottom() - rand),
+        );
+        let ecke = egui::Rect::from_min_max(
+            egui::pos2(voll.right() - r - rand, voll.bottom() - r - rand),
+            voll.max,
+        );
+        for dunkel in [false, true] {
+            let lw = bild_der_szene(&Szene::Einstellungen(Seite::Harnesses), false, dunkel);
+            let grund = gestalt::Wahl::default().rollen(dunkel).grund;
+            let soll = [grund.r(), grund.g(), grund.b()].map(|c| f32::from(c) / 255.0);
+            let mut abweichend = Vec::new();
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            for y in flaeche.top() as usize..flaeche.bottom() as usize {
+                for x in flaeche.left() as usize..flaeche.right() as usize {
+                    #[allow(clippy::cast_precision_loss)]
+                    let mitte = egui::pos2(x as f32 + 0.5, y as f32 + 0.5);
+                    let p = lw.pixel[y * lw.breite + x];
+                    if !ecke.contains(mitte) && (0..3).any(|i| (p[i] - soll[i]).abs() > 0.5 / 255.0)
+                    {
+                        abweichend.push((x, y));
+                    }
+                }
+            }
+            assert!(
+                abweichend.is_empty(),
+                "dunkel {dunkel}: {} pixels differ, first {:?}",
+                abweichend.len(),
+                &abweichend[..abweichend.len().min(8)]
+            );
+        }
     }
 
     #[test]

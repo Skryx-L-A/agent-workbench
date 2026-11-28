@@ -1495,7 +1495,7 @@ fn lauf_json_text(ca: &str) -> String {
         concat!(
             r#"{{"fassung":1,"einstellungen":"/srv/beispiel/e.json","vault":"/srv/beispiel/v","protokoll":"/srv/beispiel/p","zustand":"/srv/beispiel/z","#,
             r#""laufzeit":"/srv/beispiel/l","sitzungen":"/srv/beispiel/s","heim":"/srv/beispiel/h","path":"/usr/bin","#,
-            r#""programme":{{"rangkern":"/srv/beispiel/r"}},"harness":{{"copilot":"/opt/c","pi":"/opt/p"}},"programmordner":[],"#,
+            r#""programme":{{"rangkern":"/srv/beispiel/r"}},"harness":{{"copilot":"/opt/c","pi":"/opt/p","opencode":"/opt/o"}},"programmordner":[],"#,
             r#""schluessel":{{"copilot":"/srv/beispiel/c","lokal":"/srv/beispiel/m"}},"ca_zulassung":"{}"}}"#,
             "\n"
         ),
@@ -1678,7 +1678,7 @@ fn eine_lage_mit_unbekanntem_ca_wert_wird_abgelehnt() {
 fn lauf_json_mit(harness: &str, ordner: &str) -> String {
     lauf_json_text("offen")
         .replace(
-            "\"harness\":{\"copilot\":\"/opt/c\",\"pi\":\"/opt/p\"}",
+            "\"harness\":{\"copilot\":\"/opt/c\",\"pi\":\"/opt/p\",\"opencode\":\"/opt/o\"}",
             &format!("\"harness\":{harness}"),
         )
         .replace(
@@ -1780,7 +1780,7 @@ fn ein_programmordner_der_den_anmeldespeicher_beruehrt_ist_ein_befund_mit_festem
 
 #[test]
 fn ein_harness_der_nicht_in_lauf_json_steht_nennt_seinen_grund() {
-    let text = lauf_json_mit(r#"{"copilot":"/opt/c"}"#, "[]");
+    let text = lauf_json_mit(r#"{"copilot":"/opt/c","opencode":"/opt/o"}"#, "[]");
     let (w, lage) = ca_lage("harness-gruende", |w| {
         schreiben(w, "etc/werkbank/lauf.json", text.as_bytes(), 0o644);
     });
@@ -1822,6 +1822,63 @@ fn ein_harness_der_nicht_in_lauf_json_steht_nennt_seinen_grund() {
 }
 
 #[test]
+fn opencode_hat_wie_die_anderen_harness_seinen_grund_und_seine_zeile() {
+    let ohne = lauf_json_mit(r#"{"copilot":"/opt/c","pi":"/opt/p"}"#, "[]");
+    let (w, lage) = ca_lage("harness-opencode", |w| {
+        schreiben(w, "etc/werkbank/lauf.json", ohne.as_bytes(), 0o644);
+    });
+    // opencode steht nicht in der Datei und liegt nirgends: nicht gefunden, die Zeile nennt den Namen
+    assert_eq!(
+        lage.harness,
+        vec![("opencode".to_owned(), "nicht_gefunden".to_owned())]
+    );
+    let r = bewerte(&lage);
+    assert_eq!(r.rc, 0);
+    assert!(
+        r.zeilen
+            .iter()
+            .any(|z| z
+                .starts_with("pruef.hinweis_harness_nicht_gefunden: opencode nicht gefunden in ")),
+        "{:?}",
+        r.zeilen
+    );
+    // das Programm von npm unter dem Praefix .npm-global, die Datei nennt es nicht: nicht eingetragen
+    let echt = "srv/beispiel/h/.npm-global/lib/node_modules/opencode-ai/bin/opencode.exe";
+    schreiben(&w, echt, b"#!/bin/sh\n", 0o755);
+    fs::create_dir_all(w.join("srv/beispiel/h/.npm-global/bin")).expect("bin");
+    let verweis = w.join("srv/beispiel/h/.npm-global/bin/opencode");
+    symlink(w.join(echt), &verweis).expect("link");
+    let lage = lage_mit(&w, &attrappe_ok(eigene_uid()), Some("anna"));
+    assert_eq!(
+        lage.harness,
+        vec![("opencode".to_owned(), "nicht_eingetragen".to_owned())]
+    );
+    assert!(bewerte(&lage).zeilen.iter().any(|z| z.starts_with(
+        "pruef.hinweis_harness_nicht_eingetragen: opencode liegt an einem gesuchten Ort"
+    )));
+    // der echte Pfad im Arbeitsordner: ausserhalb
+    fs::remove_file(&verweis).expect("rm");
+    schreiben(&w, "srv/beispiel/h/projekt/opencode", b"#!/bin/sh\n", 0o755);
+    symlink(w.join("srv/beispiel/h/projekt/opencode"), &verweis).expect("link");
+    let lage = lage_mit(&w, &attrappe_ok(eigene_uid()), Some("anna"));
+    assert_eq!(
+        lage.harness,
+        vec![("opencode".to_owned(), "ausserhalb".to_owned())]
+    );
+    // die Datei nennt opencode: keine Zeile, auch wenn das Programm daneben liegt
+    schreiben(
+        &w,
+        "etc/werkbank/lauf.json",
+        lauf_json_text("offen").as_bytes(),
+        0o644,
+    );
+    let lage = lage_mit(&w, &attrappe_ok(eigene_uid()), Some("anna"));
+    assert!(lage.harness.is_empty(), "{:?}", lage.harness);
+    assert!(!bewerte(&lage).zeilen.iter().any(|z| z.contains("opencode")));
+    fs::remove_dir_all(&w).ok();
+}
+
+#[test]
 fn programmordner_und_harness_der_lage_werden_geprueft() {
     let gut = serde_json::json!({
         "plattform": "linux", "konten": 1, "dienste": [], "apparmor": "ok", "einstellungen": {"zustand": "ok"},
@@ -1841,6 +1898,10 @@ fn programmordner_und_harness_der_lage_werden_geprueft() {
             "harness",
             serde_json::json!({"copilot": "ausserhalb", "pi": "nicht_eingetragen"}),
         ),
+        (
+            "harness",
+            serde_json::json!({"opencode": "nicht_eingetragen", "pi": "ausserhalb"}),
+        ),
     ] {
         assert!(mit(feld, wert.clone()).is_ok(), "{feld} {wert}");
     }
@@ -1848,6 +1909,7 @@ fn programmordner_und_harness_der_lage_werden_geprueft() {
         ("programmordner", serde_json::json!("gelb")),
         ("programmordner", serde_json::json!(true)),
         ("harness", serde_json::json!({"pi": "gelb"})),
+        ("harness", serde_json::json!({"opencode": "gelb"})),
         ("harness", serde_json::json!({"pi": 1})),
         ("harness", serde_json::json!({"andere": "nicht_gefunden"})),
         ("harness", serde_json::json!(["pi"])),
@@ -1916,7 +1978,7 @@ fn ein_heim_das_keine_ordnerform_hat_schaltet_die_pruefung_der_programmordner_ab
 
 #[test]
 fn die_suche_nach_dem_harness_sieht_nur_ausfuehrbare_dateien_und_erlaubte_wurzeln() {
-    let text = lauf_json_mit(r#"{"copilot":"/opt/c"}"#, "[]");
+    let text = lauf_json_mit(r#"{"copilot":"/opt/c","opencode":"/opt/o"}"#, "[]");
     let (w, _) = ca_lage("harness-wurzeln", |w| {
         schreiben(w, "etc/werkbank/lauf.json", text.as_bytes(), 0o644);
     });
@@ -1981,7 +2043,7 @@ fn die_zustandsdatei_der_abgelehnten_programmordner_gibt_einen_befund_je_harness
         r.zeilen
     );
     fs::remove_dir_all(&w).ok();
-    // Mit der Datei: ein Befund je Harness in der Reihenfolge copilot, pi; jede andere Zeile der Datei zaehlt nicht.
+    // Mit der Datei: ein Befund je Harness in der Reihenfolge copilot, pi, opencode; jede andere Zeile der Datei zaehlt nicht.
     for (name, inhalt, soll) in [
         (
             "pi",
@@ -1997,6 +2059,20 @@ fn die_zustandsdatei_der_abgelehnten_programmordner_gibt_einen_befund_je_harness
             "doppelt-die-erste-gilt",
             "pi /opt/a\npi /opt/b\n",
             vec![("pi", "/opt/a")],
+        ),
+        (
+            "opencode",
+            "opencode /srv/beispiel/h/.local\n",
+            vec![("opencode", "/srv/beispiel/h/.local")],
+        ),
+        (
+            "alle-drei-umgekehrt",
+            "opencode /opt/o\npi /opt/p\ncopilot /opt/c\n",
+            vec![
+                ("copilot", "/opt/c"),
+                ("pi", "/opt/p"),
+                ("opencode", "/opt/o"),
+            ],
         ),
         ("fremdes-harness", "andere /opt/x\n", vec![]),
         ("relativ", "pi relativ\n", vec![]),

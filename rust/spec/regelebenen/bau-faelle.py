@@ -244,6 +244,12 @@ def firma_intern(firma):
             if m in gesehen:
                 raise Abgelehnt("ebenen.nutzer_mehrfach")
             gesehen.add(m)
+    # Stufen 14a und 14b (Anzeigenamen der Gruppen, README 3.1): erst die Gruppe, dann das Doppel
+    namen = firma.get("gruppennamen", {})
+    if any(k not in {g["schluessel"] for g in firma["gruppen"]} for k in namen):
+        raise Abgelehnt("ebenen.gruppe_unbekannt")
+    if len(set(namen.values())) != len(namen):
+        raise Abgelehnt("ebenen.name_doppelt")
 
 
 def oben_fuer(stand, nutzer):
@@ -667,6 +673,42 @@ fall("laden-nutzer-mehrfach", ["A26"], "u steht in zwei Gruppen",
                               {"schluessel": "g-zwei", "mitglieder": ["ps_00000000000000000000000000000c01", "ps_00000000000000000000000000000c02"]}])},
      [Z("ps_00000000000000000000000000000c02")],
      [(0, code, "ebenen.nutzer_mehrfach")])
+C01 = "ps_00000000000000000000000000000c01"
+B01 = "ps_00000000000000000000000000000b01"
+NAMEN = {"g-eins": "Gruppe Entwicklung", "g-zwei": "Vertrieb"}
+fall("laden-gruppennamen", ["A26"],
+     "die Firmendatei gibt beiden Gruppen einen Anzeigenamen: sie lädt wie ohne Namen, die wirksame Regel bleibt gleich",
+     {"firma": firma(gruppennamen=NAMEN)},
+     [Z(C01)],
+     [(0, klasse("cloud-r"), "intern")])
+fall("laden-gruppenname-ohne-gruppe", ["A26"],
+     "ein Anzeigename für eine Gruppe, die nicht in gruppen steht: Ladefehler",
+     {"firma": firma(gruppennamen={"g-eins": "Gruppe Entwicklung", "g-drei": "Es gibt sie nicht"})},
+     [Z(C01)],
+     [(0, code, "ebenen.gruppe_unbekannt")])
+fall("laden-gruppenname-doppelt", ["A26"],
+     "zwei Gruppen tragen denselben Anzeigenamen: Ladefehler",
+     {"firma": firma(gruppennamen={"g-eins": "Vertrieb", "g-zwei": "Vertrieb"})},
+     [Z(C01)],
+     [(0, code, "ebenen.name_doppelt")])
+fall("gruppennamen-form", ["A26"],
+     "Anzeigenamen in einer eingereichten Firmendatei: ein Schlüssel ohne Kennungsform, ein leerer, ein zu langer und ein Name mit Steuerzeichen, "
+     "ein Name und das Objekt vom falschen Typ sind Formfehler; ein Name mit genau 64 Zeichen wird angenommen; danach ein Name ohne Gruppe und ein Doppel",
+     ST,
+     [A(B01, firma(gruppennamen={"G Eins": "Entwicklung"})),
+      A(B01, firma(gruppennamen={"g-eins": ""})),
+      A(B01, firma(gruppennamen={"g-eins": "x" * 65})),
+      A(B01, firma(gruppennamen={"g-eins": "Entwick\nlung"})),
+      A(B01, firma(gruppennamen={"g-eins": 5})),
+      A(B01, firma(gruppennamen=["g-eins"])),
+      A(B01, firma(gruppennamen={"g-eins": "\u00e4" * 64})),
+      A(B01, firma(gruppennamen={"g-drei": "Es gibt sie nicht"})),
+      A(B01, firma(gruppennamen={"g-eins": "Vertrieb", "g-zwei": "Vertrieb"}))],
+     [(0, code, "ebenen.kennung_form"), (1, code, "ebenen.wert_ungueltig"), (2, code, "ebenen.wert_ungueltig"),
+      (3, code, "ebenen.wert_ungueltig"), (4, code, "ebenen.typ_falsch"), (5, code, "ebenen.typ_falsch"),
+      (6, angenommen, True), (7, code, "ebenen.gruppe_unbekannt"), (8, code, "ebenen.name_doppelt")],
+     form={0: "ebenen.kennung_form", 1: "ebenen.wert_ungueltig", 2: "ebenen.wert_ungueltig", 3: "ebenen.wert_ungueltig",
+           4: "ebenen.typ_falsch", 5: "ebenen.typ_falsch"})
 fall("laden-keine-route", ["A26", "A42"],
      "u sperrt alle drei Routen: keine Einstellung, der Aufrufer startet nichts",
      {"firma": FIRMA, "nutzer": {"ps_00000000000000000000000000000c01": nutzer("ps_00000000000000000000000000000c01", {"routen": [
@@ -739,12 +781,13 @@ fall("nutzer-senkung-arten", ["A41"], "der Nutzer versucht, die Arten zu setzen;
 
 MODELL = re.compile(r"^[A-Za-z0-9._:/@+-]{1,128}$")
 GRUPPE_EBENE = re.compile(r"^gruppe ([a-z0-9][a-z0-9._-]{0,63})$")
-HARNESSES = ("claude", "copilot", "pi")
+HARNESSES = ("claude", "copilot", "pi", "opencode")
 # Werte je Harness, wörtlich aus der Hilfe der Programme (Vertrag 2, Abschnitt „Block effort“).
 EFFORTS = {
     "claude": ("low", "medium", "high", "xhigh", "max"),
     "copilot": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
     "pi": ("off", "minimal", "low", "medium", "high", "xhigh", "max"),
+    "opencode": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
 }
 ALLE_EFFORTS = tuple(sorted({w for ws in EFFORTS.values() for w in ws}))
 ALLE = ("firma", "gruppe", "nutzer")
@@ -1073,11 +1116,15 @@ ADM, ADM2, U, V = ("ps_00000000000000000000000000000b01", "ps_000000000000000000
                    "ps_00000000000000000000000000000c01", "ps_00000000000000000000000000000c02")
 
 
-def stand_lauf(firma=None, gruppen=None, nutzer=None):
+def stand_lauf(firma=None, gruppen=None, nutzer=None, gruppennamen=None):
     # admins: vom Dienst aus der Kontenliste der Firmenvorgabe abgeleitet (Abschnitt 15.2); nur Pseudonyme.
-    return {"klassen": ["oeffentlich", "intern", "kundendaten"], "admins": [ADM, ADM2],
-            "gruppen": {"g-eins": [U], "g-zwei": [V]},
-            "werte": {"firma": firma or {}, "gruppen": gruppen or {}, "nutzer": nutzer or {}}}
+    # gruppennamen (Abschnitt 15.3): Anzeigenamen der Firmendatei; der Schlüssel fehlt, wenn die Firmendatei keine nennt.
+    stand = {"klassen": ["oeffentlich", "intern", "kundendaten"], "admins": [ADM, ADM2],
+             "gruppen": {"g-eins": [U], "g-zwei": [V]},
+             "werte": {"firma": firma or {}, "gruppen": gruppen or {}, "nutzer": nutzer or {}}}
+    if gruppennamen is not None:
+        stand["gruppennamen"] = gruppennamen
+    return stand
 
 
 def S(wer, bereich, ebene, schluessel, wert):
@@ -1213,6 +1260,32 @@ fall_s("setzen-ausser-grenze", ["E2", "OF9"],
         S(U, "nutzer", "nutzer", "sitzung.effort", "medium"), SI(U)],
        [(0, code, "ebenen.ausser_grenze"), (1, angenommen, True), (2, code, "ebenen.ausser_grenze"), (3, angenommen, True),
         (4, angenommen, True), (5, feld("sitzung.harness", "wert"), "pi"), (5, feld("sitzung.effort", "wert"), "medium")])
+fall_s("setzen-harness-opencode", ["OF9", "E2"],
+       "opencode ist ein Harness des Katalogs: Die Firma setzt für opencode alle sieben Effort-Werte, der Nutzer wählt opencode und den Effort none; "
+       "off (Wert von pi) und ultra sind für opencode ungültig",
+       stand_lauf(),
+       [S(ADM, "admin", "firma", "effort.grenzen",
+          [{"harness": "opencode", "erlaubt": ["none", "minimal", "low", "medium", "high", "xhigh", "max"]}]),
+        S(U, "nutzer", "nutzer", "sitzung.harness", "opencode"), S(U, "nutzer", "nutzer", "sitzung.effort", "none"),
+        S(ADM, "admin", "firma", "effort.grenzen", [{"harness": "opencode", "erlaubt": ["off"]}]),
+        S(ADM, "admin", "firma", "effort.grenzen", [{"harness": "opencode", "erlaubt": ["ultra"]}]), SI(U)],
+       [(0, angenommen, True), (1, angenommen, True), (2, angenommen, True),
+        (3, code, "ebenen.wert_ungueltig"), (4, code, "ebenen.wert_ungueltig"),
+        (5, feld("sitzung.harness", "wert"), "opencode"), (5, feld("sitzung.effort", "wert"), "none"),
+        (5, feld("effort.grenzen", "wert"),
+         [{"harness": "opencode", "erlaubt": ["none", "minimal", "low", "medium", "high", "xhigh", "max"]}])])
+fall_s("setzen-harness-opencode-ausser-grenze", ["E2", "OF9"],
+       "die Firma erlaubt in jeder Klasse nur opencode; der Nutzer wählt pi, dann opencode",
+       stand_lauf(firma={"harnesses": {"oeffentlich": ["opencode"], "intern": ["opencode"], "kundendaten": ["opencode"]}}),
+       [S(U, "nutzer", "nutzer", "sitzung.harness", "pi"), S(U, "nutzer", "nutzer", "sitzung.harness", "opencode"), SI(U)],
+       [(0, code, "ebenen.ausser_grenze"), (1, angenommen, True), (2, feld("sitzung.harness", "wert"), "opencode")])
+fall_s("sicht-gruppenname", ["A26", "A27"],
+       "der Stand trägt Anzeigenamen: sicht nennt als Herkunft weiter den Schlüssel der Gruppe, setzen auf die Gruppe nimmt den Wert wie ohne Namen",
+       stand_lauf(gruppen={"g-eins": {"terminal.schriftgroesse": 15}},
+                  gruppennamen={"g-eins": "Gruppe Entwicklung", "g-zwei": "Vertrieb"}),
+       [SI(U), S(ADM, "nutzer", "gruppe g-eins", "aussehen.thema", "hell"), SI(U)],
+       [(0, feld("terminal.schriftgroesse", "wert"), 15), (0, feld("terminal.schriftgroesse", "herkunft"), "gruppe g-eins"),
+        (1, angenommen, True), (2, feld("aussehen.thema", "herkunft"), "gruppe g-eins")])
 fall_s("setzen-einstellung-unbekannt", ["OF9"], "ein Schlüssel, den der Katalog nicht kennt",
        stand_lauf(), [S(U, "nutzer", "nutzer", "aussehen.schrift", "gross"), S(U, "nutzer", "nutzer", 7, "x")],
        [(0, code, "ebenen.einstellung_unbekannt"), (1, code, "ebenen.einstellung_unbekannt")])

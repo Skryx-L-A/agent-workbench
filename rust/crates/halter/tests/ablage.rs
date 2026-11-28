@@ -213,6 +213,119 @@ fn ebenenregeln_einzeln() {
     );
 }
 
+/// The gid of a level as the file system made it (the gid of this process or of a folder with set-gid above).
+fn gid_von(p: &Path) -> u32 {
+    std::os::unix::fs::MetadataExt::gid(&std::fs::symlink_metadata(p).expect("stat"))
+}
+
+/// The decision of the operator of 28.11.2026: with the private group, the levels above `geheim` may be 0775 (umask
+/// 002); `geheim` stays 0700, a file stays 0600, and the write of others stays refused. Counter-check: the same levels
+/// without the group, or with another gid, are refused.
+#[test]
+fn private_gruppe_erlaubt_gruppenschreibrecht_nur_ueber_geheim() {
+    let h = heim(true);
+    datei(&h, "anmeldung.copilot", b"hgx2-wert\n", 0o600);
+    let mut p = h.0.clone();
+    for e in &EBENEN[..4] {
+        p = p.join(e);
+        modus(&p, 0o775);
+    }
+    let gid = gid_von(&h.0.join(".local"));
+    let mit = Ablage::neu(&h.0, uid()).mit_gruppe(Some(gid));
+    assert!(mit.oeffnen(false).is_ok());
+    assert_eq!(
+        wert(&mit, "anmeldung.copilot").as_deref(),
+        Some(&b"hgx2-wert"[..])
+    );
+    // counter-check: no private group, or another gid
+    assert!(Ablage::neu(&h.0, uid()).oeffnen(false).is_err());
+    let anders = Ablage::neu(&h.0, uid()).mit_gruppe(Some(gid.wrapping_add(1)));
+    assert!(anders.oeffnen(false).is_err());
+    assert_eq!(wert(&anders, "anmeldung.copilot"), None);
+    // the file 0660 is refused even with the group
+    datei(&h, "anmeldung.copilot", b"hgx2-wert\n", 0o660);
+    assert_eq!(wert(&mit, "anmeldung.copilot"), None);
+    datei(&h, "anmeldung.copilot", b"hgx2-wert\n", 0o600);
+    // geheim 0770 or 0750 is refused even with the group
+    for m in [0o770, 0o750] {
+        modus(&geheim(&h), m);
+        assert!(mit.oeffnen(false).is_err(), "geheim {m:o}");
+        assert_eq!(wert(&mit, "anmeldung.copilot"), None, "geheim {m:o}");
+    }
+    modus(&geheim(&h), 0o700);
+    assert!(mit.oeffnen(false).is_ok());
+    // the write of others at any level above is refused even with the group
+    let mut p = h.0.clone();
+    for e in &EBENEN[..4] {
+        p = p.join(e);
+        for m in [0o777, 0o757, 0o702] {
+            modus(&p, m);
+            assert!(mit.oeffnen(false).is_err(), "{e} {m:o}");
+        }
+        modus(&p, 0o775);
+    }
+    assert!(mit.oeffnen(false).is_ok());
+}
+
+/// Step 3 with the files of the accounts and the groups of a set-up: the private group lets the start take 0775 above
+/// `geheim`; a second member, a second account with that primary group, or a file of the groups that cannot be read
+/// refuses (exit 78 of the start). The start exists only on Linux (`src/lib.rs`), so this test runs where it is built.
+#[cfg(target_os = "linux")]
+#[test]
+fn schritt_3_mit_privater_gruppe_aus_passwd_und_group() {
+    let h = heim(true);
+    let mut p = h.0.clone();
+    for e in &EBENEN[..4] {
+        p = p.join(e);
+        modus(&p, 0o775);
+    }
+    let gid = gid_von(&h.0.join(".local"));
+    let konten = format!(
+        "root:x:0:0:root:/root:/bin/sh\nperson:x:{}:{gid}::{}:/bin/sh\n",
+        uid(),
+        h.0.display()
+    );
+    let gut = format!("root:x:0:\nperson:x:{gid}:\n");
+    let wurzel = PathBuf::from(format!("{}-etc", h.0.display()));
+    let _ = std::fs::remove_dir_all(&wurzel);
+    std::fs::create_dir(&wurzel).expect("etc");
+    let (pw, gr) = (wurzel.join("passwd"), wurzel.join("group"));
+    let start = |konten: &str, gruppen: Option<&str>| {
+        std::fs::write(&pw, konten).expect("passwd");
+        let _ = std::fs::remove_file(&gr);
+        if let Some(g) = gruppen {
+            std::fs::write(&gr, g).expect("group");
+        }
+        halter::start::ablage_pruefen(&pw, &gr, uid()).map(|_| ())
+    };
+    assert_eq!(start(&konten, Some(&gut)), Ok(()));
+    let rechte = Err(halter::code::Startfehler::AblageRechte);
+    let zweites = format!("root:x:0:\nperson:x:{gid}:andere\n");
+    assert_eq!(start(&konten, Some(&zweites)), rechte, "second member");
+    let zwei_konten = format!(
+        "{konten}andere:x:{}:{gid}::/heim/beispiel/andere:/bin/sh\n",
+        uid().wrapping_add(1)
+    );
+    assert_eq!(start(&zwei_konten, Some(&gut)), rechte, "second account");
+    assert_eq!(start(&konten, None), rechte, "no file of the groups");
+    // a file of the groups that is a folder cannot be read either
+    std::fs::create_dir(&gr).expect("folder");
+    assert_eq!(
+        halter::start::ablage_pruefen(&pw, &gr, uid()).map(|_| ()),
+        rechte,
+        "group is a folder"
+    );
+    std::fs::remove_dir(&gr).expect("rmdir");
+    // the levels 0700 need no group: the start takes them without a file of the groups
+    let mut p = h.0.clone();
+    for e in &EBENEN[..4] {
+        p = p.join(e);
+        modus(&p, 0o700);
+    }
+    assert_eq!(start(&konten, None), Ok(()));
+    let _ = std::fs::remove_dir_all(&wurzel);
+}
+
 fn fifo(p: &Path) {
     let st = std::process::Command::new("mkfifo")
         .arg("-m")

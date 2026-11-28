@@ -126,3 +126,66 @@ fn a_harness_of_the_wrong_form_is_stage_9_even_without_a_class() {
         Err("einst.kennung_form")
     );
 }
+
+/// The code of reading a file with the block `block`, or `Ok`.
+fn code(block: Value) -> Result<(), &'static str> {
+    let datei = json!({
+        "fassung": 2,
+        "klassen": ["a", "b"],
+        "routen": [{"schluessel": "c", "art": "cloud", "klasse": "a", "netzziele": []}],
+        "kunden": [],
+        "kundendaten_an_cloud": {"vorgabe": "nie", "freigaben": []},
+        "effort": block
+    });
+    lesen(datei.to_string().as_bytes())
+        .map(|_| ())
+        .map_err(|f| f.code())
+}
+
+#[test]
+fn the_default_is_the_one_of_the_first_matching_limit_that_has_one() {
+    let einst = mit_effort(json!({"grenzen": [
+        {"harness": "copilot", "klasse": "b", "erlaubt": ["none"], "vorgabe": "none"},
+        {"harness": "copilot", "modell": "m1", "erlaubt": ["low"]},
+        {"harness": "copilot", "erlaubt": ["none", "low"], "vorgabe": "low"},
+        {"harness": "copilot", "modell": "m2", "erlaubt": ["none", "low"], "vorgabe": "none"},
+        {"harness": "pi", "erlaubt": ["off", "low"]}
+    ]}));
+    let grenzen = einst.effort_grenzen();
+    assert_eq!(grenzen[0].vorgabe(), Some("none"));
+    assert_eq!(grenzen[1].vorgabe(), None);
+    assert_eq!(grenzen[2].vorgabe(), Some("low"));
+    // the limit of class b does not match the cloud route; the limit of m1 has no default
+    assert_eq!(einst.effort_vorgabe("copilot", "c", "m1"), Some("low"));
+    assert_eq!(einst.effort_vorgabe("copilot", "c", "m2"), Some("low"));
+    assert_eq!(einst.effort_vorgabe("copilot", "c", "auto"), Some("low"));
+    assert_eq!(einst.effort_vorgabe("pi", "l", "qwen3:8b"), None);
+    assert_eq!(einst.effort_vorgabe("claude", "c", "auto"), None);
+    assert_eq!(einst.effort_vorgabe("copilot", "unbekannt", "auto"), None);
+    let ohne = mit_effort(json!({"grenzen": []}));
+    assert_eq!(ohne.effort_vorgabe("copilot", "c", "auto"), None);
+}
+
+#[test]
+fn the_default_is_a_value_of_the_harness_but_need_not_be_allowed() {
+    assert_eq!(
+        code(json!({"grenzen": [{"harness": "copilot", "erlaubt": ["low"], "vorgabe": "medium"}]})),
+        Ok(())
+    );
+    assert_eq!(
+        code(json!({"grenzen": [{"harness": "pi", "erlaubt": ["low"], "vorgabe": "none"}]})),
+        Err("einst.effort_wert")
+    );
+    assert_eq!(
+        code(json!({"grenzen": [{"harness": "copilot", "erlaubt": ["low"], "vorgabe": "Low"}]})),
+        Err("einst.effort_wert")
+    );
+    assert_eq!(
+        code(json!({"grenzen": [{"harness": "copilot", "erlaubt": ["low"], "vorgabe": 1}]})),
+        Err("einst.typ_falsch")
+    );
+    assert_eq!(
+        code(json!({"grenzen": [{"harness": "copilot", "erlaubt": ["low"], "vorgabe": null}]})),
+        Err("einst.typ_falsch")
+    );
+}

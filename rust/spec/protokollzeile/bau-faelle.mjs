@@ -175,7 +175,7 @@ const ST_SITZUNG = ['aktionsname', 'ergebnis', 'fassung', 'grund', 'harness', 'k
 const ST_VORGANG = ['aktionsname', 'anfrage', 'aufrufer', 'ergebnis', 'fassung', 'grund', 'vorgang', 'vorher', 'zeit'];
 const ST_ERGEBNIS = ['eingeloest', 'abgelehnt', 'abgelaufen', 'ohne_freigabe'];
 const ST_AUFRUFER = ['kern', 'hub', 'mensch', 'agent', 'takt', 'unbekannt'];
-const ST_VORGAENGE = ['mcp.anfragen', 'mcp.entscheiden', 'mcp.einloesen', 'mcp.offene', 'mcp.stand', 'ablauf.pruefen'];
+const ST_VORGAENGE = ['mcp.anfragen', 'mcp.entscheiden', 'mcp.einloesen', 'mcp.offene', 'mcp.stand', 'ablauf.pruefen', 'person.pseudonym', 'worker.anfordern'];
 const ST_SITZUNGSARTEN = ['sitzung.gestartet', 'sitzung.abgelehnt'];
 const ST_ANFRAGE = /^mf-[0-9]{1,15}-[1-9][0-9]{0,9}$/;
 const ST_WERKZEUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -1682,6 +1682,9 @@ const stelleAnhaengen = [];
   einzeln('vorgang.abgelehnt mit Aufrufer als Name: Form falsch', va({ aufrufer: 'anna' }), 'form_falsch');
   einzeln('vorgang.abgelehnt mit Vorgang sitzung.starten: Form falsch', va({ vorgang: 'sitzung.starten' }), 'form_falsch');
   einzeln('vorgang.abgelehnt mit Vorgang ablauf.pruefen: gueltig', va({ vorgang: 'ablauf.pruefen', anfrage: null }), null);
+  einzeln('vorgang.abgelehnt mit Vorgang person.pseudonym: gueltig', va({ vorgang: 'person.pseudonym', aufrufer: 'kern', anfrage: null, grund: 'stelle.person_fehler' }), null);
+  einzeln('vorgang.abgelehnt mit Vorgang worker.anfordern: gueltig', va({ vorgang: 'worker.anfordern', aufrufer: 'kern', anfrage: null, grund: 'stelle.worker_hoechstzahl' }), null);
+  einzeln('vorgang.abgelehnt mit Vorgang worker.starten: Form falsch', va({ vorgang: 'worker.starten', aufrufer: 'kern', anfrage: null }), 'form_falsch');
   einzeln('vorgang.abgelehnt mit Grund null: Form falsch', va({ grund: null }), 'form_falsch');
   // eine Kette aus allen vier Arten
   const z1 = zeileAllgemein(sg(), T0, NULL64);

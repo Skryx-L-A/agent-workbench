@@ -119,3 +119,35 @@ fn debug_zeigt_den_schluessel_nicht() {
     let text = format!("{:?}", PrueferH1::neu([0xab; 32]));
     assert_eq!(text, "PrueferH1 { schluessel: <verdeckt> }");
 }
+
+#[test]
+fn der_ausgestellte_nachweis_gilt_fuer_genau_seine_herausforderung() {
+    let schluessel = [7u8; 32];
+    let ps = "ps_0123456789abcdef0123456789abcdef";
+    let d = "d".repeat(64);
+    let p = PrueferH1::neu(schluessel);
+    for entscheidung in ["erteilen", "ablehnen"] {
+        let h = herausforderung("mf-1", &d, entscheidung, None);
+        let n = nachweis_h1(&schluessel, ps, &h);
+        assert_eq!(p.pruefe(&h, &n), Ok(ps.to_owned()), "{entscheidung}");
+        let andere = if entscheidung == "erteilen" {
+            "ablehnen"
+        } else {
+            "erteilen"
+        };
+        assert_eq!(
+            p.pruefe(&herausforderung("mf-1", &d, andere, None), &n),
+            Err(())
+        );
+        assert_eq!(
+            p.pruefe(&herausforderung("mf-1", &d, entscheidung, Some(&d)), &n),
+            Err(())
+        );
+        assert_eq!(PrueferH1::neu([8; 32]).pruefe(&h, &n), Err(()));
+    }
+    // the bytes of the challenge in RFC 8785: keys in order, null for a missing preview
+    assert_eq!(
+        herausforderung("mf-1", "ab", "erteilen", None),
+        br#"{"anfrage":"mf-1","art":"mcp.entscheidung","digest":"ab","entscheidung":"erteilen","vorschau_sha256":null}"#
+    );
+}

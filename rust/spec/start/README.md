@@ -1,5 +1,8 @@
 # Vertrag 1: Start-Struktur und Aufruf „Lauf starten“ (Fassung 1, Stand 23.11.2026; Fassung 2 als Nachtrag 26.11.2026 und 27.11.2026)
 
+Nachtrag 28.11.2026 (Entscheid des Betreibers, 28.11.2026): Bei `copilot` gibt „Lauf starten“ immer einen ausdrücklichen Effort
+weiter, und Stufe 18 prüft den weitergegebenen Wert (Abschnitt „Effort immer ausdrücklich“).
+
 Nachtrag 27.11.2026: Feld `fortsetzung_von` der Startdatei der Fassung 2 und Fortsetzen in „Lauf starten“ (Abschnitt
 „Fassung 2: `fortsetzung_von` und Fortsetzen“). Grundlage ist Vertrag `dienst`, DI-L3 Punkte 2 und 3 (Projektentscheid, 27.11.2026).
 Zweiter Nachtrag 27.11.2026 (Entscheide des Betreibers, 27.11.2026): Räumen von `gespraeche/` (OPEN 29), ein Vorgänger der Fassung 1
@@ -250,7 +253,7 @@ Ansicht durch.
 | 11a | `start.name_form` | `name` verletzt die Namensregel (Abschnitt „Fassung 2“) | `Name hat falsche Form` |
 | 11b | `start.effort_form` | `effort` ist ein Text, aber nicht `^[a-z]{1,16}$` | `Effort hat falsche Form` |
 | 13a | `start.effort_unbekannt` | `effort` ist kein Wert des Harness (Vertrag 2, Block `effort`, Werte je Harness) | `Effort fuer diesen Harness unbekannt` |
-| 18 | `start.effort_grenze` | `effort` steht nicht unter den erlaubten Efforts für Harness, Route und Modell (Vertrag 2, Block `effort`) | `Effort ausserhalb der Grenze` |
+| 18 | `start.effort_grenze` | der weitergegebene Effort (`effort`, sonst die Vorgabe der Admins, sonst bei `copilot` `none`; Abschnitt „Effort immer ausdrücklich“) steht nicht unter den erlaubten Efforts für Harness, Route und Modell (Vertrag 2, Block `effort`) | `Effort ausserhalb der Grenze` |
 
 Nachtrag 27.11.2026 (`fortsetzung_von`, Abschnitt „Fassung 2: `fortsetzung_von` und Fortsetzen“):
 
@@ -281,11 +284,12 @@ nicht. In Fassung 1 sind `effort` und `name` unbekannte Schlüssel (`start.schlu
 
 | Form | Typ | Grenzen | Bedeutung |
 |---|---|---|---|
-| Anfrage und Datei der Fassung 2, Pflicht | Text oder `null` | Text: `^[a-z]{1,16}$` (Stufe 11b), ein Wert des Harness (Stufe 13a), innerhalb der Grenze (Stufe 18) | Effort der Sitzung; `null` heißt: der Harness nimmt seine eigene Vorgabe |
+| Anfrage und Datei der Fassung 2, Pflicht | Text oder `null` | Text: `^[a-z]{1,16}$` (Stufe 11b), ein Wert des Harness (Stufe 13a), innerhalb der Grenze (Stufe 18) | Effort der Sitzung; `null` heißt: die Vorgabe der Admins, sonst bei `copilot` `none`, sonst nimmt der Harness seine eigene Vorgabe (Abschnitt „Effort immer ausdrücklich“; alt: „`null` heißt: der Harness nimmt seine eigene Vorgabe“) |
 
 - Die Werte je Harness und die Regel der erlaubten Efforts stehen in Vertrag 2, Block `effort`. Stufe 13a braucht nur die
   Harness-Tabelle, Stufe 18 die Einstellungsdatei.
-- Ohne Block `effort` ist jeder Effort außer `null` `start.effort_grenze` (fail closed).
+- Ohne Block `effort` ist jeder Effort außer `null` `start.effort_grenze` (fail closed). Ein Start mit `null` bleibt gültig, auch bei
+  `copilot` mit dem Rückfall `none` (Abschnitt „Effort immer ausdrücklich“).
 - **Startform mit Effort.** Ist `effort` nicht `null`, hängt „Lauf starten“ genau ein Paar an den Startbefehl, direkt nach dem Modell:
   `claude --effort <wert>`, `copilot --reasoning-effort <wert>`, `pi --thinking <wert>`. `<wert>` ist ein eigenes argv-Element. Bei
   `null` kommt keine Option dazu. `opencode` bekommt kein Paar: Seine Oberfläche hat keine Option dafür (`opencode --help`, 1.19.5).
@@ -293,7 +297,41 @@ nicht. In Fassung 1 sind `effort` und `name` unbekannte Schlüssel (`start.schlu
   sendet ihn als `reasoning_effort` (gemessen für alle sieben Werte, auch in der Oberfläche). Das ist aus `--help` hergeleitet (Vertrag 2, Werte je Harness) und nicht mit einem echten Start
   gemessen (OPEN 26). Gebaut am 27.11.2026 (`rust/crates/lauf/src/harness.rs`, `argv`); bei `copilot` mit `auto` steht das Paar vor
   `--auto-tier`. Fälle: `aufruf-f2-neu-pi`, `aufruf-f2-fortsetzen-copilot`, `aufruf-f2-fortsetzen-pi` (mit Effort) und
-  `aufruf-f2-fortsetzen-claude` (ohne).
+  `aufruf-f2-fortsetzen-claude` (ohne). „Ist `effort` nicht `null`“ meint seit dem 28.11.2026 den weitergegebenen Effort des
+  folgenden Abschnitts; bei `copilot` steht das Paar darum immer da, auch in Fassung 1.
+
+### Effort immer ausdrücklich (Nachtrag 28.11.2026, Entscheid des Betreibers)
+
+Herkunft: Entscheid des Betreibers, 28.11.2026. **Die Grenze gilt für den Effort, der wirklich gesendet wird.** Grund (gemessen am
+27.11.2026 ohne Konto, über den Halter): Ohne `--reasoning-effort` sendet die Copilot CLI 1.0.88 und 1.0.117 mit `gpt-6-luna` selbst
+`reasoning_effort` `medium`; mit `--reasoning-effort none` fehlt das Feld. Ein Start ohne Effort bestand die Prüfung also, und die
+CLI schickte danach genau einen Wert, den eine Grenze wie die des Erststart-Profils (`none` und `low`) verbietet.
+
+„Lauf starten“ gibt diesen **weitergegebenen Effort** an den Harness, in dieser Reihenfolge:
+1. `effort` des Starts, wenn er nicht `null` ist;
+2. sonst die Vorgabe der Admins für Harness, Route und Modell (Vertrag 2, Eintrag `vorgabe` einer Grenze, Abschnitt „Vorgabe eines
+   Starts“);
+3. sonst bei `copilot` `none` (der **Rückfall**), bei jedem anderen Harness keiner: `pi`, `opencode` und `claude` ohne Vorgabe
+   bekommen wie bisher keine Option und keinen Eintrag `options.reasoningEffort`.
+
+Stufe 18 prüft denselben Wert. Ein Effort aus 1 oder 2 außerhalb der erlaubten Efforts endet mit `start.effort_grenze` (Exit 65 in
+„Lauf starten“, Schritt 4), auch eine Vorgabe. Der Rückfall `none` steht für den Start ohne Effort: Er ist gültig, solange kein Effort
+wählbar ist (kein Block, keine passende Grenze, leere Schnittmenge), und sonst nur, wenn `none` erlaubt ist. Grund: Ohne Entscheid der
+Admins bleibt jeder bisherige Start ohne Effort gültig (Vertrag 2, fail closed), und mit `none` sendet die CLI kein Feld. Hat eine
+Grenze Efforts erlaubt, aber nicht `none`, verlangt sie einen Effort oder eine Vorgabe (hergeleitet aus dem Entscheid; die Lesart ist
+in OPEN 41 festgehalten).
+
+- Schnittstelle (Crate `start`): `start::effort(start, einstellungen) -> Option<&str>` gibt den weitergegebenen Effort,
+  `start::COPILOT_RUECKFALL` ist `none`. „Lauf starten“ nimmt den Wert für das Paar im argv und für `options.reasoningEffort` von
+  `opencode` (`rust/crates/lauf/src/ablauf.rs`, Schritt 8).
+- Das gilt für Fassung 1 und 2. Fassung 1 kennt `effort` nicht; ein Start von `copilot` bekommt dort den Rückfall `none`, denn
+  eine Datei der Fassung 1 hat keinen Block `effort`.
+- Die Ansicht (`Startwahl`, Feld `vorgabe`) zeigt weiter die Vorgabe des Nutzers. Die Vorgabe der Admins wirkt nur bei `null`.
+- Fälle: `aufruf-effort-*` (copilot ohne Effort und ohne Vorgabe mit `none`, auch ohne Block; mit Vorgabe `low`; ausdrücklich
+  `low` und `none` vor der Vorgabe; Vorgabe und Rückfall außerhalb der Grenze mit 65; pi und opencode ohne Vorgabe ohne Option; pi
+  mit Vorgabe `--thinking low`), `anfrage-f2-gueltig-effort-rueckfall`, `anfrage-f2-gueltig-effort-vorgabe`,
+  `anfrage-f2-effort-vorgabe-ausserhalb`, `anfrage-f2-effort-rueckfall-ausserhalb`, `datei-f2-effort-vorgabe-ausserhalb`. Die
+  Aufruf-Fälle von `copilot` der Fassung 1 nennen seitdem `--reasoning-effort none` direkt nach dem Modell.
 
 ### Feld `name`
 
@@ -1904,6 +1942,18 @@ python3 -I rust/spec/start/bau-faelle.py            # Fälle neu erzeugen
     Routenart entscheidet der Betreiber.
 40. **Suche für opencode (27.11.2026).** Die Konfigurationsdatei nennt keinen MCP-Server; die Suche der Sitzung (Vertrag 4) erreicht
     opencode darum nicht, wie bei `pi`.
+41. **Rückfall `none` bei einer Grenze ohne `none` (28.11.2026, Lesart zu bestätigen).** Der Entscheid des Betreibers vom 28.11.2026
+    prüft auch den eingesetzten Effort. Umgesetzt ist: Der Rückfall `none` von `copilot` ist gültig, solange kein Effort wählbar ist,
+    und sonst nur, wenn die Grenze `none` erlaubt (Abschnitt „Effort immer ausdrücklich“). Die wörtliche Lesart (der Rückfall auch ohne
+    Block mit `start.effort_grenze`) hätte jeden Start von `copilot` ohne Block `effort` beendet, auch in Fassung 1. Die Wahl zwischen
+    beiden Lesarten steht beim Betreiber.
+42. **Auszug des argv im Log (28.11.2026, Ziel offen).** Gewünscht ist eine dauerhafte Zeile mit dem argv des Harness: nur die
+    Optionsnamen und die Werte von `--model` und der Effort-Option des Harness, nie andere Werte, keine Umgebung, keine Pfade.
+    Gebaut ist die Funktion `harness::argv_auszug` (`rust/crates/lauf/src/harness.rs`) mit Fall und Gegenprobe (ein Prompt-Text, ein
+    Pfad und die Kennung einer Sitzung erscheinen nie). Nicht gebaut ist das Schreiben: „Lauf starten“ hat keine eigene Logdatei.
+    Seine Standardfehlerausgabe geht in das Terminal der Sitzung, und ein Start mit exec schreibt dort nichts (Abschnitt „Aufruf“,
+    Fälle mit `exec` erwarten `stderr` leer). Zu entscheiden ist das Ziel: eine Zeile auf stderr (ändert diese Regel und alle
+    Fälle mit `exec`), eine Protokollzeile nach Vertrag 5 oder eine Datei neben der Startdatei (Aufräumen im Dienst).
 
 ### Erledigt
 

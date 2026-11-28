@@ -933,7 +933,7 @@ fn beschreibung_bauen(
             harness_name,
             lage.start.modell(),
             &k.programme.such_mcp,
-            lage.start.effort(),
+            start::effort(&lage.start, &lage.einst),
         ),
     ) {
         dateien::ordner_neu(&konfig_ordner).map_err(intern)?;
@@ -1001,7 +1001,7 @@ fn beschreibung_bauen(
             lage.start.modell(),
             &k.heim,
             lage.einst.copilot_ohne_rueckfrage(),
-            lage.start.effort(),
+            start::effort(&lage.start, &lage.einst),
             &sitzungsoption,
         ),
         system,

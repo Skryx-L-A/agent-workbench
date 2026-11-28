@@ -63,6 +63,49 @@ fn anfrage_grenzen() {
 }
 
 #[test]
+fn zusage_grenzen() {
+    assert!(zusage("zs-0-1"));
+    assert!(zusage("zs-1795179540000-1"));
+    assert!(zusage(&format!("zs-{}-1", "9".repeat(15))));
+    assert!(!zusage(&format!("zs-{}-1", "9".repeat(16))));
+    assert!(zusage(&format!("zs-1-{}", "9".repeat(10))));
+    assert!(!zusage(&format!("zs-1-1{}", "0".repeat(10))));
+    for falsch in [
+        "zs-1-0", "zs-1-01", "zs--1", "zs-1-", "zs-1", "zs-a-1", "zs-1-1a", "zs-1-1-1", "mf-1-1",
+        "WZ-1-1", "",
+    ] {
+        assert!(!zusage(falsch), "{falsch}");
+    }
+    // the two forms never mix
+    assert!(!anfrage("zs-1-1"));
+}
+
+#[test]
+fn modell_grenzen() {
+    for gut in [
+        "qwen3:8b",
+        "claude-sonnet-5.5",
+        "claude-sonnet-5-5",
+        "a",
+        "A/b@c+d_e.f:g-h",
+        &"m".repeat(128),
+    ] {
+        assert!(modell(gut), "{gut}");
+    }
+    for falsch in [
+        "",
+        "qwen3 8b",
+        "m\u{e4}",
+        "a\\b",
+        "a,b",
+        "a\n",
+        &"m".repeat(129),
+    ] {
+        assert!(!modell(falsch), "{falsch:?}");
+    }
+}
+
+#[test]
 fn ganzzahlen() {
     assert!(ganzzahl_in(&json!(1), 1, 3));
     assert!(ganzzahl_in(&json!(3), 1, 3));

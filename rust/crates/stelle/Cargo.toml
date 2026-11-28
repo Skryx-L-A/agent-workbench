@@ -14,11 +14,25 @@ path = "src/lib.rs"
 # proof checker h1 is built on its sha256_hex (no new crate).
 # einstellungen, start: the settings file (contract 2) and the start file (contract 1) are read by these crates.
 # serde_json: reads the input of each operation as JSON values and the readable values of a refused start.
+[[bin]]
+name = "werkbank-stelle"
+path = "src/bin/werkbank-stelle.rs"
+
+[features]
+# The test build: the default of the admins may also belong to the own user (never in a delivered build).
+pruefbau = []
+
 [dependencies]
 formate = { path = "../formate" }
 einstellungen = { path = "../einstellungen" }
 start = { path = "../start" }
 serde_json = "1"
+
+# The shell (contract 6, sections 13 and 14), Unix only: peerkanal (path, the channels with the check of the other side) and
+# rustix 1.1.6 (already in Cargo.lock; descriptors for the default, the store of contract 9 and the key file). No new package.
+[target.'cfg(unix)'.dependencies]
+peerkanal = { path = "../peerkanal" }
+rustix = { version = "=1.1.6", features = ["std", "fs", "process"] }
 
 [lints]
 workspace = true

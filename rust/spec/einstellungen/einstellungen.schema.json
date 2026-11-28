@@ -578,6 +578,10 @@
      "items": {
       "type": "string"
      }
+    },
+    "vorgabe": {
+     "description": "Vorgabe der Admins (Entscheid des Betreibers, 28.11.2026): der Effort, den „Lauf starten“ für einen Start ohne effort weitergibt. Ein Wert des Harness; ob er erlaubt ist, prüft Stufe 18 von Vertrag 1.",
+     "type": "string"
     }
    },
    "allOf": [
@@ -604,6 +608,15 @@
           "max"
          ]
         }
+       },
+       "vorgabe": {
+        "enum": [
+         "low",
+         "medium",
+         "high",
+         "xhigh",
+         "max"
+        ]
        }
       }
      }
@@ -633,6 +646,17 @@
           "max"
          ]
         }
+       },
+       "vorgabe": {
+        "enum": [
+         "none",
+         "minimal",
+         "low",
+         "medium",
+         "high",
+         "xhigh",
+         "max"
+        ]
        }
       }
      }
@@ -662,6 +686,17 @@
           "max"
          ]
         }
+       },
+       "vorgabe": {
+        "enum": [
+         "off",
+         "minimal",
+         "low",
+         "medium",
+         "high",
+         "xhigh",
+         "max"
+        ]
        }
       }
      }
@@ -691,6 +726,17 @@
           "max"
          ]
         }
+       },
+       "vorgabe": {
+        "enum": [
+         "none",
+         "minimal",
+         "low",
+         "medium",
+         "high",
+         "xhigh",
+         "max"
+        ]
        }
       }
      }

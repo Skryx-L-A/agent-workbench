@@ -1,5 +1,5 @@
 {
- "beschreibung": "im Lauf entscheidet die Stelle: der Dienst prüft die Form, die Anzahl, die Person und den Nachweis; ohne Kanal zur Stelle kennt kein Kern eine offene Anfrage (anfrage_unbekannt)",
+ "beschreibung": "im Lauf entscheidet die Stelle: über dienst.sock endet jede Freigabe vor der Prüfung von Form, Anzahl und Anfrage mit freigabe_nur_lokal (die Ansicht sendet keinen nachweis)",
  "datensatz": "A",
  "name": "dil6_freigabe_lauf",
  "regeln": [
@@ -57,8 +57,7 @@
      "a-1"
     ],
     "art": "Freigabe",
-    "entscheidung": "vielleicht",
-    "nachweis": "n-1"
+    "entscheidung": "vielleicht"
    }
   },
   {
@@ -69,8 +68,7 @@
      "a-1"
     ],
     "art": "Freigabe",
-    "begruendung": "passt",
-    "nachweis": "n-1"
+    "begruendung": "passt"
    }
   },
   {
@@ -82,8 +80,7 @@
     ],
     "art": "Freigabe",
     "begruendung": "",
-    "entscheidung": "ablehnen",
-    "nachweis": "n-1"
+    "entscheidung": "ablehnen"
    }
   },
   {
@@ -94,8 +91,17 @@
      "a-1",
      "a-2"
     ],
-    "art": "Freigabe",
-    "nachweis": "n-1"
+    "art": "Freigabe"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "anfragen": [
+     "a-1"
+    ],
+    "art": "Freigabe"
    }
   },
   {
@@ -116,20 +122,8 @@
      "a-1"
     ],
     "art": "Freigabe",
-    "nachweis": 3
-   }
-  },
-  {
-   "art": "Ereignis",
-   "betrachter": "c1",
-   "ereignis": {
-    "anfragen": [
-     "a-1"
-    ],
-    "art": "Freigabe",
     "begruendung": "nein",
-    "entscheidung": "ablehnen",
-    "nachweis": "n-1"
+    "entscheidung": "ablehnen"
    }
   },
   {
@@ -140,7 +134,6 @@
      "a-1"
     ],
     "art": "Freigabe",
-    "nachweis": "n-1",
     "sitzung": "s-1"
    }
   },
@@ -151,8 +144,7 @@
     "anfragen": [
      "a-1"
     ],
-    "art": "Freigabe",
-    "nachweis": "n-1"
+    "art": "Freigabe"
    }
   },
   {

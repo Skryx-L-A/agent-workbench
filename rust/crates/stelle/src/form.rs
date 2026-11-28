@@ -47,13 +47,31 @@ pub(crate) fn pseudonym(text: &str) -> bool {
 
 /// A request identifier: `^mf-[0-9]{1,15}-[1-9][0-9]{0,9}$`.
 pub(crate) fn anfrage(text: &str) -> bool {
-    let Some(rest) = text.strip_prefix("mf-") else {
+    zaehlkennung(text, "mf-")
+}
+
+/// A promise identifier (section 15.2): `^zs-[0-9]{1,15}-[1-9][0-9]{0,9}$`.
+pub(crate) fn zusage(text: &str) -> bool {
+    zaehlkennung(text, "zs-")
+}
+
+/// `<praefix><laden_ms>-<n>`: 1 up to 15 digits, then 1 up to 10 digits without a leading zero.
+fn zaehlkennung(text: &str, praefix: &str) -> bool {
+    let Some(rest) = text.strip_prefix(praefix) else {
         return false;
     };
     let Some((laden, n)) = rest.split_once('-') else {
         return false;
     };
     ziffern(laden, 15) && ziffern(n, 10) && !n.starts_with('0')
+}
+
+/// A model name of contract 1 (section 15.3): 1 up to 128 bytes of `[A-Za-z0-9._:/@+-]`.
+pub(crate) fn modell(text: &str) -> bool {
+    (1..=128).contains(&text.len())
+        && text.bytes().all(|c| {
+            c.is_ascii_alphanumeric() || matches!(c, b'.' | b'_' | b':' | b'/' | b'@' | b'+' | b'-')
+        })
 }
 
 /// 1 up to `hoechstens` decimal digits.

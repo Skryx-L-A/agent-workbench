@@ -8,7 +8,7 @@
 
 use std::path::PathBuf;
 
-use ansicht::kern::{Kern, Wirkung};
+use ansicht::kern::{Kern, Sitzung, Wirkung};
 use ansicht::tasten::Deutung;
 use egui::accesskit::{Live, Role};
 use egui::{
@@ -68,17 +68,105 @@ pub enum Kachelform {
     Gezoomt,
 }
 
-/// A page of the settings (B72, B78).
+/// A page of the settings (B72, B78): the pages of the pilot (F2) for the user and, apart, for the admins (OF9 point 1).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Seite {
-    /// Look (B77).
+    /// Look (B77), a choice of this device.
     Aussehen,
     /// Defaults for new sessions.
     Sitzung,
-    /// Harnesses and models (as a user read only, as an admin editable).
+    /// Programs and models: the release of the admins as it holds for the user.
     Harnesses,
-    /// Admin: limits of the effort.
-    AdminEffort,
+    /// Permissions as they hold for the user.
+    Erlaubnisse,
+    /// Supervision as it holds for the user.
+    Aufsicht,
+    /// Admin: release of programs and models, limits of the effort.
+    AdminHarnesses,
+    /// Admin: permissions (the options of the pilot).
+    AdminErlaubnisse,
+    /// Admin: supervision.
+    AdminAufsicht,
+}
+
+impl Seite {
+    /// The pages of the user area, in their order.
+    pub const NUTZER: [Seite; 5] = [
+        Seite::Aussehen,
+        Seite::Sitzung,
+        Seite::Harnesses,
+        Seite::Erlaubnisse,
+        Seite::Aufsicht,
+    ];
+    /// The pages of the admin area, in their order.
+    pub const ADMIN: [Seite; 3] = [
+        Seite::AdminHarnesses,
+        Seite::AdminErlaubnisse,
+        Seite::AdminAufsicht,
+    ];
+
+    /// Whether the page belongs to the admin area.
+    #[must_use]
+    pub fn admin(self) -> bool {
+        Seite::ADMIN.contains(&self)
+    }
+
+    /// Title, short description and symbol (OF9 point 6).
+    #[must_use]
+    pub fn kopf(self) -> (&'static str, &'static str, Symbol) {
+        use crate::einstellungstexte::seite as t;
+        match self {
+            Seite::Aussehen => (t::AUSSEHEN, t::AUSSEHEN_KURZ, Symbol::Kontrast),
+            Seite::Sitzung => (t::SITZUNG, t::SITZUNG_KURZ, Symbol::Terminal),
+            Seite::Harnesses => (t::PROGRAMME, t::PROGRAMME_KURZ, Symbol::Chip),
+            Seite::AdminHarnesses => (t::PROGRAMME, t::PROGRAMME_ADMIN_KURZ, Symbol::Chip),
+            Seite::Erlaubnisse | Seite::AdminErlaubnisse => {
+                (t::ERLAUBNISSE, t::ERLAUBNISSE_KURZ, Symbol::Schild)
+            }
+            Seite::Aufsicht | Seite::AdminAufsicht => (t::AUFSICHT, t::AUFSICHT_KURZ, Symbol::Auge),
+        }
+    }
+
+    /// The element id of its row in the list of pages (for the tree of the platform).
+    #[must_use]
+    pub fn kennung(self) -> &'static str {
+        match self {
+            Seite::Aussehen => "seite-aussehen",
+            Seite::Sitzung => "seite-sitzung",
+            Seite::Harnesses => "seite-programme",
+            Seite::Erlaubnisse => "seite-erlaubnisse",
+            Seite::Aufsicht => "seite-aufsicht",
+            Seite::AdminHarnesses => "seite-admin-programme",
+            Seite::AdminErlaubnisse => "seite-admin-erlaubnisse",
+            Seite::AdminAufsicht => "seite-admin-aufsicht",
+        }
+    }
+
+    /// The groups of a page of the service with their rows (`regelebenen` 15.1); the look has its own rows.
+    #[must_use]
+    pub fn gruppen(self) -> Vec<(&'static str, Vec<crate::einstellungstexte::Zeile>)> {
+        use crate::einstellungstexte::{gruppe as g, werte as w};
+        match self {
+            Seite::Aussehen => Vec::new(),
+            Seite::Sitzung => vec![(g::NEUE_SITZUNGEN, vec![w::HARNESS, w::MODELL, w::EFFORT])],
+            Seite::Harnesses | Seite::AdminHarnesses => vec![
+                (g::FREIGABE, vec![w::HARNESSES, w::MODELLE]),
+                (g::EFFORT, vec![w::EFFORT_GRENZEN]),
+            ],
+            Seite::Erlaubnisse | Seite::AdminErlaubnisse => vec![
+                (
+                    g::COPILOT,
+                    vec![w::OHNE_RUECKFRAGE, w::TELEMETRIE, w::TOKEN],
+                ),
+                (g::NETZ, vec![w::LOKALE_CA]),
+                (g::HERSTELLER, vec![w::HERSTELLERZUGANG]),
+            ],
+            // only what the pilot evaluates (OF8): the deadlines of a release; no switch that turns a check off
+            Seite::Aufsicht | Seite::AdminAufsicht => {
+                vec![(g::FRISTEN, vec![w::FREIGABEFRIST, w::EINLOESEFRIST])]
+            }
+        }
+    }
 }
 
 /// A question before an irreversible step (B16, B17).
@@ -161,6 +249,8 @@ pub enum Szene {
     OrchestratorOffen(Reiter),
     /// View "Worker" with tiles.
     WorkerKacheln,
+    /// View "Worker" with one tile, zoomed: no frame.
+    WorkerEinzeln,
     /// View "Worker" with the worker list open.
     WorkerListe,
     /// The window "Sitzungen" with an empty form.
@@ -169,6 +259,15 @@ pub enum Szene {
     SitzungenGewaehlt(String),
     /// The settings at this page.
     Einstellungen(Seite),
+}
+
+/// Where the focus of the window came from.
+#[derive(Clone, Copy, Debug)]
+struct Eingabe {
+    /// Whether the window had the focus in the last frame: on gaining it, the accent colour is read again.
+    hatte_fokus: bool,
+    /// Whether the focus was last moved with the keyboard (or an assistive technology): only then the focus frame shows.
+    tastatur: bool,
 }
 
 /// The window.
@@ -198,6 +297,10 @@ pub struct Fenster {
     jetzt: f64,
     /// Fixed theme of the system for the pictures (`None`: ask egui).
     pub system_dunkel: Option<bool>,
+    /// The accent colour of the system for the frame of the active tile (macOS; `None`: the accent token).
+    pub system_akzent: Option<Color32>,
+    /// Where the focus came from: window and keyboard.
+    eingabe: Eingabe,
     wahl: Wahl,
     terminalschrift: f32,
     /// The menu bar of macOS (B75), once the program has set it up.
@@ -318,37 +421,90 @@ fn vorn_gekuerzt(ui: &Ui, text: &str, font: &FontId, breite: f32) -> String {
     "…".to_owned()
 }
 
-/// One row of the settings: key, name, one line of description and the choices (value, text).
+/// One row of the settings: key, name, one line of description and the choices (value, text); without choices the
+/// value stands as text, or as a switch when it is true or false.
 struct Einstellungszeile {
     schluessel: &'static str,
     name: &'static str,
     beschreibung: &'static str,
-    wahlen: &'static [(&'static str, &'static str)],
+    wahlen: Vec<(String, String)>,
 }
 
-/// A switch (on: the accent surface, off: the line colour, a light knob), named for the accessibility tree.
+/// The track of a locked switch: the step from the ground of a group (`erhoben`) towards the muted text that first holds
+/// 3:1 against that ground (OF3 point 5), so a locked switch stays visible in every colour set.
+#[must_use]
+pub fn gesperrte_spur(r: &Rollen) -> Color32 {
+    let (a, b) = (r.erhoben, r.gedaempft);
+    let mut farbe = b;
+    for i in 0..=20_u8 {
+        let t = f32::from(i) / 20.0;
+        let mische = |x: u8, y: u8| {
+            // between two channel values, so within 0 to 255
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            let v = (f32::from(x) + (f32::from(y) - f32::from(x)) * t).round() as u8;
+            v
+        };
+        let c = Color32::from_rgb(
+            mische(a.r(), b.r()),
+            mische(a.g(), b.g()),
+            mische(a.b(), b.b()),
+        );
+        if gestalt::kontrast(c, a) >= 3.2 {
+            farbe = c;
+            break;
+        }
+    }
+    farbe
+}
+
+/// How much the ground behind a dialog is dimmed: black at 28 %, like the browser view (`.fenster-grund`).
+const GRUND_DECKUNG: u8 = 71;
+
+/// The ground of the symbol of an admin page, like the browser view (`.einst-gross.admin`).
+const ADMIN_FARBE: Color32 = Color32::from_rgb(0x6e, 0x56, 0xcf);
+
+/// The place of the settings (B72): the size of the browser view, centred, and with a margin below the title row and
+/// above the foot of the sidebar, so that both stay visible (OF2 point 2, OF5).
+#[must_use]
+pub fn einstellungen_lage(platz: Rect) -> Rect {
+    let oben = platz.top() + MASSE.titelleiste + MASSE.dialog_rand;
+    let unten = platz.bottom() - MASSE.leistenfuss - MASSE.dialog_rand;
+    let breite = MASSE
+        .einstellungsfenster
+        .0
+        .min(platz.width() - 2.0 * MASSE.dialog_rand)
+        .max(0.0);
+    let hoehe = MASSE.einstellungsfenster.1.min(unten - oben).max(0.0);
+    let y = (platz.center().y - hoehe / 2.0).clamp(oben, (unten - hoehe).max(oben));
+    Rect::from_min_size(
+        pos2(platz.center().x - breite / 2.0, y),
+        vec2(breite, hoehe),
+    )
+}
+
+/// A switch (on: the accent surface, off: the choice colour, a light knob), named for the accessibility tree. A locked
+/// switch is painted at full opacity: its track holds 3:1 to the ground and its knob has the colour of the ground.
 fn schalter_malen(ui: &mut Ui, r: &Rollen, an: bool, name: &str) -> Response {
     let (rect, resp) = ui.allocate_exact_size(vec2(38.0, 22.0), Sense::click());
-    let farbe = if !ui.is_enabled() {
-        r.linie
+    let offen = ui.is_enabled();
+    let mut p = ui.painter().clone();
+    p.set_opacity(1.0);
+    let (spur, knopf) = if !offen {
+        (gesperrte_spur(r), r.erhoben)
     } else if an {
-        r.akzent_flaeche
+        (r.akzent_flaeche, Color32::WHITE)
     } else {
-        r.wahl
+        (r.wahl, Color32::WHITE)
     };
-    ui.painter().rect_filled(rect, gestalt::radius(11.0), farbe);
+    p.rect_filled(rect, gestalt::radius(11.0), spur);
     let x = if an {
         rect.right() - 11.0
     } else {
         rect.left() + 11.0
     };
-    ui.painter().circle_filled(
-        pos2(x, rect.center().y),
-        9.0,
-        Color32::from_rgb(0xff, 0xff, 0xff),
-    );
+    p.circle_filled(pos2(x, rect.center().y), 9.0, knopf);
     let name = name.to_owned();
-    resp.widget_info(|| egui::WidgetInfo::selected(Role::Switch, ui.is_enabled(), an, &name));
+    resp.widget_info(|| egui::WidgetInfo::selected(Role::Switch, offen, an, &name));
     resp
 }
 
@@ -365,6 +521,335 @@ fn wert_text(v: &Value) -> String {
         Value::String(s) => s.clone(),
         Value::Null => String::new(),
         x => x.to_string(),
+    }
+}
+
+// The words of the window "Sitzungen" come from the table both views share (`ansicht::woerter`, OF1).
+const T_HINWEIS: &str = ansicht::woerter::SITZUNGEN_HINWEIS;
+const T_KEINE_SITZUNG: &str = ansicht::woerter::KEINE_SITZUNG_BEKANNT;
+const T_INFO_LEER: &str = ansicht::woerter::SITZUNG_WAEHLEN;
+const T_KEINE_GEWAEHLT: &str = ansicht::woerter::GRUND_KEINE_GEWAEHLT;
+const T_IST_BEENDET: &str = ansicht::woerter::GRUND_IST_BEENDET;
+const T_LAEUFT: &str = ansicht::woerter::GRUND_LAEUFT;
+const T_SCHON_FORTGESETZT: &str = ansicht::woerter::GRUND_SCHON_FORTGESETZT;
+const T_OHNE_FORTSETZEN: &str = ansicht::woerter::GRUND_NICHT_FORTSETZBAR;
+
+/// The programs whose sessions cannot be continued: the run refuses a continuation of opencode (exit code 69).
+const OHNE_FORTSETZEN: [&str; 1] = ["opencode"];
+
+/// Why "Fortsetzen" is locked for the chosen session; empty when it may be clicked.
+fn fortsetzen_grund(s: Option<&Sitzung>) -> &'static str {
+    match s {
+        None => T_KEINE_GEWAEHLT,
+        Some(s) if s.laeuft => T_LAEUFT,
+        Some(s)
+            if s.herkunft
+                .as_ref()
+                .is_some_and(|h| h.fortgesetzt_als.is_some()) =>
+        {
+            T_SCHON_FORTGESETZT
+        }
+        Some(s) if OHNE_FORTSETZEN.contains(&s.harness.as_str()) => T_OHNE_FORTSETZEN,
+        Some(_) => "",
+    }
+}
+const T_OPTIONAL: &str = ansicht::woerter::NAME_OPTIONAL;
+const T_PFAD: &str = ansicht::woerter::PFAD_PLATZHALTER;
+const T_PROGRAMM: &str = ansicht::woerter::PROGRAMM;
+const T_DENKSTUFE: &str = ansicht::woerter::DENKSTUFE;
+
+/// Height of the head and of the foot of the window "Sitzungen", width of its list (browser view: 12 px around a 15 px
+/// title, 10 px around the buttons, 300 px).
+const FENSTER_KOPF: f32 = 44.0;
+const FENSTER_FUSS: f32 = 50.0;
+const LISTE_SPALTE: f32 = 300.0;
+
+/// The sessions by working folder (L5), the folders in the order of their first session and the sessions of a folder
+/// in the order of the list (B68, F1). Sessions without a folder form the group "".
+pub(crate) fn nach_ordner(sitzungen: &[Sitzung], zusatz: &Zusatz) -> Vec<(String, Vec<String>)> {
+    let mut gruppen: Vec<(String, Vec<String>)> = Vec::new();
+    for s in sitzungen {
+        let o = zusatz
+            .sitzung(&s.id)
+            .map(|x| x.ordner.clone())
+            .unwrap_or_default();
+        match gruppen.iter_mut().find(|(g, _)| *g == o) {
+            Some((_, ids)) => ids.push(s.id.clone()),
+            None => gruppen.push((o, vec![s.id.clone()])),
+        }
+    }
+    gruppen
+}
+
+/// The colour of the point of a session, the same in the sidebar and in the window "Sitzungen": running, ended with code
+/// 0, or ended with another code.
+fn sitzung_farbe(r: &Rollen, s: &Sitzung) -> Color32 {
+    if s.laeuft {
+        r.laeuft
+    } else if s.code == "0" {
+        r.gedaempft
+    } else {
+        r.tot
+    }
+}
+
+/// The second line of a row of the sidebar: with L1 "N Worker · <state>", else the state. The state is the one name of
+/// the view core ([`Sitzung::zustand_text`]), the same as in the window "Sitzungen" and in the browser view.
+pub(crate) fn zeile_zusatz(s: &Sitzung, worker: Option<usize>) -> String {
+    match worker {
+        Some(n) => format!("{n} Worker · {}", s.zustand_text()),
+        None => s.zustand_text(),
+    }
+}
+
+/// A group of the start form: a bold heading, then the rows on a raised card with a line around (F1, like the browser
+/// view).
+fn formgruppe(ui: &mut Ui, r: &Rollen, titel: &str, inhalt: impl FnOnce(&mut Ui)) {
+    if ui.min_rect().height() > 0.0 {
+        ui.add_space(MASSE.innen);
+    }
+    ui.label(
+        RichText::new(titel)
+            .fett()
+            .size(MASSE.schrift_grund)
+            .color(r.schrift),
+    );
+    ui.add_space(2.0);
+    Frame::new()
+        .fill(r.erhoben)
+        .stroke(Stroke::new(MASSE.linie, r.linie))
+        .corner_radius(gestalt::radius(MASSE.radius_gruppe))
+        .inner_margin(Margin::symmetric(14, 2))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.spacing_mut().item_spacing.y = 0.0;
+            inhalt(ui);
+        });
+}
+
+/// One row of the start form, 40 points high: the name on the left, the field on the right over 55 % of the width, a
+/// line above every row but the first. `feld` gets the width of the field.
+fn formzeile<R>(
+    ui: &mut Ui,
+    r: &Rollen,
+    name: &str,
+    erste: bool,
+    feld: impl FnOnce(&mut Ui, f32) -> R,
+) -> R {
+    let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 40.0), Sense::hover());
+    if !erste {
+        ui.painter().hline(
+            rect.x_range(),
+            rect.top(),
+            Stroke::new(MASSE.linie, r.linie),
+        );
+    }
+    let breite = (rect.width() * 0.55).round();
+    text_gekuerzt(
+        ui,
+        pos2(rect.left(), rect.center().y - MASSE.schrift_grund * 0.62),
+        name,
+        FontId::proportional(MASSE.schrift_grund),
+        r.schrift,
+        rect.width() - breite - 14.0,
+    );
+    let band = Rect::from_min_max(pos2(rect.right() - breite, rect.top()), rect.right_bottom());
+    let mut c = ui.new_child(
+        UiBuilder::new()
+            .max_rect(band)
+            .layout(Layout::left_to_right(Align::Center)),
+    );
+    feld(&mut c, breite)
+}
+
+/// A value of the service as one line: a list joined with commas, an object as "key: value" joined with " · ", an
+/// effort limit as "harness: values" (`regelebenen` 15.1); no value as "–" like the browser view.
+fn wert_anzeige(v: &Value) -> String {
+    use crate::einstellungstexte::{AN, AUS};
+    match v {
+        Value::Null => "–".to_owned(),
+        Value::Bool(true) => AN.to_owned(),
+        Value::Bool(false) => AUS.to_owned(),
+        Value::String(s) => s.clone(),
+        Value::Array(a) => a
+            .iter()
+            .map(|x| match (x.get("harness"), x.get("erlaubt")) {
+                (Some(h), Some(e)) => format!("{}: {}", wert_anzeige(h), wert_anzeige(e)),
+                _ => wert_anzeige(x),
+            })
+            .collect::<Vec<_>>()
+            .join(if a.iter().any(Value::is_object) {
+                " · "
+            } else {
+                ", "
+            }),
+        Value::Object(m) => m
+            .iter()
+            .map(|(k, x)| format!("{k}: {}", wert_anzeige(x)))
+            .collect::<Vec<_>>()
+            .join(" · "),
+        x => x.to_string(),
+    }
+}
+
+/// A deadline in milliseconds in the largest whole unit: "30 s", "5 min", "24 h"; otherwise in milliseconds.
+fn frist_text(ms: u64) -> String {
+    match ms {
+        m if m >= 3_600_000 && m % 3_600_000 == 0 => format!("{} h", m / 3_600_000),
+        m if m >= 60_000 && m % 60_000 == 0 => format!("{} min", m / 60_000),
+        m if m >= 1000 && m % 1000 == 0 => format!("{} s", m / 1000),
+        m => format!("{m} ms"),
+    }
+}
+
+/// The choices of a deadline of a release (`regelebenen` 15.1.2), with the effective value when it is none of them.
+fn frist_wahlen(feste: &[u64], wert: &Value) -> Vec<(String, String)> {
+    let mut l: Vec<u64> = feste.to_vec();
+    if let Some(w) = wert.as_u64()
+        && !l.contains(&w)
+    {
+        l.push(w);
+        l.sort_unstable();
+    }
+    l.into_iter()
+        .map(|m| (m.to_string(), frist_text(m)))
+        .collect()
+}
+
+/// The rows of the effective deadline `schluessel` for each MCP server (`regelebenen` 15.1.2): the server, the value and
+/// the origin "Firmendatei, Server <server>" or "Katalog"; an origin in another form stays as it is.
+fn fristen_zeilen(
+    fristen: &[crate::ziel::Frist],
+    schluessel: &str,
+) -> Vec<(String, String, String)> {
+    use crate::einstellungstexte::server as t;
+    fristen
+        .iter()
+        .filter(|f| f.schluessel == schluessel)
+        .map(|f| {
+            let herkunft = match f.herkunft.as_str() {
+                "firmendatei" => format!("{} {}", t::HERKUNFT_FIRMENDATEI, f.server),
+                "katalog" => t::HERKUNFT_KATALOG.to_owned(),
+                x => x.to_owned(),
+            };
+            (f.server.clone(), frist_text(f.wert), herkunft)
+        })
+        .collect()
+}
+
+/// A date `JJJJ-MM-TT` as `TT.MM.JJJJ`; any other text stays as it is.
+fn datum_text(d: &str) -> String {
+    let t: Vec<&str> = d.split('-').collect();
+    match t.as_slice() {
+        [j, m, tag] if j.len() == 4 && m.len() == 2 && tag.len() == 2 => format!("{tag}.{m}.{j}"),
+        _ => d.to_owned(),
+    }
+}
+
+/// Milliseconds since 1970 as "TT.MM.JJJJ, HH:MM UTC" (the civil calendar of the days since 1970, without a time zone).
+fn zeit_text(ms: u64) -> String {
+    let s = ms / 1000;
+    let (tage, rest) = (s / 86_400, s % 86_400);
+    // the civil date of a day count (days from civil, inverted; valid for every day after 1970)
+    let z = tage + 719_468;
+    let era = z / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let tag = doy - (153 * mp + 2) / 5 + 1;
+    let monat = if mp < 10 { mp + 3 } else { mp - 9 };
+    let jahr = yoe + era * 400 + u64::from(monat <= 2);
+    format!(
+        "{tag:02}.{monat:02}.{jahr}, {:02}:{:02} {}",
+        rest / 3600,
+        rest % 3600 / 60,
+        crate::einstellungstexte::schutz::UTC
+    )
+}
+
+/// The rows of the protection layers: only what was measured, with its date; a part the service did not report says
+/// so (decision of the operator, 27.11.2026).
+fn schutz_zeilen(s: &crate::ziel::Schutz) -> Vec<(String, String, String)> {
+    use crate::einstellungstexte::schutz as t;
+    let oder = |w: Option<String>| w.unwrap_or_else(|| t::NICHT_GEMELDET.to_owned());
+    let mut zeilen = vec![
+        (
+            t::EINSCHLUSS.to_owned(),
+            oder(
+                s.probelauf
+                    .as_deref()
+                    .map(|d| format!("{} {}", t::PROBELAUF, datum_text(d))),
+            ),
+            String::new(),
+        ),
+        (
+            t::HALTER.to_owned(),
+            oder(
+                s.eingerichtet
+                    .as_deref()
+                    .map(|d| format!("{} {}", t::EINGERICHTET, datum_text(d))),
+            ),
+            String::new(),
+        ),
+        (
+            t::LETZTER_START.to_owned(),
+            match &s.letzter_start {
+                None => t::NICHT_GEMELDET.to_owned(),
+                Some(None) => t::KEIN_START.to_owned(),
+                Some(Some((zeit, ergebnis))) => format!("{ergebnis}, {}", zeit_text(*zeit)),
+            },
+            String::new(),
+        ),
+    ];
+    match &s.netzziele {
+        None => zeilen.push((
+            t::NETZZIELE.to_owned(),
+            t::NICHT_GEMELDET.to_owned(),
+            String::new(),
+        )),
+        Some(l) if l.is_empty() => {
+            zeilen.push((t::NETZZIELE.to_owned(), "0".to_owned(), String::new()));
+        }
+        Some(l) => {
+            for (herkunft, anzahl) in l {
+                zeilen.push((
+                    t::NETZZIELE.to_owned(),
+                    anzahl.to_string(),
+                    herkunft_anzeige(herkunft),
+                ));
+            }
+        }
+    }
+    zeilen
+}
+
+/// The origin as text (`regelebenen` 15.5): "Firma", "Gruppe <name>" or "du"; an origin in another form stays as it is.
+fn herkunft_anzeige(h: &str) -> String {
+    use crate::einstellungstexte::{HERKUNFT_DU, HERKUNFT_FIRMA, HERKUNFT_GRUPPE};
+    match h.split_once(' ') {
+        Some(("gruppe", g)) => format!("{HERKUNFT_GRUPPE} {g}"),
+        _ => match h {
+            "firma" => HERKUNFT_FIRMA.to_owned(),
+            "nutzer" => HERKUNFT_DU.to_owned(),
+            "gruppe" => HERKUNFT_GRUPPE.to_owned(),
+            x => x.to_owned(),
+        },
+    }
+}
+
+/// The short reason of a lock (`regelebenen` 15.5, OF9 point 6); empty when nothing is locked.
+fn grund_anzeige(grund: Option<&str>, aenderbar: bool, herkunft: &str) -> String {
+    use crate::einstellungstexte::{
+        GRUND_FEST, GRUND_NUR_ADMIN, GRUND_NUR_STRENGER, GRUND_VORGABE,
+    };
+    match grund {
+        Some("nur_admin") => GRUND_NUR_ADMIN.to_owned(),
+        Some("nur_strenger") => GRUND_NUR_STRENGER.to_owned(),
+        Some("fest") => GRUND_FEST.to_owned(),
+        Some(x) => x.to_owned(),
+        None if aenderbar => String::new(),
+        None => format!("{GRUND_VORGABE} {herkunft}"),
     }
 }
 
@@ -403,6 +888,11 @@ impl Fenster {
             terminal_id: Id::unique("terminal-raster"),
             jetzt: 0.0,
             system_dunkel: None,
+            system_akzent: crate::akzent::system(),
+            eingabe: Eingabe {
+                hatte_fokus: true,
+                tastatur: false,
+            },
             wahl: Wahl::default(),
             terminalschrift: MASSE.schrift_terminal,
             #[cfg(target_os = "macos")]
@@ -464,6 +954,12 @@ impl Fenster {
             Szene::WorkerKacheln => {
                 self.b.mitte = Mitte::Worker;
                 self.merken.inspektor_offen = false;
+                self.b.kachelform = Kachelform::Gekachelt;
+            }
+            Szene::WorkerEinzeln => {
+                self.b.mitte = Mitte::Worker;
+                self.merken.inspektor_offen = false;
+                self.b.kachelform = Kachelform::Gezoomt;
             }
             Szene::WorkerListe => {
                 self.b.mitte = Mitte::Worker;
@@ -472,6 +968,8 @@ impl Fenster {
             }
             Szene::SitzungenLeer => {
                 self.b.sitzungen = Some(Sitzungsfenster::default());
+                // like "+": the focus in the first field of the form (SE2 point 2)
+                self.fokus = Some(FokusZiel::Name);
             }
             Szene::SitzungenGewaehlt(id) => {
                 self.b.sitzungen = Some(Sitzungsfenster {
@@ -552,7 +1050,7 @@ impl Fenster {
         #[allow(clippy::cast_possible_truncation)]
         if let Some(g) = self
             .zusatz
-            .einstellung("aussehen.schriftgroesse")
+            .einstellung(crate::einstellungstexte::SCHLUESSEL_SCHRIFTGROESSE)
             .and_then(|e| e.wert.as_f64())
             .filter(|g| (8.0..=32.0).contains(g))
         {
@@ -629,6 +1127,22 @@ impl Fenster {
         self.jetzt = ctx.input(|i| i.time) * 1000.0;
         let rollen = *self.rollen(ui);
         ctx.set_visuals(gestalt::visuals(&rollen));
+        // the accent colour may have changed in the settings of the system while the window was in the background
+        let fokus = ctx.input(|i| i.viewport().focused.unwrap_or(true));
+        if fokus && !self.eingabe.hatte_fokus {
+            self.system_akzent = crate::akzent::system();
+        }
+        self.eingabe.hatte_fokus = fokus;
+        // a key or a request of an assistive technology moves the focus with the keyboard, a press of the mouse does not
+        for e in ctx.input(|i| i.events.clone()) {
+            match e {
+                egui::Event::Key { pressed: true, .. } | egui::Event::AccessKitActionRequest(_) => {
+                    self.eingabe.tastatur = true;
+                }
+                egui::Event::PointerButton { pressed: true, .. } => self.eingabe.tastatur = false,
+                _ => {}
+            }
+        }
         self.empfangen();
         #[cfg(target_os = "macos")]
         self.menueleiste_abgleichen(&ctx);
@@ -741,7 +1255,9 @@ impl Fenster {
         self.einstellungen_fenster(ui, &rollen);
         self.rueckfrage(ui);
         self.live_region(ui);
-        Self::fokusrahmen(ui, &rollen);
+        if self.eingabe.tastatur {
+            Self::fokusrahmen(ui, &rollen);
+        }
         if self.attrappe {
             Self::beschriftung(ui, &rollen);
         }
@@ -830,7 +1346,8 @@ impl Fenster {
             UiBuilder::new().id_salt("titel-bereich").max_rect(zeile),
             |ui| {
                 behaelter(ui, Role::Banner, "Titelleiste", None);
-                // left: the sidebar button and, under Windows and Linux, the application menu (B75)
+                // left: the sidebar button only, as today; the application menu (B75) is in the foot of the sidebar or the
+                // menu bar of macOS
                 let links = ui
                     .scope_builder(
                         UiBuilder::new()
@@ -859,10 +1376,6 @@ impl Fenster {
                                 if knopf.clicked() {
                                     self.b.leiste_offen = !self.b.leiste_offen;
                                 }
-                            }
-                            // under macOS the menu bar of the system carries the same list (B75)
-                            if self.zeigt("B75") && !cfg!(target_os = "macos") {
-                                self.menue(ui);
                             }
                             ui.min_rect().right()
                         },
@@ -931,8 +1444,8 @@ impl Fenster {
         );
     }
 
-    /// The application menu in the title row (B75, Windows and Linux; under macOS the menu bar of the system shows the
-    /// same list, see [`Fenster::anwendungsmenue`]).
+    /// The application menu in the foot of the sidebar next to the gear (B75, Windows and Linux; G3). Under macOS the
+    /// menu bar of the system shows the same list, see [`Fenster::anwendungsmenue`]. It opens upwards.
     fn menue(&mut self, ui: &mut Ui) {
         let k = symbole::knopf(ui, Symbol::Menue, "Menü", MASSE.kapsel_segment, false);
         kennung(ui, k.id, "B75");
@@ -940,35 +1453,37 @@ impl Fenster {
             n.set_role(Role::MenuBar);
             n.set_class_name("anwendungsmenue");
         });
-        self.halt(TITEL, &k);
+        self.halt(LEISTE, &k);
         let liste = self.anwendungsmenue();
         let mut gewaehlt = None;
-        egui::Popup::menu(&k).show(|ui| {
-            ui.set_min_width(220.0);
-            for m in &liste {
-                ui.menu_button(m.titel, |ui| {
-                    for e in &m.eintraege {
-                        let b = ui.add_enabled(
-                            e.an,
-                            egui::Button::new(e.text)
-                                .frame(false)
-                                .min_size(vec2(200.0, 22.0)),
-                        );
-                        rolle_setzen(ui, b.id, Role::MenuItem);
-                        if b.clicked() {
-                            gewaehlt = Some(e.tat);
+        egui::Popup::menu(&k)
+            .align(egui::RectAlign::TOP_START)
+            .show(|ui| {
+                ui.set_min_width(220.0);
+                for m in &liste {
+                    ui.menu_button(m.titel, |ui| {
+                        for e in &m.eintraege {
+                            let b = ui.add_enabled(
+                                e.an,
+                                egui::Button::new(e.text)
+                                    .frame(false)
+                                    .min_size(vec2(200.0, 22.0)),
+                            );
+                            rolle_setzen(ui, b.id, Role::MenuItem);
+                            if b.clicked() {
+                                gewaehlt = Some(e.tat);
+                            }
                         }
-                    }
-                });
-            }
-        });
+                    });
+                }
+            });
         if let Some(t) = gewaehlt {
             self.menue_tat(ui.ctx(), t);
         }
     }
 
-    /// The entries of the application menu (B75), for the menu in the title row and the menu bar of macOS alike. It
-    /// holds only entries whose operating path shows (OF8); a menu without entries is left out.
+    /// The entries of the application menu (B75), for the menu in the foot of the sidebar and the menu bar of macOS
+    /// alike. It holds only entries whose operating path shows (OF8); a menu without entries is left out.
     #[must_use]
     pub fn anwendungsmenue(&self) -> Vec<Untermenue> {
         if !self.zeigt("B75") {
@@ -1067,7 +1582,7 @@ impl Fenster {
         .collect()
     }
 
-    /// Carries out an entry of the application menu, from the title row or the menu bar of macOS.
+    /// Carries out an entry of the application menu, from the foot of the sidebar or the menu bar of macOS.
     pub fn menue_tat(&mut self, ctx: &egui::Context, tat: MenueTat) {
         let aktiv = self.kern.aktive_sitzung().cloned();
         match tat {
@@ -1256,7 +1771,9 @@ impl Fenster {
             });
             let k = ui.add(
                 egui::Button::new(
+                    // bold as today (B26)
                     RichText::new(format!("    {n} laufen"))
+                        .fett()
                         .size(MASSE.schrift_kapsel)
                         .color(r.schrift),
                 )
@@ -1391,13 +1908,17 @@ impl Fenster {
                     .iter()
                     .filter(|a| a.zustand == "laeuft")
                     .count();
+                // the number in the bold cut, the words in the regular one (as today, B22)
                 let mut job = egui::text::LayoutJob::default();
                 let f = FontId::proportional(MASSE.schrift_grund);
                 job.append(
                     &n.to_string(),
                     0.0,
                     egui::TextFormat {
-                        font_id: f.clone(),
+                        font_id: FontId::new(
+                            MASSE.schrift_grund,
+                            egui::FontFamily::Name(crate::FETT.into()),
+                        ),
                         color: r.schrift,
                         ..Default::default()
                     },
@@ -1432,6 +1953,10 @@ impl Fenster {
                     if k.clicked() {
                         self.b.einstellungen = Some(Seite::Aussehen);
                     }
+                }
+                // under Windows and Linux the application menu stands next to the gear (B75, G3); macOS has the menu bar
+                if self.zeigt("B75") && !cfg!(target_os = "macos") {
+                    self.menue(ui);
                 }
             });
         });
@@ -1474,9 +1999,9 @@ impl Fenster {
                         Layout::left_to_right(Align::Center),
                         |ui| {
                             ui.add_space(MASSE.kopf_einzug);
+                            // a small grey heading in the regular cut, as today (B09)
                             ui.label(
                                 RichText::new(&p)
-                                    .fett()
                                     .size(MASSE.schrift_klein)
                                     .color(r.gedaempft),
                             );
@@ -1484,7 +2009,6 @@ impl Fenster {
                                 ui.add_space(MASSE.innen);
                                 ui.label(
                                     RichText::new(ids.len().to_string())
-                                        .fett()
                                         .size(MASSE.schrift_klein)
                                         .color(r.gedaempft),
                                 );
@@ -1524,13 +2048,6 @@ impl Fenster {
             .map_or_else(|| id.to_owned(), |x| x.name.clone());
         let worker = self.zusatz.arbeiter_von(id).len();
         let gewaehlt = self.kern.aktiv.as_deref() == Some(id);
-        let zustand = if s.laeuft {
-            "läuft".to_owned()
-        } else if s.code == "0" {
-            "beendet".to_owned()
-        } else {
-            format!("abgestürzt, Code {}", s.code)
-        };
         let breite = ui.available_width();
         let (rect, resp) =
             ui.allocate_exact_size(vec2(breite, MASSE.sitzungszeile), Sense::click_and_drag());
@@ -1542,13 +2059,7 @@ impl Fenster {
             ui.painter()
                 .rect_filled(innen, rad, r.wahl.gamma_multiply(0.5));
         }
-        let farbe = if s.laeuft {
-            r.laeuft
-        } else if s.code == "0" {
-            r.gedaempft
-        } else {
-            r.tot
-        };
+        let farbe = sitzung_farbe(r, &s);
         let oben = innen.top() + (innen.height() - 31.0) / 2.0;
         let punkt_mitte = pos2(
             innen.left() + MASSE.zeile_punkt + MASSE.punkt / 2.0,
@@ -1568,11 +2079,7 @@ impl Fenster {
         text_gekuerzt(
             ui,
             pos2(x, oben + 17.0),
-            &if self.hat(1) {
-                format!("{worker} Worker · {zustand}")
-            } else {
-                zustand.clone()
-            },
+            &zeile_zusatz(&s, self.hat(1).then_some(worker)),
             FontId::proportional(MASSE.schrift_klein),
             r.gedaempft,
             breite,
@@ -1694,7 +2201,17 @@ impl Fenster {
         {
             let kopf = Rect::from_min_size(flaeche.min, vec2(flaeche.width(), MASSE.pane_kopf));
             let zustand = if s.laeuft { "laeuft" } else { "beendet" };
-            self.pane_kopf(ui, r, kopf, "Orchestrator", &s.modell, zustand, true, None);
+            self.pane_kopf(
+                ui,
+                r,
+                kopf,
+                "Orchestrator",
+                &s.modell,
+                zustand,
+                true,
+                None,
+                CornerRadius::ZERO,
+            );
             flaeche.min.y = kopf.bottom();
         }
         ui.painter().rect_filled(flaeche, 0.0, tf.grund);
@@ -1766,6 +2283,7 @@ impl Fenster {
             terminal::malen(
                 ui,
                 flaeche,
+                CornerRadius::ZERO,
                 self.kern.bild.as_ref(),
                 &tf,
                 &schrift,
@@ -1920,20 +2438,10 @@ impl Fenster {
             return;
         }
         let n = sichtbar.len();
-        let spalten = if n <= 1 {
-            1
-        } else if n <= 4 {
-            2
-        } else {
-            3
-        };
-        let reihen = n.div_ceil(spalten);
         let flaeche = ui.available_rect_before_wrap();
-        #[allow(clippy::cast_precision_loss)]
-        let (kw, kh) = (
-            flaeche.width() / spalten as f32,
-            flaeche.height() / reihen as f32,
-        );
+        // the stage: its ground shows in the joints and at the rounded corners of the tiles
+        ui.painter().rect_filled(flaeche, 0.0, r.buehne);
+        let lagen = gestalt::kachel_lagen(flaeche, n);
         let tf = *self.wahl.terminal(self.system(ui));
         let schrift = FontId::monospace(self.terminalschrift - 1.0);
         let (zw, zh) = terminal::zelle(ui, &schrift);
@@ -1944,16 +2452,7 @@ impl Fenster {
                 a.nr.is_some_and(|nr| ui.memory(|m| m.has_focus(Id::unique(("kachel-raster", nr)))))
             })
             .unwrap_or(0);
-        for (i, a) in sichtbar.iter().enumerate() {
-            #[allow(clippy::cast_precision_loss)]
-            let rect = Rect::from_min_size(
-                pos2(
-                    flaeche.left() + (i % spalten) as f32 * kw,
-                    flaeche.top() + (i / spalten) as f32 * kh,
-                ),
-                vec2(kw, kh),
-            )
-            .shrink(MASSE.kachelabstand / 2.0);
+        for (i, (a, rect)) in sichtbar.iter().zip(lagen).enumerate() {
             self.kachel(
                 ui,
                 r,
@@ -1963,7 +2462,7 @@ impl Fenster {
                 rect,
                 a,
                 &sitzung,
-                i == aktiv,
+                (i == aktiv, gestalt::kachel_rahmen(i == aktiv, n)),
             );
         }
     }
@@ -1979,11 +2478,23 @@ impl Fenster {
         rect: Rect,
         a: &crate::ziel::Arbeiter,
         sitzung: &str,
-        aktiv: bool,
+        (aktiv, rahmen): (bool, bool),
     ) {
         let kopf = Rect::from_min_size(rect.min, vec2(rect.width(), MASSE.pane_kopf));
         let bild_rect = Rect::from_min_max(pos2(rect.left(), kopf.bottom()), rect.max);
-        ui.painter().rect_filled(bild_rect, 0.0, tf.grund);
+        // the tile has rounded corners (today's app, 8 points): the head carries the upper ones, the terminal the lower
+        let ecke = gestalt::radius(MASSE.radius_kachel).nw;
+        let unten = CornerRadius {
+            sw: ecke,
+            se: ecke,
+            ..CornerRadius::ZERO
+        };
+        let oben = CornerRadius {
+            nw: ecke,
+            ne: ecke,
+            ..CornerRadius::ZERO
+        };
+        ui.painter().rect_filled(bild_rect, unten, tf.grund);
         if self.zeigt("B41") {
             self.pane_kopf(
                 ui,
@@ -1994,14 +2505,7 @@ impl Fenster {
                 &a.zustand,
                 aktiv,
                 Some(&a.id),
-            );
-        }
-        if aktiv {
-            ui.painter().rect_stroke(
-                rect,
-                0.0,
-                Stroke::new(MASSE.fokusrahmen, r.akzent),
-                StrokeKind::Inside,
+                oben,
             );
         }
         let Some(nr) = a.nr else {
@@ -2028,7 +2532,32 @@ impl Fenster {
             n.set_role_description("Terminal".to_owned());
         });
         self.halt(TERMINAL, &resp);
-        terminal::malen(ui, bild_rect, bild.as_ref(), tf, schrift, None, id, true);
+        terminal::malen(
+            ui,
+            bild_rect,
+            unten,
+            bild.as_ref(),
+            tf,
+            schrift,
+            None,
+            id,
+            true,
+        );
+        // the frame of the active tile over head and terminal, in the accent colour of the system under macOS
+        if rahmen {
+            ui.painter().rect_stroke(
+                rect,
+                gestalt::radius(MASSE.radius_kachel),
+                Stroke::new(MASSE.fokusrahmen, self.rahmenfarbe(r)),
+                StrokeKind::Inside,
+            );
+        }
+    }
+
+    /// The colour of the frame of the active tile: the accent colour of the system under macOS, else the accent token.
+    #[must_use]
+    pub fn rahmenfarbe(&self, r: &Rollen) -> Color32 {
+        self.system_akzent.unwrap_or(r.akzent)
     }
 
     /// The head of a pane (B41): state dot, role, model; on a worker tile the button to enlarge it.
@@ -2043,6 +2572,7 @@ impl Fenster {
         zustand: &str,
         aktiv: bool,
         zoom: Option<&str>,
+        ecken: CornerRadius,
     ) {
         let mut ku = ui.new_child(
             UiBuilder::new()
@@ -2051,7 +2581,7 @@ impl Fenster {
                 .id_salt(("kachel", rolle, zoom.unwrap_or("orchestrator"))),
         );
         ku.painter()
-            .rect_filled(kopf, 0.0, if aktiv { r.kopf_aktiv } else { r.kopf });
+            .rect_filled(kopf, ecken, if aktiv { r.kopf_aktiv } else { r.kopf });
         ku.set_clip_rect(kopf);
         ku.scope_builder(UiBuilder::new().id_salt("kopf"), |ui| {
             behaelter(
@@ -2063,8 +2593,10 @@ impl Fenster {
             ui.spacing_mut().item_spacing.x = MASSE.abstand + 2.0;
             ui.add_space(MASSE.innen);
             punkt(ui, zustand_farbe(r, zustand), zustand == "laeuft");
+            // the role in the bold cut, as today (`fontWeight(.semibold)`)
             ui.label(
                 RichText::new(rolle)
+                    .fett()
                     .color(if aktiv { r.akzent_text } else { r.schrift })
                     .size(MASSE.schrift_grund),
             );
@@ -2077,22 +2609,34 @@ impl Fenster {
                 )
                 .truncate(),
             );
-            if let Some(id) = zoom {
+            // right the button to enlarge (B41): a worker tile alone and back; the orchestrator stands alone like a zoomed
+            // tile, and its button leads back to the tiles, as in today's app (`kachelnZurueck`)
+            let gezoomt = match zoom {
+                Some(id) => {
+                    self.b.zoom.as_deref() == Some(id) || self.b.kachelform == Kachelform::Gezoomt
+                }
+                None => true,
+            };
+            if zoom.is_some() || self.zeigt("B27") {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     ui.add_space(MASSE.abstand);
-                    let z = symbole::knopf(
-                        ui,
-                        Symbol::Vergroessern,
-                        &format!("{rolle} vergrößern"),
-                        MASSE.pane_kopf - 4.0,
-                        false,
-                    );
+                    let (symbol, name) = if gezoomt {
+                        (Symbol::Verkleinern, "Verkleinern")
+                    } else {
+                        (Symbol::Vergroessern, "Vergrößern")
+                    };
+                    let z = symbole::knopf(ui, symbol, name, MASSE.pane_kopf - 4.0, false);
                     if z.clicked() {
-                        self.b.zoom = if self.b.zoom.as_deref() == Some(id) {
-                            None
-                        } else {
-                            Some(id.to_owned())
-                        };
+                        match zoom {
+                            Some(_) if gezoomt => {
+                                self.b.zoom = None;
+                                if self.b.kachelform == Kachelform::Gezoomt {
+                                    self.b.kachelform = Kachelform::Gekachelt;
+                                }
+                            }
+                            Some(id) => self.b.zoom = Some(id.to_owned()),
+                            None => self.b.mitte = Mitte::Worker,
+                        }
                         self.kachel_abo.clear();
                     }
                 });
@@ -2594,103 +3138,100 @@ impl Fenster {
             return;
         }
         let ctx = ui.ctx().clone();
+        let platz = ctx.content_rect();
+        // like the browser view: at most 900 by 652, 20 points from the edge of a smaller window
+        let groesse = vec2(
+            MASSE.sitzungsfenster.0.min(platz.width() - 40.0),
+            MASSE.sitzungsfenster.1.min(platz.height() - 40.0),
+        );
         let mut schliessen = false;
         let antwort = egui::Modal::new(Id::unique("sitzungen-fenster"))
             .frame(
                 Frame::window(&ctx.global_style())
                     .fill(r.grund)
                     .corner_radius(gestalt::radius(MASSE.radius_fenster))
-                    .inner_margin(Margin::same(16)),
+                    .inner_margin(Margin::ZERO),
             )
             .show(&ctx, |ui| {
-                ui.set_width(MASSE.sitzungsfenster.0 - 32.0);
-                ui.set_min_height(MASSE.sitzungsfenster.1 - 32.0);
+                ui.set_min_size(groesse);
+                ui.set_max_size(groesse);
                 ui.scope_builder(UiBuilder::new().id_salt("sitzungen-inhalt"), |ui| {
+                    ui.set_min_size(groesse);
                     behaelter(ui, Role::Dialog, "Sitzungen", Some("B68"));
                     ui.ctx().accesskit_node_builder(ui.unique_id(), |n| {
                         n.set_modal();
                         n.set_class_name("sitzungen-fenster");
                     });
-                    ui.label(
+                    let voll = Rect::from_min_size(ui.max_rect().min, groesse);
+                    let rad = gestalt::radius(MASSE.radius_fenster);
+                    let kopf = Rect::from_min_size(voll.min, vec2(voll.width(), FENSTER_KOPF));
+                    let fuss = Rect::from_min_max(
+                        pos2(voll.left(), voll.bottom() - FENSTER_FUSS),
+                        voll.max,
+                    );
+                    let leib = Rect::from_min_max(kopf.left_bottom(), fuss.right_top());
+                    let liste = Rect::from_min_max(
+                        leib.min,
+                        pos2(leib.left() + LISTE_SPALTE, leib.bottom()),
+                    );
+                    let form = Rect::from_min_max(liste.right_top(), leib.max);
+                    let p = ui.painter();
+                    p.rect_filled(
+                        kopf,
+                        CornerRadius {
+                            sw: 0,
+                            se: 0,
+                            ..rad
+                        },
+                        r.fenster,
+                    );
+                    p.rect_filled(
+                        fuss,
+                        CornerRadius {
+                            nw: 0,
+                            ne: 0,
+                            ..rad
+                        },
+                        r.fenster,
+                    );
+                    p.rect_filled(liste, 0, r.leiste);
+                    let linie = Stroke::new(MASSE.linie, r.linie);
+                    p.hline(voll.x_range(), kopf.bottom(), linie);
+                    p.hline(voll.x_range(), fuss.top(), linie);
+                    p.vline(liste.right(), leib.y_range(), linie);
+                    let mut ku = ui.new_child(
+                        UiBuilder::new()
+                            .max_rect(kopf.shrink2(vec2(18.0, 0.0)))
+                            .layout(Layout::left_to_right(Align::Center)),
+                    );
+                    ku.label(
                         RichText::new("Sitzungen")
-                            .size(MASSE.schrift_titel)
-                            .color(r.gedaempft),
+                            .fett()
+                            .size(15.0)
+                            .color(r.schrift),
                     );
-                    ui.add_space(MASSE.innen);
-                    ui.columns(2, |sp| {
-                        for (i, s) in sp.iter_mut().enumerate() {
-                            Frame::new()
-                                .fill(r.erhoben)
-                                .corner_radius(gestalt::radius(MASSE.radius_gruppe))
-                                .inner_margin(Margin::same(10))
-                                .show(s, |ui| {
-                                    ui.set_width(ui.available_width());
-                                    ui.set_min_height(MASSE.sitzungsfenster.1 - 150.0);
-                                    if i == 0 {
-                                        self.bekannte_sitzungen(ui, r, &mut f);
-                                    } else {
-                                        self.startformular(ui, r, &mut f);
-                                    }
-                                });
-                        }
-                    });
-                    ui.add_space(MASSE.innen);
-                    let y = ui.cursor().top();
-                    ui.painter().hline(
-                        ui.max_rect().x_range(),
-                        y,
-                        Stroke::new(MASSE.linie, r.linie),
+                    let mut lu = ui.new_child(
+                        UiBuilder::new()
+                            .max_rect(liste.shrink2(vec2(18.0, 14.0)))
+                            .layout(Layout::top_down(Align::Min)),
                     );
-                    ui.add_space(MASSE.innen);
-                    ui.horizontal(|ui| {
-                        let gew = f.gewaehlt.clone();
-                        let s = gew
-                            .as_ref()
-                            .and_then(|g| self.kern.sitzungen.iter().find(|x| &x.id == g).cloned());
-                        let laeuft = s.as_ref().is_some_and(|x| x.laeuft);
-                        let k = ui.add_enabled(laeuft, egui::Button::new("Beenden"));
-                        ui.ctx()
-                            .accesskit_node_builder(k.id, |n| n.set_class_name("sitzung-beenden"));
-                        self.modal_halte_neu.push(k.id);
-                        if k.clicked()
-                            && let Some(g) = &gew
-                        {
-                            let w = self.kern.beenden(g);
-                            self.wirkungen(w);
-                        }
-                        if self.zeigt("B11") {
-                            let k = ui.add_enabled(
-                                s.as_ref().is_some_and(|x| !x.laeuft),
-                                egui::Button::new("Fortsetzen"),
-                            );
-                            ui.ctx().accesskit_node_builder(k.id, |n| {
-                                n.set_class_name("sitzung-fortsetzen");
-                            });
-                            self.modal_halte_neu.push(k.id);
-                            if k.clicked()
-                                && let Some(g) = &gew
-                            {
-                                self.senden(&json!({"art": "Fortsetzen", "sitzung": g}));
-                            }
-                        }
-                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                            let k = ui.button("Schließen");
-                            ui.ctx().accesskit_node_builder(k.id, |n| {
-                                n.set_class_name("sitzungen-schliessen");
-                            });
-                            self.modal_halte_neu.push(k.id);
-                            if k.clicked() {
-                                schliessen = true;
-                            }
-                        });
-                    });
-                    if self.zeigt("B76") {
-                        let h = ui.label(
-                            RichText::new("Escape schließt das Fenster")
-                                .size(MASSE.schrift_klein)
-                                .color(r.gedaempft),
-                        );
-                        kennung(ui, h.id, "B76");
+                    self.bekannte_sitzungen(&mut lu, r, &mut f);
+                    let mut fu = ui.new_child(
+                        UiBuilder::new()
+                            .max_rect(form.shrink2(vec2(18.0, 14.0)))
+                            .layout(Layout::top_down(Align::Min)),
+                    );
+                    egui::ScrollArea::vertical()
+                        .id_salt("startformular-rollen")
+                        .auto_shrink(false)
+                        .show(&mut fu, |ui| self.startformular(ui, r, &mut f));
+                    let mut uu = ui.new_child(
+                        UiBuilder::new()
+                            .max_rect(fuss.shrink2(vec2(18.0, 0.0)))
+                            .layout(Layout::left_to_right(Align::Center)),
+                    );
+                    if self.sitzungen_fuss(&mut uu, r, &f) {
+                        schliessen = true;
                     }
                 });
             });
@@ -2702,196 +3243,401 @@ impl Fenster {
         }
     }
 
-    fn bekannte_sitzungen(&mut self, ui: &mut Ui, r: &Rollen, f: &mut Sitzungsfenster) {
-        ui.label(RichText::new("Bekannte Sitzungen").fett());
-        ui.scope_builder(UiBuilder::new().id_salt("bekannte"), |ui| {
-            behaelter(ui, Role::ListBox, "Bekannte Sitzungen", None);
-            let mut ordner: Vec<String> = Vec::new();
-            for s in &self.kern.sitzungen {
-                let o = self
-                    .zusatz
-                    .sitzung(&s.id)
-                    .map(|x| x.ordner.clone())
-                    .unwrap_or_default();
-                if !ordner.contains(&o) {
-                    ordner.push(o);
-                }
-            }
-            for o in ordner {
-                // the folder is a field of L5; without it the sessions stand under no heading
+    /// The foot of the window "Sitzungen": the chosen session on the left, "Beenden", "Fortsetzen" and "Schließen" on
+    /// the right (F1, like the browser view). Returns whether "Schließen" was clicked.
+    fn sitzungen_fuss(&mut self, ui: &mut Ui, r: &Rollen, f: &Sitzungsfenster) -> bool {
+        let gew = f.gewaehlt.clone();
+        let s = gew
+            .as_ref()
+            .and_then(|g| self.kern.sitzungen.iter().find(|x| &x.id == g).cloned());
+        let info = s.as_ref().map_or_else(
+            || T_INFO_LEER.to_owned(),
+            |s| {
+                let mut t = vec![self.sitzungsname(&s.id), s.zustand_text()];
+                let o = self.ordner_von(&s.id);
                 if !o.is_empty() {
-                    ui.label(
-                        RichText::new(&o)
-                            .size(MASSE.schrift_klein)
+                    t.push(o);
+                }
+                t.join(" · ")
+            },
+        );
+        let beenden_grund = match &s {
+            None => T_KEINE_GEWAEHLT,
+            Some(s) if !s.laeuft => T_IST_BEENDET,
+            Some(_) => "",
+        };
+        let fortsetzen_grund = fortsetzen_grund(s.as_ref());
+        let fortsetzen = self.zeigt("B11");
+        // the buttons stand on the right; their width is measured first so that the order of the keyboard stays
+        // "Beenden", "Fortsetzen", "Schließen" from left to right
+        let knoepfe: Vec<&str> = if fortsetzen {
+            vec!["Beenden", "Fortsetzen", "Schließen"]
+        } else {
+            vec!["Beenden", "Schließen"]
+        };
+        let schrift = egui::TextStyle::Button.resolve(ui.style());
+        let polster = ui.spacing().button_padding.x;
+        let abstand = ui.spacing().item_spacing.x;
+        let breite_knoepfe: f32 = knoepfe
+            .iter()
+            .map(|t| {
+                ui.painter()
+                    .layout_no_wrap((*t).to_owned(), schrift.clone(), Color32::WHITE)
+                    .size()
+                    .x
+                    + 2.0 * polster
+                    + abstand
+            })
+            .sum();
+        let breite_info = (ui.available_width() - breite_knoepfe - abstand).max(0.0);
+        let h = ui.available_height();
+        ui.allocate_ui_with_layout(
+            vec2(breite_info, h),
+            Layout::left_to_right(Align::Center),
+            |ui| {
+                ui.set_min_width(breite_info);
+                ui.add(
+                    egui::Label::new(
+                        RichText::new(&info)
+                            .size(MASSE.schrift_klein + 1.5)
                             .color(r.gedaempft),
-                    );
-                }
-                for s in self.kern.sitzungen.clone() {
-                    if self
-                        .zusatz
-                        .sitzung(&s.id)
-                        .map(|x| x.ordner.clone())
-                        .unwrap_or_default()
-                        != o
-                    {
-                        continue;
-                    }
-                    let name = self
-                        .zusatz
-                        .sitzung(&s.id)
-                        .map_or_else(|| s.id.clone(), |x| x.name.clone());
-                    let text = format!("{}  ·  {}", name, s.zustand_text());
-                    let k = ui.selectable_label(f.gewaehlt.as_ref() == Some(&s.id), text);
-                    rolle_setzen(ui, k.id, Role::ListBoxOption);
-                    self.modal_halte_neu.push(k.id);
-                    if k.clicked() {
-                        f.gewaehlt = Some(s.id.clone());
-                    }
-                }
+                    )
+                    .truncate(),
+                );
+            },
+        );
+        let k = ui
+            .add_enabled(beenden_grund.is_empty(), egui::Button::new("Beenden"))
+            .on_disabled_hover_text(beenden_grund);
+        ui.ctx()
+            .accesskit_node_builder(k.id, |n| n.set_class_name("sitzung-beenden"));
+        self.modal_halte_neu.push(k.id);
+        if k.clicked()
+            && let Some(g) = &gew
+        {
+            let w = self.kern.beenden(g);
+            self.wirkungen(w);
+        }
+        if fortsetzen {
+            let k = ui
+                .add_enabled(fortsetzen_grund.is_empty(), egui::Button::new("Fortsetzen"))
+                .on_disabled_hover_text(fortsetzen_grund);
+            ui.ctx().accesskit_node_builder(k.id, |n| {
+                n.set_class_name("sitzung-fortsetzen");
+            });
+            self.modal_halte_neu.push(k.id);
+            if k.clicked()
+                && let Some(g) = &gew
+            {
+                self.senden(&json!({"art": "Fortsetzen", "sitzung": g}));
             }
+        }
+        // B76: Escape closes the window; the browser view carries the mark on "Schließen"
+        let k = ui.button("Schließen");
+        ui.ctx().accesskit_node_builder(k.id, |n| {
+            n.set_class_name("sitzungen-schliessen");
+            n.set_author_id("B76".to_owned());
         });
+        self.modal_halte_neu.push(k.id);
+        k.clicked()
+    }
+
+    /// The name of session `id` as the window shows it (L5), else the id.
+    fn sitzungsname(&self, id: &str) -> String {
+        self.zusatz
+            .sitzung(id)
+            .map(|x| x.name.clone())
+            .filter(|n| !n.is_empty())
+            .unwrap_or_else(|| id.to_owned())
+    }
+
+    /// The working folder of session `id` (L5), empty without it.
+    fn ordner_von(&self, id: &str) -> String {
+        self.zusatz
+            .sitzung(id)
+            .map(|x| x.ordner.clone())
+            .unwrap_or_default()
+    }
+
+    fn bekannte_sitzungen(&mut self, ui: &mut Ui, r: &Rollen, f: &mut Sitzungsfenster) {
+        ui.label(
+            RichText::new(T_HINWEIS)
+                .size(MASSE.schrift_klein + 1.5)
+                .color(r.gedaempft),
+        );
+        ui.add_space(4.0);
+        if self.kern.sitzungen.is_empty() {
+            ui.label(
+                RichText::new(T_KEINE_SITZUNG)
+                    .size(MASSE.schrift_klein + 1.5)
+                    .color(r.gedaempft),
+            );
+            return;
+        }
+        let gruppen = nach_ordner(&self.kern.sitzungen, &self.zusatz);
+        egui::ScrollArea::vertical()
+            .id_salt("bekannte-rollen")
+            .auto_shrink(false)
+            .show(ui, |ui| {
+                ui.scope_builder(UiBuilder::new().id_salt("bekannte"), |ui| {
+                    behaelter(ui, Role::ListBox, "Bekannte Sitzungen", None);
+                    ui.spacing_mut().item_spacing.y = 2.0;
+                    for (i, (ordner, ids)) in gruppen.iter().enumerate() {
+                        // the folder is a field of L5; without it the sessions stand under no heading
+                        if !ordner.is_empty() {
+                            if i > 0 {
+                                ui.add_space(MASSE.abstand);
+                            }
+                            let k = ui.label(
+                                RichText::new(ordner)
+                                    .fett()
+                                    .size(MASSE.schrift_klein)
+                                    .color(r.gedaempft),
+                            );
+                            ui.ctx().accesskit_node_builder(k.id, |n| {
+                                n.set_role(Role::Heading);
+                                n.set_label(ordner.clone());
+                                n.set_class_name("sitzungen-ordner");
+                            });
+                        }
+                        for id in ids {
+                            let Some(s) = self.kern.sitzungen.iter().find(|x| &x.id == id).cloned()
+                            else {
+                                continue;
+                            };
+                            let text = format!("{} · {}", self.sitzungsname(id), s.zustand_text());
+                            let gew = f.gewaehlt.as_ref() == Some(id);
+                            let (rect, k) = ui.allocate_exact_size(
+                                vec2(ui.available_width(), 30.0),
+                                Sense::click(),
+                            );
+                            let rad = gestalt::radius(MASSE.radius_wahl);
+                            if gew {
+                                ui.painter().rect_filled(rect, rad, r.wahl);
+                            } else if k.hovered() {
+                                ui.painter()
+                                    .rect_filled(rect, rad, r.wahl.gamma_multiply(0.5));
+                            }
+                            let farbe = sitzung_farbe(r, &s);
+                            symbole::punkt(
+                                ui,
+                                pos2(rect.left() + 10.0 + MASSE.punkt / 2.0, rect.center().y),
+                                farbe,
+                                s.laeuft,
+                            );
+                            text_gekuerzt(
+                                ui,
+                                pos2(
+                                    rect.left() + 26.0,
+                                    rect.center().y - MASSE.schrift_grund * 0.62,
+                                ),
+                                &text,
+                                FontId::proportional(MASSE.schrift_grund),
+                                r.schrift,
+                                rect.width() - 26.0 - 8.0,
+                            );
+                            k.widget_info(|| {
+                                egui::WidgetInfo::selected(Role::ListBoxOption, true, gew, &text)
+                            });
+                            ui.ctx()
+                                .accesskit_node_builder(k.id, |n| n.set_label(text.clone()));
+                            self.modal_halte_neu.push(k.id);
+                            if k.clicked() {
+                                f.gewaehlt = Some(id.clone());
+                            }
+                        }
+                    }
+                });
+            });
     }
 
     fn startformular(&mut self, ui: &mut Ui, r: &Rollen, f: &mut Sitzungsfenster) {
-        ui.label(RichText::new("Sitzung starten").fett());
         ui.scope_builder(UiBuilder::new().id_salt("startformular"), |ui| {
             behaelter(ui, Role::Form, "Sitzung starten", None);
-            let feld = |ui: &mut Ui, name: &str, text: &mut String, kennung: &str| -> Response {
-                ui.label(
-                    RichText::new(name)
-                        .size(MASSE.schrift_klein)
-                        .color(r.gedaempft),
-                );
-                let e = ui.add(egui::TextEdit::singleline(text).desired_width(f32::INFINITY));
-                ui.ctx().accesskit_node_builder(e.id, |n| {
-                    n.set_label(name.to_owned());
-                    n.set_author_id(kennung.to_owned());
-                });
-                e
+            let feld = |ui: &mut Ui,
+                        name: &str,
+                        erste: bool,
+                        text: &mut String,
+                        platzhalter: &str,
+                        kennung: &str|
+             -> Response {
+                formzeile(ui, r, name, erste, |ui, breite| {
+                    let e = ui.add(
+                        egui::TextEdit::singleline(text)
+                            .hint_text(platzhalter)
+                            .desired_width(breite),
+                    );
+                    ui.ctx().accesskit_node_builder(e.id, |n| {
+                        n.set_label(name.to_owned());
+                        n.set_author_id(kennung.to_owned());
+                    });
+                    e
+                })
             };
             // the name of a session is a field of L10; without it the folder is the first field
             let mit_name = self.hat(10);
-            if mit_name {
-                let e = feld(ui, "Name", &mut f.name, "name-eingabe");
+            formgruppe(ui, r, "Ordner", |ui| {
+                if mit_name {
+                    let e = feld(ui, "Name", true, &mut f.name, T_OPTIONAL, "name-eingabe");
+                    self.modal_halte_neu.push(e.id);
+                    self.fokus_nehmen(&e, &FokusZiel::Name);
+                }
+                let mut ordner = self.kern.start.arbeitsordner.clone();
+                let e = feld(
+                    ui,
+                    "Arbeitsordner",
+                    !mit_name,
+                    &mut ordner,
+                    T_PFAD,
+                    "arbeitsordner-eingabe",
+                );
                 self.modal_halte_neu.push(e.id);
-                self.fokus_nehmen(&e, &FokusZiel::Name);
-            }
-            let mut ordner = self.kern.start.arbeitsordner.clone();
-            let e = feld(ui, "Arbeitsordner", &mut ordner, "arbeitsordner-eingabe");
-            self.modal_halte_neu.push(e.id);
-            if !mit_name {
-                self.fokus_nehmen(&e, &FokusZiel::Name);
-            }
-            self.kern.start.arbeitsordner = ordner;
+                if !mit_name {
+                    self.fokus_nehmen(&e, &FokusZiel::Name);
+                }
+                self.kern.start.arbeitsordner = ordner;
+            });
             let wahl = |ui: &mut Ui,
                         name: &str,
+                        erste: bool,
                         feld: &ansicht::start::Wahlfeld,
                         kennung: &str|
              -> (Option<String>, Id) {
-                ui.label(
-                    RichText::new(name)
-                        .size(MASSE.schrift_klein)
-                        .color(r.gedaempft),
-                );
-                let mut neu = None;
-                let aktuell = feld
-                    .eintraege
-                    .iter()
-                    .find(|e| e.wert == feld.wert)
-                    .map_or(feld.wert.clone(), |e| e.text.clone());
-                let cb = egui::ComboBox::from_id_salt(kennung)
-                    .selected_text(aktuell)
-                    .width(ui.available_width() - 8.0)
-                    .show_ui(ui, |ui| {
-                        for e in &feld.eintraege {
-                            if ui.selectable_label(e.wert == feld.wert, &e.text).clicked() {
-                                neu = Some(e.wert.clone());
-                            }
-                        }
-                    });
-                ui.ctx().accesskit_node_builder(cb.response.id, |n| {
-                    n.set_role(Role::ComboBox);
-                    n.set_label(name.to_owned());
-                    n.set_author_id(kennung.to_owned());
-                });
-                (neu, cb.response.id)
-            };
-            let (h, id) = wahl(
-                ui,
-                "Harness",
-                &self.kern.start.harness.clone(),
-                "harness-wahl",
-            );
-            self.modal_halte_neu.push(id);
-            if let Some(h) = h {
-                self.kern.start.harness.wert = h;
-            }
-            // B69: model and effort at the start; the base form is the model, the effort comes with L10
-            let mit_gruppe = self.zeigt("B69");
-            ui.scope_builder(UiBuilder::new().id_salt("modell-effort"), |ui| {
-                if mit_gruppe {
-                    behaelter(ui, Role::Group, "Modell und Effort", Some("B69"));
-                }
-                let (m, id) = wahl(ui, "Modell", &self.kern.start.modell.clone(), "modell-wahl");
-                self.modal_halte_neu.push(id);
-                if let Some(m) = m {
-                    self.kern.start.modell.wert = m;
-                }
-                if self.hat(10) {
-                    let route = self.kern.start.route.wert.clone();
-                    let erlaubt = self
-                        .zusatz
-                        .efforts
+                formzeile(ui, r, name, erste, |ui, breite| {
+                    let mut neu = None;
+                    let aktuell = feld
+                        .eintraege
                         .iter()
-                        .find(|(r, _)| *r == route)
-                        .map(|(_, l)| l.clone())
-                        .unwrap_or_default();
-                    if f.effort.is_empty() || !erlaubt.contains(&f.effort) {
-                        f.effort = if erlaubt.contains(&self.zusatz.effort_vorgabe) {
-                            self.zusatz.effort_vorgabe.clone()
-                        } else {
-                            erlaubt.first().cloned().unwrap_or_default()
-                        };
-                    }
-                    ui.label(
-                        RichText::new("Effort")
-                            .size(MASSE.schrift_klein)
-                            .color(r.gedaempft),
-                    );
-                    let cb = egui::ComboBox::from_id_salt("effort-wahl")
-                        .selected_text(f.effort.clone())
-                        .width(ui.available_width() - 8.0)
+                        .find(|e| e.wert == feld.wert)
+                        .map_or(feld.wert.clone(), |e| e.text.clone());
+                    let cb = egui::ComboBox::from_id_salt(kennung)
+                        .selected_text(aktuell)
+                        .width(breite)
                         .show_ui(ui, |ui| {
-                            for e in &erlaubt {
-                                if ui.selectable_label(*e == f.effort, e).clicked() {
-                                    f.effort.clone_from(e);
+                            for e in &feld.eintraege {
+                                if ui.selectable_label(e.wert == feld.wert, &e.text).clicked() {
+                                    neu = Some(e.wert.clone());
                                 }
                             }
                         });
                     ui.ctx().accesskit_node_builder(cb.response.id, |n| {
                         n.set_role(Role::ComboBox);
-                        n.set_label("Effort".to_owned());
-                        n.set_class_name("effort-wahl");
+                        n.set_label(name.to_owned());
+                        n.set_author_id(kennung.to_owned());
                     });
-                    self.modal_halte_neu.push(cb.response.id);
+                    (neu, cb.response.id)
+                })
+            };
+            // B69: model and effort at the start; the base form is the model, the effort comes with L10
+            let mit_gruppe = self.zeigt("B69");
+            formgruppe(ui, r, "Programm und Modell", |ui| {
+                ui.scope_builder(UiBuilder::new().id_salt("modell-effort"), |ui| {
+                    if mit_gruppe {
+                        behaelter(ui, Role::Group, "Modell und Effort", Some("B69"));
+                    }
+                    let (h, id) = wahl(
+                        ui,
+                        T_PROGRAMM,
+                        true,
+                        &self.kern.start.harness.clone(),
+                        "harness-wahl",
+                    );
+                    self.modal_halte_neu.push(id);
+                    if let Some(h) = h {
+                        self.kern.start.harness.wert = h;
+                    }
+                    let (m, id) = wahl(
+                        ui,
+                        "Modell",
+                        false,
+                        &self.kern.start.modell.clone(),
+                        "modell-wahl",
+                    );
+                    self.modal_halte_neu.push(id);
+                    if let Some(m) = m {
+                        self.kern.start.modell.wert = m;
+                    }
+                    if self.hat(10) {
+                        let route = self.kern.start.route.wert.clone();
+                        let erlaubt = self
+                            .zusatz
+                            .efforts
+                            .iter()
+                            .find(|(r, _)| *r == route)
+                            .map(|(_, l)| l.clone())
+                            .unwrap_or_default();
+                        if f.effort.is_empty() || !erlaubt.contains(&f.effort) {
+                            f.effort = if erlaubt.contains(&self.zusatz.effort_vorgabe) {
+                                self.zusatz.effort_vorgabe.clone()
+                            } else {
+                                erlaubt.first().cloned().unwrap_or_default()
+                            };
+                        }
+                        let id = formzeile(ui, r, T_DENKSTUFE, false, |ui, breite| {
+                            let cb = egui::ComboBox::from_id_salt("effort-wahl")
+                                .selected_text(f.effort.clone())
+                                .width(breite)
+                                .show_ui(ui, |ui| {
+                                    for e in &erlaubt {
+                                        if ui.selectable_label(*e == f.effort, e).clicked() {
+                                            f.effort.clone_from(e);
+                                        }
+                                    }
+                                });
+                            ui.ctx().accesskit_node_builder(cb.response.id, |n| {
+                                n.set_role(Role::ComboBox);
+                                n.set_label(T_DENKSTUFE.to_owned());
+                                n.set_class_name("effort-wahl");
+                            });
+                            cb.response.id
+                        });
+                        self.modal_halte_neu.push(id);
+                    }
+                    let (ro, id) = wahl(
+                        ui,
+                        "Route",
+                        false,
+                        &self.kern.start.route.clone(),
+                        "route-wahl",
+                    );
+                    self.modal_halte_neu.push(id);
+                    if let Some(ro) = ro {
+                        self.kern.start.route_waehlen(&ro);
+                    }
+                });
+            });
+            formgruppe(ui, r, "Kunde", |ui| {
+                let (k, id) = wahl(
+                    ui,
+                    "Kunde",
+                    true,
+                    &self.kern.start.kunde.clone(),
+                    "kunde-wahl",
+                );
+                self.modal_halte_neu.push(id);
+                if let Some(k) = k {
+                    self.kern.start.kunde.wert = k;
                 }
             });
-            let (ro, id) = wahl(ui, "Route", &self.kern.start.route.clone(), "route-wahl");
-            self.modal_halte_neu.push(id);
-            if let Some(ro) = ro {
-                self.kern.start.route_waehlen(&ro);
-            }
-            let (k, id) = wahl(ui, "Kunde", &self.kern.start.kunde.clone(), "kunde-wahl");
-            self.modal_halte_neu.push(id);
-            if let Some(k) = k {
-                self.kern.start.kunde.wert = k;
-            }
-            ui.add_space(8.0);
-            let k = ui.add(
-                egui::Button::new(RichText::new("Starten").color(r.akzent_tinte))
-                    .fill(r.akzent_flaeche)
-                    .stroke(Stroke::NONE),
-            );
+            ui.add_space(10.0);
+            // "Starten" on the right with its text in the middle, like today and the browser view (F1)
+            let k = ui
+                .allocate_ui_with_layout(
+                    vec2(ui.available_width(), MASSE.formfeld + 4.0),
+                    Layout::right_to_left(Align::Center),
+                    |ui| {
+                        ui.spacing_mut().button_padding = vec2(14.0, 5.0);
+                        ui.add(
+                            egui::Button::new(
+                                RichText::new("Starten").fett().color(r.akzent_tinte),
+                            )
+                            .fill(r.akzent_flaeche)
+                            .stroke(Stroke::NONE)
+                            .corner_radius(gestalt::radius(MASSE.radius_knopf)),
+                        )
+                    },
+                )
+                .inner;
             ui.ctx()
                 .accesskit_node_builder(k.id, |n| n.set_author_id("sitzung-start".to_owned()));
             self.modal_halte_neu.push(k.id);
@@ -2924,7 +3670,20 @@ impl Fenster {
         });
     }
 
+    /// Whether the service sent a value for a row of page `s` (a page without values stays away, OF8 point 1).
+    fn seite_hat_werte(&self, s: Seite) -> bool {
+        s == Seite::Aussehen
+            || (matches!(s, Seite::Aufsicht | Seite::AdminAufsicht)
+                && (self.zusatz.schutz.is_some() || !self.zusatz.fristen.is_empty()))
+            || s.gruppen().iter().any(|(_, zeilen)| {
+                zeilen
+                    .iter()
+                    .any(|(k, ..)| self.zusatz.einstellung(k).is_some())
+            })
+    }
+
     fn einstellungen_fenster(&mut self, ui: &mut Ui, r: &Rollen) {
+        use crate::einstellungstexte::{BEREICH_ADMIN, BEREICH_NUTZER, SCHLIESSEN};
         let Some(mut seite) = self.b.einstellungen else {
             return;
         };
@@ -2932,26 +3691,45 @@ impl Fenster {
             self.b.einstellungen = None;
             return;
         }
+        // without L4 the base form has only the page of the window's own choices (OF8 point 3); the admin area only
+        // for an admin, which the service decides (OF9 point 2)
+        let mit_l4 = self.hat(4);
+        let nutzer: Vec<Seite> = Seite::NUTZER
+            .into_iter()
+            .filter(|s| *s == Seite::Aussehen || (mit_l4 && self.seite_hat_werte(*s)))
+            .collect();
+        let admin: Vec<Seite> = if mit_l4 && self.zusatz.admin && self.zeigt("B78") {
+            Seite::ADMIN
+                .into_iter()
+                .filter(|s| self.seite_hat_werte(*s))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        if !nutzer.contains(&seite) && !admin.contains(&seite) {
+            seite = Seite::Aussehen;
+        }
         let ctx = ui.ctx().clone();
         let mut offen = true;
         let platz = ctx.content_rect();
-        let groesse = vec2(
-            MASSE
-                .einstellungsfenster
-                .0
-                .min(platz.width() - 2.0 * MASSE.innen),
-            MASSE
-                .einstellungsfenster
-                .1
-                .min(platz.height() - 2.0 * MASSE.innen),
-        );
+        let lage = einstellungen_lage(platz);
+        // the ground behind the dialog is dimmed like the browser view (`.fenster-grund`) and takes the pointer
+        egui::Area::new(Id::unique("einstellungen-grund"))
+            .order(egui::Order::Middle)
+            .fixed_pos(platz.min)
+            .show(&ctx, |ui| {
+                let (rect, _) = ui.allocate_exact_size(platz.size(), Sense::hover());
+                ui.painter()
+                    .rect_filled(rect, 0.0, Color32::from_black_alpha(GRUND_DECKUNG));
+            });
         egui::Window::new("Einstellungen")
             .id(Id::unique("einstellungen-fenster"))
+            .order(egui::Order::Foreground)
             .title_bar(false)
             .collapsible(false)
             .resizable(false)
-            .fixed_size(groesse)
-            .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+            .fixed_pos(lage.min)
+            .fixed_size(lage.size())
             .frame(
                 Frame::window(&ctx.global_style())
                     .fill(r.grund)
@@ -2959,8 +3737,8 @@ impl Fenster {
                     .corner_radius(gestalt::radius(MASSE.radius_fenster)),
             )
             .show(&ctx, |ui| {
-                ui.set_min_size(groesse);
-                let voll = Rect::from_min_size(ui.max_rect().min, groesse);
+                ui.set_min_size(lage.size());
+                let voll = Rect::from_min_size(ui.max_rect().min, lage.size());
                 let leiste =
                     Rect::from_min_size(voll.min, vec2(MASSE.einstellungsleiste, voll.height()));
                 ui.painter().rect_filled(
@@ -2973,95 +3751,124 @@ impl Fenster {
                     },
                     r.leiste,
                 );
-                // the list of pages, each with its symbol (OF9 point 6)
+                ui.painter().vline(
+                    leiste.right(),
+                    leiste.y_range(),
+                    Stroke::new(MASSE.linie, r.linie),
+                );
+                // the list of pages: the user area, then apart the admin area; only the open page is marked (OF9 point 1)
                 let mut lu = ui.new_child(
                     UiBuilder::new()
                         .max_rect(leiste.shrink2(vec2(0.0, MASSE.innen)))
                         .layout(Layout::top_down(Align::Min)),
                 );
-                lu.add_space(MASSE.titelleiste - MASSE.innen);
+                lu.add_space(MASSE.innen);
                 lu.scope_builder(UiBuilder::new().id_salt("einstellungen-nutzer"), |ui| {
                     behaelter(ui, Role::Navigation, "Einstellungen", Some("B72"));
                     ui.ctx().accesskit_node_builder(ui.unique_id(), |n| {
                         n.set_class_name("einstellungen");
                     });
-                    Self::seitengruppe(ui, r, "Für dich");
-                    // without L4 the base form has only the page of the window's own choices (OF8 point 3)
-                    let mit_l4 = self.hat(4);
-                    if !mit_l4 {
-                        seite = Seite::Aussehen;
-                    }
-                    for (s, sym, t) in [
-                        (Seite::Aussehen, Symbol::Kontrast, "Aussehen"),
-                        (Seite::Sitzung, Symbol::Terminal, "Sitzung"),
-                        (Seite::Harnesses, Symbol::Chip, "Harnesses und Modelle"),
-                    ] {
-                        if !mit_l4 && s != Seite::Aussehen {
-                            continue;
-                        }
-                        if Self::seitenzeile(ui, r, sym, t, seite == s) {
-                            seite = s;
+                    Self::seitengruppe(ui, r, BEREICH_NUTZER, false);
+                    for s in &nutzer {
+                        if Self::seitenzeile(ui, r, *s, seite == *s) {
+                            seite = *s;
                         }
                     }
                 });
-                if self.zusatz.admin && self.zeigt("B78") {
+                if !admin.is_empty() {
+                    lu.add_space(MASSE.gruppenabstand);
+                    let y = lu.cursor().top();
+                    lu.painter().hline(
+                        lu.max_rect().x_range().shrink(MASSE.innen),
+                        y,
+                        Stroke::new(MASSE.linie, r.linie),
+                    );
                     lu.add_space(MASSE.gruppenabstand);
                     lu.scope_builder(UiBuilder::new().id_salt("einstellungen-admin"), |ui| {
-                        behaelter(ui, Role::Navigation, "Admin-Einstellungen", Some("B78"));
+                        behaelter(ui, Role::Navigation, BEREICH_ADMIN, Some("B78"));
                         ui.ctx().accesskit_node_builder(ui.unique_id(), |n| {
                             n.set_class_name("admin-einstellungen");
                         });
-                        Self::seitengruppe(ui, r, "Admin");
-                        for (s, sym, t) in [
-                            (Seite::Harnesses, Symbol::Chip, "Harnesses und Modelle"),
-                            (Seite::AdminEffort, Symbol::Regler, "Grenzen des Efforts"),
-                        ] {
-                            if Self::seitenzeile(ui, r, sym, t, seite == s) {
-                                seite = s;
+                        Self::seitengruppe(ui, r, BEREICH_ADMIN, true);
+                        for s in &admin {
+                            if Self::seitenzeile(ui, r, *s, seite == *s) {
+                                seite = *s;
                             }
                         }
                     });
                 }
-                // the page: a title row with the name of the window and the close button, then the groups
-                let inhalt = Rect::from_min_max(pos2(leiste.right(), voll.top()), voll.max);
+                // the page: the head with symbol, title and short description (OF9 point 6), then the groups
+                let inhalt = Rect::from_min_max(pos2(leiste.right(), voll.top()), voll.max)
+                    .shrink2(vec2(MASSE.einstellungsrand, MASSE.innen * 1.8));
                 let mut cu = ui.new_child(
                     UiBuilder::new()
                         .max_rect(inhalt)
                         .layout(Layout::top_down(Align::Min)),
                 );
-                cu.allocate_ui_with_layout(
-                    vec2(inhalt.width(), MASSE.titelleiste),
-                    Layout::left_to_right(Align::Center),
-                    |ui| {
-                        ui.add_space(MASSE.titel_einzug);
-                        ui.label(
-                            RichText::new("Einstellungen")
-                                .size(MASSE.schrift_titel)
-                                .color(r.gedaempft),
-                        );
-                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                            ui.add_space(MASSE.innen);
-                            let k = symbole::knopf(
-                                ui,
-                                Symbol::Schliessen,
-                                "Einstellungen schließen",
-                                MASSE.kapsel_segment,
-                                false,
-                            );
-                            if k.clicked() {
-                                offen = false;
-                            }
-                        });
+                let (titel, kurz, symbol) = seite.kopf();
+                let (kopf, _) = cu.allocate_exact_size(
+                    vec2(inhalt.width(), MASSE.einstellungskopf),
+                    Sense::hover(),
+                );
+                let feld = Rect::from_min_size(kopf.min, Vec2::splat(MASSE.einstellungskopf));
+                cu.painter().rect_filled(
+                    feld,
+                    gestalt::radius(MASSE.radius_gruppe - 2.0),
+                    if seite.admin() {
+                        ADMIN_FARBE
+                    } else {
+                        r.akzent_flaeche
                     },
                 );
-                let breite = MASSE
-                    .einstellungsseite
-                    .min(inhalt.width() - 4.0 * MASSE.titel_einzug);
-                let rand = (inhalt.width() - breite) / 2.0;
-                let seite_rect = Rect::from_min_max(
-                    pos2(inhalt.left() + rand, inhalt.top() + MASSE.titelleiste),
-                    pos2(inhalt.right() - rand, inhalt.bottom() - MASSE.innen),
+                symbole::malen(
+                    &cu,
+                    symbol,
+                    feld.shrink(MASSE.einstellungskopf * 0.27),
+                    r.akzent_tinte,
                 );
+                let x = feld.right() + MASSE.abstand * 2.0;
+                let t = cu.painter().layout_no_wrap(
+                    titel.to_owned(),
+                    FontId::new(
+                        MASSE.schrift_seite,
+                        egui::FontFamily::Name(crate::FETT.into()),
+                    ),
+                    r.schrift,
+                );
+                let tb = t.size().x;
+                cu.painter().galley(pos2(x, kopf.top() + 1.0), t, r.schrift);
+                if seite.admin() {
+                    Self::marke_admin(&cu, r, pos2(x + tb + MASSE.abstand, kopf.top() + 4.0));
+                }
+                text_gekuerzt(
+                    &cu,
+                    pos2(x, kopf.top() + MASSE.schrift_seite + 6.0),
+                    kurz,
+                    FontId::proportional(MASSE.schrift_grund),
+                    r.gedaempft,
+                    kopf.right() - x - MASSE.kapsel_segment - MASSE.innen,
+                );
+                let mut zu = cu.new_child(
+                    UiBuilder::new()
+                        .max_rect(Rect::from_min_size(
+                            pos2(kopf.right() - MASSE.kapsel_segment, kopf.top()),
+                            Vec2::splat(MASSE.kapsel_segment),
+                        ))
+                        .layout(Layout::left_to_right(Align::Min)),
+                );
+                let k = symbole::knopf(
+                    &mut zu,
+                    Symbol::Schliessen,
+                    SCHLIESSEN,
+                    MASSE.kapsel_segment,
+                    false,
+                );
+                if k.clicked() {
+                    offen = false;
+                }
+                cu.add_space(MASSE.abstand);
+                let seite_rect =
+                    Rect::from_min_max(pos2(inhalt.left(), cu.cursor().top()), inhalt.max);
                 let mut su = cu.new_child(
                     UiBuilder::new()
                         .max_rect(seite_rect)
@@ -3069,7 +3876,13 @@ impl Fenster {
                 );
                 egui::ScrollArea::vertical()
                     .auto_shrink(false)
-                    .show(&mut su, |ui| self.einstellungsseite(ui, r, seite));
+                    .show(&mut su, |ui| {
+                        // the page as a container of its own, so that its controls can be told apart from the list
+                        ui.scope_builder(UiBuilder::new().id_salt("einstellungsseite"), |ui| {
+                            behaelter(ui, Role::Group, kurz, Some("einstellungsseite"));
+                            self.einstellungsseite(ui, r, seite);
+                        });
+                    });
             });
         if offen && !ctx.input(|i| i.key_pressed(Key::Escape)) {
             self.b.einstellungen = Some(seite);
@@ -3078,22 +3891,51 @@ impl Fenster {
         }
     }
 
-    /// The small heading of a group of pages ("Für dich", "Admin").
-    fn seitengruppe(ui: &mut Ui, r: &Rollen, text: &str) {
-        ui.horizontal(|ui| {
-            ui.add_space(MASSE.kopf_einzug);
-            ui.label(
-                RichText::new(text)
-                    .fett()
-                    .size(MASSE.schrift_klein)
-                    .color(r.gedaempft),
-            );
-        });
+    /// The small heading of an area of pages ("Für dich", "Verwaltung" with the badge "Admin").
+    fn seitengruppe(ui: &mut Ui, r: &Rollen, text: &str, admin: bool) {
+        let (rect, _) = ui.allocate_exact_size(
+            vec2(ui.available_width(), MASSE.schrift_klein + 10.0),
+            Sense::hover(),
+        );
+        let g = ui.painter().layout_no_wrap(
+            text.to_owned(),
+            FontId::new(
+                MASSE.schrift_klein,
+                egui::FontFamily::Name(crate::FETT.into()),
+            ),
+            r.gedaempft,
+        );
+        let breite = g.size().x;
+        let p = pos2(rect.left() + MASSE.kopf_einzug + MASSE.innen, rect.top());
+        ui.painter().galley(p, g, r.gedaempft);
+        if admin {
+            Self::marke_admin(ui, r, pos2(p.x + breite + MASSE.abstand, rect.top() - 2.0));
+        }
         ui.add_space(2.0);
     }
 
-    /// One row of the list of pages: symbol and name, the chosen one on grey (OF9 point 6).
-    fn seitenzeile(ui: &mut Ui, r: &Rollen, sym: Symbol, text: &str, gewaehlt: bool) -> bool {
+    /// The badge "Admin" at `p` (top left), like the browser view (`.marke.admin`).
+    fn marke_admin(ui: &Ui, r: &Rollen, p: Pos2) {
+        let g = ui.painter().layout_no_wrap(
+            crate::einstellungstexte::MARKE_ADMIN.to_owned(),
+            FontId::new(
+                MASSE.schrift_klein,
+                egui::FontFamily::Name(crate::FETT.into()),
+            ),
+            r.akzent_text,
+        );
+        let rect = Rect::from_min_size(p, g.size() + vec2(14.0, 4.0));
+        ui.painter().rect_filled(
+            rect,
+            gestalt::radius(rect.height() / 2.0),
+            r.akzent.gamma_multiply(0.22),
+        );
+        ui.painter().galley(p + vec2(7.0, 2.0), g, r.akzent_text);
+    }
+
+    /// One row of the list of pages: symbol and name; only the open page is on grey (OF9 point 1 and 6).
+    fn seitenzeile(ui: &mut Ui, r: &Rollen, s: Seite, gewaehlt: bool) -> bool {
+        let (text, _, sym) = s.kopf();
         let (rect, resp) = ui.allocate_exact_size(
             vec2(ui.available_width(), MASSE.seitenzeile),
             Sense::click(),
@@ -3106,11 +3948,11 @@ impl Fenster {
             ui.painter()
                 .rect_filled(feld, rad, r.wahl.gamma_multiply(0.5));
         }
-        let s = Rect::from_center_size(
+        let q = Rect::from_center_size(
             pos2(feld.left() + 11.0 + 9.0, feld.center().y),
             Vec2::splat(16.0),
         );
-        symbole::malen(ui, sym, s, r.schrift);
+        symbole::malen(ui, sym, q, r.akzent_text);
         text_gekuerzt(
             ui,
             pos2(
@@ -3124,14 +3966,23 @@ impl Fenster {
         );
         let name = text.to_owned();
         resp.widget_info(|| egui::WidgetInfo::selected(Role::Button, true, gewaehlt, &name));
+        let kennung = s.kennung();
+        ui.ctx()
+            .accesskit_node_builder(resp.id, |n| n.set_author_id(kennung.to_owned()));
         resp.clicked()
     }
 
     /// A group of settings: heading, then the rows on a raised ground with lines between them (OF9 point 6).
-    fn gruppe(&mut self, ui: &mut Ui, r: &Rollen, titel: &str, zeilen: &[Einstellungszeile]) {
-        ui.add_space(MASSE.gruppenabstand * 2.0);
+    fn gruppe(
+        &mut self,
+        ui: &mut Ui,
+        r: &Rollen,
+        titel: &str,
+        zeilen: &[Einstellungszeile],
+        admin: bool,
+    ) {
+        ui.add_space(MASSE.gruppenabstand * 1.5);
         ui.horizontal(|ui| {
-            ui.add_space(MASSE.innen);
             ui.label(
                 RichText::new(titel)
                     .fett()
@@ -3143,7 +3994,7 @@ impl Fenster {
         Frame::new()
             .fill(r.erhoben)
             .corner_radius(gestalt::radius(MASSE.radius_gruppe))
-            .inner_margin(Margin::symmetric(10, 2))
+            .inner_margin(Margin::symmetric(12, 2))
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 for (i, z) in zeilen.iter().enumerate() {
@@ -3155,53 +4006,105 @@ impl Fenster {
                             Stroke::new(MASSE.linie, r.linie),
                         );
                     }
-                    self.einstellung_zeile(ui, r, z);
+                    self.einstellung_zeile(ui, r, z, admin);
                 }
             });
     }
 
-    fn einstellung_zeile(&mut self, ui: &mut Ui, r: &Rollen, z: &Einstellungszeile) {
-        // without L4 the look is a choice of this device and works at once (base form of B72)
-        let lokal = !self.hat(4) && z.schluessel.starts_with("aussehen.");
+    fn einstellung_zeile(&mut self, ui: &mut Ui, r: &Rollen, z: &Einstellungszeile, admin: bool) {
+        use crate::einstellungstexte::HERKUNFT_GERAET;
+        // the look is a choice of this device and works at once (base form of B72, L8)
+        let lokal = z.schluessel.starts_with("aussehen.") && !self.hat(4);
         let e = self.zusatz.einstellung(z.schluessel).cloned();
-        let (wert, herkunft, aenderbar) = if lokal {
+        let (wert, herkunft, aenderbar, grund) = if lokal {
             (
-                self.lokal_wert(z.schluessel),
-                "dieses Gerät".to_owned(),
+                Value::String(self.lokal_wert(z.schluessel)),
+                HERKUNFT_GERAET.to_owned(),
                 true,
+                String::new(),
             )
         } else {
-            (
-                e.as_ref().map(|x| wert_text(&x.wert)).unwrap_or_default(),
-                e.as_ref().map(|x| x.herkunft.clone()).unwrap_or_default(),
-                e.as_ref().is_some_and(|x| x.aenderbar),
-            )
+            let wert = e.as_ref().map_or(Value::Null, |x| x.wert.clone());
+            let herkunft = e
+                .as_ref()
+                .map(|x| herkunft_anzeige(&x.herkunft))
+                .unwrap_or_default();
+            let aenderbar = e.as_ref().is_some_and(|x| x.aenderbar);
+            let grund = grund_anzeige(
+                e.as_ref().and_then(|x| x.grund.as_deref()),
+                aenderbar,
+                &herkunft,
+            );
+            (wert, herkunft, aenderbar, grund)
         };
-        // a locked value names its reason briefly (OF9 point 6)
-        let hinweis = match (aenderbar, herkunft.is_empty()) {
-            (true, _) => herkunft,
-            (false, true) => "Vorgabe der Admins".to_owned(),
-            (false, false) => format!("Vorgabe der {herkunft}"),
-        };
-        let hoehe = 44.0;
+        let hoehe = if grund.is_empty() { 50.0 } else { 62.0 };
         let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), hoehe), Sense::hover());
-        // right: the switch or the choice, before it the origin; left: name and one line of description
+        // left: the symbol of the page; right: the switch or the choice, before it the origin; between them name, one
+        // line of description and the reason of a lock (OF9 point 6)
+        let sym = Rect::from_min_size(pos2(rect.left(), rect.center().y - 13.0), Vec2::splat(26.0));
+        ui.painter()
+            .rect_filled(sym, gestalt::radius(MASSE.radius_knopf), r.kopf);
+        // the symbol of the row, like the browser view: the colour set as two swatches, the terminal, the font as "Aa",
+        // every other row with the symbol of its page
+        match z.schluessel {
+            "aussehen.farbsatz" => {
+                for (i, c) in [gestalt::GRAU_DUNKEL.leiste, gestalt::BLAUSCHWARZ.erhoben]
+                    .into_iter()
+                    .enumerate()
+                {
+                    let dx = if i == 0 { -3.5 } else { 3.5 };
+                    let m = sym.center() + vec2(dx, 0.0);
+                    ui.painter().circle_filled(m, 5.0, c);
+                    ui.painter()
+                        .circle_stroke(m, 5.0, Stroke::new(1.0, r.gedaempft));
+                }
+            }
+            "aussehen.terminal" => {
+                symbole::malen(ui, Symbol::Terminal, sym.shrink(6.0), r.akzent_text);
+            }
+            crate::einstellungstexte::SCHLUESSEL_SCHRIFTGROESSE => {
+                ui.painter().text(
+                    sym.center(),
+                    Align2::CENTER_CENTER,
+                    "Aa",
+                    FontId::new(
+                        MASSE.schrift_grund,
+                        egui::FontFamily::Name(crate::FETT.into()),
+                    ),
+                    r.akzent_text,
+                );
+            }
+            _ => {
+                let seite = self.b.einstellungen.unwrap_or(Seite::Aussehen);
+                symbole::malen(ui, seite.kopf().2, sym.shrink(6.0), r.akzent_text);
+            }
+        }
         let band = Rect::from_center_size(rect.center(), vec2(rect.width(), MASSE.formfeld));
         let mut rechts = ui.new_child(
             UiBuilder::new()
                 .max_rect(band)
                 .layout(Layout::right_to_left(Align::Center)),
         );
-        let schalter = z.wahlen.len() == 2 && z.wahlen[0].0 == "true";
+        let wert_t = wert_text(&wert);
+        let ebene = if admin { "firma" } else { "nutzer" };
         rechts.add_enabled_ui(aenderbar, |ui| {
-            if z.wahlen.is_empty() {
-                ui.label(RichText::new(&wert).fett());
-            } else if schalter {
-                let an = wert == "true";
+            if let Value::Bool(an) = wert
+                && z.wahlen.is_empty()
+            {
                 let k = schalter_malen(ui, r, an, z.name);
+                // the key of the row on its control, so a test can tie every control to the catalog
+                let s = z.schluessel.to_owned();
+                ui.ctx()
+                    .accesskit_node_builder(k.id, |n| n.set_author_id(s));
                 if k.clicked() {
-                    self.einstellung_senden(z.schluessel, if an { "false" } else { "true" });
+                    self.einstellung_senden(z.schluessel, &json!(!an), ebene);
                 }
+            } else if z.wahlen.is_empty() {
+                let breite = (band.width() * 0.42).max(80.0);
+                let t = wert_anzeige(&wert);
+                ui.allocate_ui(vec2(breite, MASSE.formfeld), |ui| {
+                    ui.add(egui::Label::new(RichText::new(t).fett()).truncate());
+                });
             } else {
                 Frame::new()
                     .fill(r.linie)
@@ -3218,48 +4121,68 @@ impl Fenster {
                         }
                         // right to left: the last choice first
                         for (w, t) in z.wahlen.iter().rev() {
-                            if ui.selectable_label(wert == *w, *t).clicked() {
+                            let k = ui.selectable_label(wert_t == *w, t.as_str());
+                            let s = z.schluessel.to_owned();
+                            ui.ctx()
+                                .accesskit_node_builder(k.id, |n| n.set_author_id(s));
+                            if k.clicked() {
                                 if lokal {
                                     self.lokal_setzen(z.schluessel, w);
                                 } else {
-                                    self.einstellung_senden(z.schluessel, w);
+                                    let v: Value =
+                                        serde_json::from_str(w).unwrap_or_else(|_| json!(w));
+                                    self.einstellung_senden(z.schluessel, &v, ebene);
                                 }
                             }
                         }
                     });
             }
         });
-        rechts.add_space(MASSE.abstand);
-        Frame::new()
-            .fill(r.kopf)
-            .corner_radius(gestalt::radius(MASSE.radius_kapsel))
-            .inner_margin(Margin::symmetric(7, 2))
-            .show(&mut rechts, |ui| {
-                ui.label(
-                    RichText::new(&hinweis)
-                        .size(MASSE.schrift_klein)
-                        .color(r.gedaempft),
-                );
-            });
+        rechts.add_space(MASSE.abstand * 2.0);
+        if !herkunft.is_empty() {
+            Frame::new()
+                .fill(r.kopf)
+                .corner_radius(gestalt::radius(MASSE.radius_kapsel))
+                .inner_margin(Margin::symmetric(7, 2))
+                .show(&mut rechts, |ui| {
+                    ui.label(
+                        RichText::new(&herkunft)
+                            .size(MASSE.schrift_klein)
+                            .color(r.gedaempft),
+                    );
+                });
+        }
         let links_ende = rechts.min_rect().left() - MASSE.innen;
-        let x = rect.left();
+        let x = sym.right() + MASSE.innen + 2.0;
         let breite = links_ende - x;
+        let mut y = rect.top() + if grund.is_empty() { 8.0 } else { 7.0 };
         text_gekuerzt(
             ui,
-            pos2(x, rect.top() + 6.0),
+            pos2(x, y),
             z.name,
             FontId::proportional(MASSE.schrift_grund),
-            r.schrift,
+            if aenderbar { r.schrift } else { r.gedaempft },
             breite,
         );
+        y += 18.0;
         text_gekuerzt(
             ui,
-            pos2(x, rect.top() + 24.0),
+            pos2(x, y),
             z.beschreibung,
             FontId::proportional(MASSE.schrift_klein),
             r.gedaempft,
             breite,
         );
+        if !grund.is_empty() {
+            text_gekuerzt(
+                ui,
+                pos2(x, y + 15.0),
+                &grund,
+                FontId::proportional(MASSE.schrift_klein),
+                r.gedaempft,
+                breite,
+            );
+        }
     }
 
     /// The value of a look choice of this device, as the settings write it.
@@ -3282,7 +4205,9 @@ impl Fenster {
                 Terminalwahl::WieThema => "wie_thema",
             }
             .to_owned(),
-            "aussehen.schriftgroesse" => format!("{}", self.terminalschrift.round()),
+            crate::einstellungstexte::SCHLUESSEL_SCHRIFTGROESSE => {
+                format!("{}", self.terminalschrift.round())
+            }
             _ => String::new(),
         }
     }
@@ -3305,7 +4230,7 @@ impl Fenster {
             ("aussehen.terminal", "hell") => self.wahl.terminal = Terminalwahl::Hell,
             ("aussehen.terminal", "wie_thema") => self.wahl.terminal = Terminalwahl::WieThema,
             ("aussehen.terminal", _) => self.wahl.terminal = Terminalwahl::Dunkel,
-            ("aussehen.schriftgroesse", g) => {
+            (crate::einstellungstexte::SCHLUESSEL_SCHRIFTGROESSE, g) => {
                 if let Ok(g) = g.parse::<f32>()
                     && (8.0..=32.0).contains(&g)
                 {
@@ -3316,152 +4241,227 @@ impl Fenster {
         }
     }
 
-    fn einstellung_senden(&mut self, schluessel: &str, w: &str) {
-        // the value in its type: a switch as true or false, a size as a number, else text
-        let wert: Value = serde_json::from_str(w).unwrap_or_else(|_| json!(w));
-        let admin = schluessel.starts_with("admin.");
-        self.senden(&json!({"art": "EinstellungSetzen", "schluessel": schluessel, "wert": wert,
-            "bereich": if admin { "admin" } else { "nutzer" }, "ebene": if admin { "firma" } else { "nutzer" }}));
+    /// `EinstellungSetzen` (`regelebenen` 15.9): the area of the key from the catalog of the view core, the level of the
+    /// user in the user area and of the company in the admin area; whether it holds decides the service.
+    fn einstellung_senden(&mut self, schluessel: &str, wert: &Value, ebene: &str) {
+        let bereich = ansicht::ziel::KATALOG
+            .iter()
+            .find(|(k, ..)| *k == schluessel)
+            .map_or("admin", |(_, b, _)| *b);
+        self.senden(
+            &json!({"art": "EinstellungSetzen", "schluessel": schluessel, "wert": wert,
+            "bereich": bereich, "ebene": ebene}),
+        );
     }
 
     fn einstellungsseite(&mut self, ui: &mut Ui, r: &Rollen, seite: Seite) {
-        let titel = match seite {
-            Seite::Aussehen => "Aussehen",
-            Seite::Sitzung => "Sitzung",
-            Seite::Harnesses => "Harnesses und Modelle",
-            Seite::AdminEffort => "Grenzen des Efforts",
-        };
-        ui.horizontal(|ui| {
-            ui.add_space(MASSE.innen);
-            ui.label(RichText::new(titel).fett().size(MASSE.schrift_seite));
-        });
-        let z = |schluessel, name, beschreibung, wahlen| Einstellungszeile {
+        use crate::einstellungstexte::{KEINE_WERTE, aussehen as a, gruppe as g};
+        let z = |(schluessel, name, beschreibung): crate::einstellungstexte::Zeile,
+                 wahlen: Vec<(String, String)>| Einstellungszeile {
             schluessel,
             name,
             beschreibung,
             wahlen,
         };
-        match seite {
-            Seite::Aussehen => {
-                if self.zeigt("B77") {
-                    ui.scope_builder(UiBuilder::new().id_salt("farbwahl"), |ui| {
-                        behaelter(ui, Role::Group, "Farbwahl", Some("B77"));
-                        self.gruppe(
-                            ui,
-                            r,
-                            "Farben",
-                            &[
-                                z(
-                                    "aussehen.thema",
-                                    "Thema",
-                                    "Hell, dunkel oder wie das System",
-                                    &[("system", "System"), ("hell", "Hell"), ("dunkel", "Dunkel")],
-                                ),
-                                z(
-                                    "aussehen.farbsatz",
-                                    "Farbsatz dunkel",
-                                    "Grau oder Blauschwarz",
-                                    &[("grau", "Grau"), ("blauschwarz", "Blauschwarz")],
-                                ),
-                                z(
-                                    "aussehen.terminal",
-                                    "Terminal",
-                                    "Dunkel, hell oder wie das Thema",
-                                    &[
-                                        ("dunkel", "Dunkel"),
-                                        ("hell", "Hell"),
-                                        ("wie_thema", "Wie Thema"),
-                                    ],
-                                ),
-                            ],
-                        );
-                    });
-                }
-                self.gruppe(
-                    ui,
-                    r,
-                    "Schrift",
-                    &[z(
-                        "aussehen.schriftgroesse",
-                        "Terminalschrift",
-                        "Größe in Punkten",
-                        &[("12", "12"), ("13", "13"), ("14", "14")],
-                    )],
-                );
+        let paare = |l: &[(&str, &str)]| -> Vec<(String, String)> {
+            l.iter()
+                .map(|(w, t)| ((*w).to_owned(), (*t).to_owned()))
+                .collect()
+        };
+        if seite == Seite::Aussehen {
+            // the words of the choices come from the view core of the browser view (`ansicht::aussehen`); the window
+            // writes the terminal like the theme as `wie_thema` (L8)
+            let terminals: Vec<(String, String)> = ansicht::aussehen::TERMINALS
+                .iter()
+                .map(|(w, t)| {
+                    let w = if *w == "thema" { "wie_thema" } else { w };
+                    (w.to_owned(), (*t).to_owned())
+                })
+                .collect();
+            if self.zeigt("B77") {
+                ui.scope_builder(UiBuilder::new().id_salt("farbwahl"), |ui| {
+                    behaelter(ui, Role::Group, "Farbwahl", Some("B77"));
+                    self.gruppe(
+                        ui,
+                        r,
+                        g::FARBEN,
+                        &[
+                            z(a::THEMA, paare(&ansicht::aussehen::THEMEN)),
+                            z(a::FARBSATZ, paare(&ansicht::aussehen::FARBSAETZE)),
+                            z(a::TERMINAL, terminals),
+                        ],
+                        false,
+                    );
+                });
             }
-            Seite::Sitzung => {
-                self.gruppe(
-                    ui,
-                    r,
-                    "Vorgaben für neue Sitzungen",
-                    &[
-                        z(
-                            "sitzung.harness",
-                            "Harness",
-                            "Aus der Freigabe der Admins",
-                            &[("claude", "claude"), ("pi", "pi")],
+            let groessen = ansicht::aussehen::SCHRIFTGROESSEN
+                .iter()
+                .map(|g| (g.to_string(), g.to_string()))
+                .collect();
+            self.gruppe(ui, r, g::SCHRIFT, &[z(a::SCHRIFTGROESSE, groessen)], false);
+            return;
+        }
+        let mut leer = true;
+        for (titel, zeilen) in seite.gruppen() {
+            let zeilen: Vec<Einstellungszeile> = zeilen
+                .into_iter()
+                .filter(|(k, ..)| self.zusatz.einstellung(k).is_some())
+                .map(|zeile| {
+                    let wahlen = match zeile.0 {
+                        // the choices of the catalog of the view core (`regelebenen` 15.1)
+                        "sitzung.harness" => ansicht::ziel::KATALOG
+                            .iter()
+                            .find(|(k, ..)| *k == zeile.0)
+                            .map(|(_, _, w)| {
+                                w.iter()
+                                    .map(|x| ((*x).to_owned(), (*x).to_owned()))
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                        "sitzung.modell" => paare(&[("sonnet", "sonnet"), ("opus", "opus")]),
+                        "sitzung.effort" => {
+                            paare(&[("low", "low"), ("medium", "medium"), ("high", "high")])
+                        }
+                        // 24 h is the limit of contract 2; the deadline to redeem may be raised up to it (15.1.2)
+                        "aufsicht.freigabefrist_ms" => frist_wahlen(
+                            &[30_000, 60_000, 300_000, 900_000],
+                            &self
+                                .zusatz
+                                .einstellung(zeile.0)
+                                .map_or(Value::Null, |e| e.wert.clone()),
                         ),
-                        z(
-                            "sitzung.modell",
-                            "Modell",
-                            "Vorbelegt beim Start",
-                            &[("sonnet", "sonnet"), ("opus", "opus")],
+                        "aufsicht.einloesefrist_ms" => frist_wahlen(
+                            &[60_000, 300_000, 3_600_000, 86_400_000],
+                            &self
+                                .zusatz
+                                .einstellung(zeile.0)
+                                .map_or(Value::Null, |e| e.wert.clone()),
                         ),
-                        z(
-                            "sitzung.effort",
-                            "Effort",
-                            "Innerhalb der Grenzen der Admins",
-                            &[("low", "low"), ("medium", "medium"), ("high", "high")],
-                        ),
-                    ],
-                );
+                        _ => Vec::new(),
+                    };
+                    z(zeile, wahlen)
+                })
+                .collect();
+            if zeilen.is_empty() {
+                continue;
             }
-            Seite::Harnesses => {
-                self.gruppe(
-                    ui,
-                    r,
-                    "Freigegeben",
-                    &[
-                        z(
-                            "admin.harness.pi",
-                            "Harness pi",
-                            "Lokale Modelle über pi",
-                            &[("true", "an"), ("false", "aus")],
-                        ),
-                        z(
-                            "admin.aufsicht.guard",
-                            "Guard",
-                            "Prüft Werkzeugaufrufe vor der Ausführung",
-                            &[("true", "an"), ("false", "aus")],
-                        ),
-                    ],
-                );
-                if !self.zusatz.admin {
-                    ui.add_space(MASSE.abstand);
-                    ui.horizontal(|ui| {
-                        ui.add_space(MASSE.innen);
-                        ui.label(
-                            RichText::new("Nur Admins ändern diese Werte.")
-                                .size(MASSE.schrift_klein)
-                                .color(r.gedaempft),
-                        );
-                    });
+            leer = false;
+            self.gruppe(ui, r, titel, &zeilen, seite.admin());
+        }
+        if matches!(seite, Seite::Aufsicht | Seite::AdminAufsicht) {
+            for (schluessel, name, _) in [
+                crate::einstellungstexte::werte::FREIGABEFRIST,
+                crate::einstellungstexte::werte::EINLOESEFRIST,
+            ] {
+                let zeilen = fristen_zeilen(&self.zusatz.fristen, schluessel);
+                if !zeilen.is_empty() {
+                    leer = false;
+                    let titel = format!("{name} {}", crate::einstellungstexte::server::JE);
+                    Self::lesegruppe(ui, r, schluessel, &titel, &zeilen);
                 }
             }
-            Seite::AdminEffort => {
-                self.gruppe(
-                    ui,
-                    r,
-                    "Grenzen",
-                    &[z(
-                        "admin.modell.opus.effort_max",
-                        "opus",
-                        "Höchster Effort",
-                        &[("medium", "medium"), ("high", "high")],
-                    )],
-                );
+            if let Some(s) = self.zusatz.schutz.clone() {
+                leer = false;
+                Self::schutz_gruppe(ui, r, &s);
             }
         }
+        if leer {
+            ui.add_space(MASSE.gruppenabstand * 2.0);
+            ui.label(RichText::new(KEINE_WERTE).color(r.gedaempft));
+        }
+    }
+
+    /// The effective state of the protection layers, read only: a group like the others, but every row has a value and
+    /// no control (decision of the operator, 27.11.2026).
+    fn schutz_gruppe(ui: &mut Ui, r: &Rollen, s: &crate::ziel::Schutz) {
+        let zeilen = schutz_zeilen(s);
+        Self::lesegruppe(
+            ui,
+            r,
+            "schutzschichten",
+            crate::einstellungstexte::schutz::GRUPPE,
+            &zeilen,
+        );
+    }
+
+    /// A group of information: a heading and rows of name, value and origin, read only, without a control.
+    fn lesegruppe(
+        ui: &mut Ui,
+        r: &Rollen,
+        id: &str,
+        titel: &str,
+        zeilen: &[(String, String, String)],
+    ) {
+        ui.add_space(MASSE.gruppenabstand * 1.5);
+        ui.scope_builder(UiBuilder::new().id_salt(id), |ui| {
+            behaelter(ui, Role::Group, titel, None);
+            ui.label(
+                RichText::new(titel)
+                    .fett()
+                    .size(MASSE.schrift_grund)
+                    .color(r.schrift),
+            );
+            ui.add_space(MASSE.gruppe_kopf - 8.0);
+            Frame::new()
+                .fill(r.erhoben)
+                .corner_radius(gestalt::radius(MASSE.radius_gruppe))
+                .inner_margin(Margin::symmetric(12, 2))
+                .show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    for (i, (name, wert, herkunft)) in zeilen.iter().enumerate() {
+                        if i > 0 {
+                            let y = ui.cursor().top();
+                            ui.painter().hline(
+                                ui.max_rect().x_range(),
+                                y,
+                                Stroke::new(MASSE.linie, r.linie),
+                            );
+                        }
+                        Self::schutz_zeile(ui, r, name, wert, herkunft);
+                    }
+                });
+        });
+    }
+
+    /// One row of the information: symbol, name, and on the right the value with its origin; no control.
+    fn schutz_zeile(ui: &mut Ui, r: &Rollen, name: &str, wert: &str, herkunft: &str) {
+        let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 40.0), Sense::hover());
+        let sym = Rect::from_min_size(pos2(rect.left(), rect.center().y - 13.0), Vec2::splat(26.0));
+        ui.painter()
+            .rect_filled(sym, gestalt::radius(MASSE.radius_knopf), r.kopf);
+        symbole::malen(ui, Symbol::Schild, sym.shrink(6.0), r.akzent_text);
+        let band = Rect::from_center_size(rect.center(), vec2(rect.width(), MASSE.formfeld));
+        let mut rechts = ui.new_child(
+            UiBuilder::new()
+                .max_rect(band)
+                .layout(Layout::right_to_left(Align::Center)),
+        );
+        let l = rechts.label(RichText::new(wert).fett().color(r.schrift));
+        let beschriftung = format!("{name}: {wert}");
+        l.widget_info(|| egui::WidgetInfo::labeled(Role::Label, true, &beschriftung));
+        if !herkunft.is_empty() {
+            rechts.add_space(MASSE.abstand * 2.0);
+            Frame::new()
+                .fill(r.kopf)
+                .corner_radius(gestalt::radius(MASSE.radius_kapsel))
+                .inner_margin(Margin::symmetric(7, 2))
+                .show(&mut rechts, |ui| {
+                    ui.label(
+                        RichText::new(herkunft)
+                            .size(MASSE.schrift_klein)
+                            .color(r.gedaempft),
+                    );
+                });
+        }
+        let x = sym.right() + MASSE.innen + 2.0;
+        text_gekuerzt(
+            ui,
+            pos2(x, rect.center().y - MASSE.schrift_grund * 0.62),
+            name,
+            FontId::proportional(MASSE.schrift_grund),
+            r.schrift,
+            rechts.min_rect().left() - MASSE.innen - x,
+        );
     }
 
     fn rueckfrage(&mut self, ui: &mut Ui) {
@@ -3587,5 +4587,165 @@ impl eframe::App for Fenster {
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         self.merken_schreiben();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ziel::Schutz;
+
+    fn sitzung(id: &str, laeuft: bool, code: &str) -> Sitzung {
+        Sitzung {
+            id: id.to_owned(),
+            harness: "claude".to_owned(),
+            modell: "opus".to_owned(),
+            route: "cloud".to_owned(),
+            kunde: String::new(),
+            laeuft,
+            code: code.to_owned(),
+            nr: None,
+            herkunft: None,
+        }
+    }
+
+    fn plus(id: &str, ordner: &str) -> crate::ziel::Sitzungsplus {
+        crate::ziel::Sitzungsplus {
+            id: id.to_owned(),
+            name: id.to_uppercase(),
+            ordner: ordner.to_owned(),
+            projekt: String::new(),
+        }
+    }
+
+    #[test]
+    fn the_known_sessions_stand_by_folder_even_when_the_list_mixes_them() {
+        let liste = [
+            sitzung("s-1", true, ""),
+            sitzung("s-2", false, "0"),
+            sitzung("s-3", true, ""),
+            sitzung("s-4", false, "1"),
+            sitzung("s-5", true, ""),
+        ];
+        let zusatz = Zusatz {
+            sitzungen: vec![
+                plus("s-1", "~/AI/a"),
+                plus("s-2", "~/AI/b"),
+                plus("s-3", "~/AI/a"),
+                plus("s-4", "~/AI/b"),
+            ],
+            ..Zusatz::default()
+        };
+        let g = nach_ordner(&liste, &zusatz);
+        let erwartet: Vec<(String, Vec<String>)> = [
+            ("~/AI/a", vec!["s-1", "s-3"]),
+            ("~/AI/b", vec!["s-2", "s-4"]),
+            ("", vec!["s-5"]),
+        ]
+        .into_iter()
+        .map(|(o, ids)| (o.to_owned(), ids.into_iter().map(str::to_owned).collect()))
+        .collect();
+        assert_eq!(g, erwartet);
+    }
+
+    #[test]
+    fn an_ended_opencode_session_is_not_offered_to_continue() {
+        let mut s = sitzung("s-4", false, "0");
+        assert_eq!(fortsetzen_grund(Some(&s)), "");
+        for h in ["copilot", "pi", "claude"] {
+            s.harness = h.to_owned();
+            assert_eq!(fortsetzen_grund(Some(&s)), "", "{h}");
+        }
+        s.harness = "opencode".to_owned();
+        assert_eq!(fortsetzen_grund(Some(&s)), T_OHNE_FORTSETZEN);
+        s.laeuft = true;
+        assert_eq!(fortsetzen_grund(Some(&s)), T_LAEUFT);
+        assert_eq!(fortsetzen_grund(None), T_KEINE_GEWAEHLT);
+    }
+
+    #[test]
+    fn a_session_has_one_state_name_from_the_core() {
+        for s in [
+            sitzung("s-1", true, ""),
+            sitzung("s-2", false, "0"),
+            sitzung("s-3", false, "137"),
+        ] {
+            let kern = s.zustand_text();
+            assert_eq!(zeile_zusatz(&s, None), kern);
+            assert_eq!(zeile_zusatz(&s, Some(2)), format!("2 Worker · {kern}"));
+        }
+        assert_eq!(
+            zeile_zusatz(&sitzung("s-3", false, "137"), None),
+            "beendet · Code 137"
+        );
+    }
+
+    fn werte(s: &Schutz) -> Vec<String> {
+        schutz_zeilen(s)
+            .into_iter()
+            .map(|(n, w, h)| format!("{n}: {w} [{h}]"))
+            .collect()
+    }
+
+    #[test]
+    fn the_layers_show_only_what_was_measured_with_its_date() {
+        let mut z = Zusatz::default();
+        z.nachricht(&json!({"art": "Schutzstand", "einschluss": {"probelauf": "2026-11-27"},
+            "halter": {"eingerichtet": "2026-11-26"}, "letzter_start": {"zeit": 1_000_000_000_000_u64, "ergebnis": "gestartet"},
+            "netzziele": [{"herkunft": "firma", "anzahl": 3}, {"herkunft": "gruppe g-eins", "anzahl": 9}, {"herkunft": "nutzer", "anzahl": 2}]}));
+        // The time of the last start is a neutral example time; its text form is checked in the test of zeit_text.
+        let letzter = format!(
+            "Letzter Start: gestartet, {} []",
+            zeit_text(1_000_000_000_000)
+        );
+        assert_eq!(
+            werte(z.schutz.as_ref().expect("state")),
+            [
+                "Einschluss: Probelauf bei der Installation grün, 27.11.2026 []",
+                "Halter: eingerichtet bei der Installation, 26.11.2026 []",
+                letzter.as_str(),
+                "Freigegebene Netzziele: 3 [Firma]",
+                "Freigegebene Netzziele: 2 [du]",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_missing_part_says_so_and_never_on() {
+        let mut z = Zusatz::default();
+        z.nachricht(&json!({"art": "Schutzstand", "einschluss": null, "letzter_start": null}));
+        let w = werte(z.schutz.as_ref().expect("state"));
+        assert_eq!(
+            w,
+            [
+                "Einschluss: nicht bekannt []",
+                "Halter: nicht bekannt []",
+                "Letzter Start: noch kein Start seit dem Start des Dienstes []",
+                "Freigegebene Netzziele: nicht bekannt []",
+            ]
+        );
+        z.nachricht(&json!({"art": "Schutzstand"}));
+        assert_eq!(
+            werte(z.schutz.as_ref().expect("state"))[2],
+            "Letzter Start: nicht bekannt []"
+        );
+        assert!(
+            w.iter()
+                .all(|x| !x.contains(": an ") && !x.contains("läuft"))
+        );
+    }
+
+    #[test]
+    fn the_time_is_the_civil_date_in_utc() {
+        // Date and time are compared as two parts, so the source carries no date with a time of day.
+        let teile = |ms: u64| {
+            zeit_text(ms)
+                .split(", ")
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(teile(0), ["01.01.1970", "00:00 UTC"]);
+        assert_eq!(teile(951_782_400_000), ["29.02.2000", "00:00 UTC"]);
+        assert_eq!(teile(1_000_000_019_999), ["09.09.2001", "01:46 UTC"]);
     }
 }

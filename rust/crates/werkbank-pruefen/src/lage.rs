@@ -246,7 +246,7 @@ pub const PROGRAMMORDNER: &[(&str, &str)] = &[(
 pub const ABGELEHNT_SATZ: &str = "pruef.programmordner_verboten: Harness {n} nicht eingetragen. Abhilfe: Harness unter einem anderen Praefix installieren, dann dpkg-reconfigure werkbank. Ordner: {o}";
 
 /// The harnesses the search looks for, in the order of the output.
-pub const HARNESS: [&str; 2] = ["copilot", "pi"];
+pub const HARNESS: [&str; 3] = ["copilot", "pi", "opencode"];
 
 /// The state of a harness that `lauf.json` does not list and the note for it (`{n}` is the name). No finding: a machine may have only one of them.
 /// The places of the search are the fixed ones of the contract ("Suche der Harness"); `~` stands for the home of the user.
@@ -485,7 +485,7 @@ fn abgelehnt_aus(wert: &Value) -> Result<Vec<(String, String)>, String> {
     Ok(aus)
 }
 
-/// The optional field `harness`: an object `{copilot|pi: state}`; absent gives no note.
+/// The optional field `harness`: an object `{copilot|pi|opencode: state}`; absent gives no note.
 fn harness_aus(wert: &Value) -> Result<Vec<(String, String)>, String> {
     let Some(o) = wert.get("harness") else {
         return Ok(Vec::new());

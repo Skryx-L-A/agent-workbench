@@ -198,8 +198,9 @@ fügt den Block `effort` hinzu:
 
 Herkunft des Blocks `effort` (Entscheid des Betreibers, 28.11.2026): Ohne Option sendet die Copilot CLI 1.0.88 mit
 `gpt-6-luna` das Feld `reasoning_effort` mit `medium`; mit `--reasoning-effort none` fehlt das Feld (gemessen am 27.11.2026
-ohne Konto, über den Halter). Der Block hat keine Vorgabe: Ein Start ohne `effort` bleibt gültig, und „Lauf starten“ setzt dann
-keine Option. Ein Start mit `effort` `none` oder `low` geht durch; jeder andere Wert endet mit `start.effort_grenze` (Vertrag 1).
+ohne Konto, über den Halter). Der Block hat keine Vorgabe: Ein Start ohne `effort` bleibt gültig, und „Lauf starten“ gibt dann
+`--reasoning-effort none` weiter (Nachtrag 28.11.2026, Vertrag 1, Abschnitt „Effort immer ausdrücklich“; alt: „setzt dann keine
+Option“). Ein Start mit `effort` `none` oder `low` geht durch; jeder andere Wert endet mit `start.effort_grenze` (Vertrag 1).
 
 Herkunft des Modellnamens: Die Copilot CLI 1.0.88 wählte mit `--model auto --auto-tier efficiency` das Modell `gpt-6-luna`
 und verbrauchte eine Chat-Einheit, kein Premium-Modell (gemessen am 20.11.2026, Vertrag 1, `rust/spec/start/README.md`,
@@ -472,6 +473,7 @@ Abschnitt 15.1, `sitzung.effort`) und steht nicht in dieser Datei.
 | Eintrag `klasse` | Kennung, optional, aus `klassen` | gilt nur für Routen dieser Klasse; fehlt sie, für jede Klasse |
 | Eintrag `modell` | Text nach der Regel von `modell` (Vertrag 1), optional | gilt nur für dieses Modell im Start; fehlt es, für jedes |
 | Eintrag `erlaubt` | Liste, Pflicht, 1 bis 7 Werte ohne Doppel | die erlaubten Werte; jeder muss ein Wert des Harness sein |
+| Eintrag `vorgabe` | Text, optional, ein Wert des Harness (Stufe 36) | die Vorgabe der Admins: der Effort, den „Lauf starten“ für einen Start ohne `effort` weitergibt (Nachtrag 28.11.2026) |
 
 **Werte je Harness** (gemessen am 26.11.2026 auf dem Entwicklungsrechner mit `<programm> --help`; die Versionen sind neuer als die
 in Vertrag 1 genannten, siehe OPEN 10):
@@ -495,6 +497,22 @@ Die Werte werden wörtlich verglichen. Es gibt keine gemeinsame Liste: `none` gi
 
 Grund für fail closed: Ohne Entscheid der Admins wählt niemand einen teuren Effort. Jede bisherige Datei bleibt gültig, und jeder
 bisherige Start (ohne `effort`) ebenso.
+
+**Vorgabe eines Starts (Nachtrag 28.11.2026, Entscheid des Betreibers).** Für Harness `h`, Route `r` und Modell `m` ist die Vorgabe
+die `vorgabe` des ersten passenden Eintrags (Regel oben), der eine trägt, in der Reihenfolge der Datei. Trägt keiner eine, gibt es
+keine Vorgabe. „Lauf starten“ gibt sie für einen Start mit `effort` `null` weiter (Vertrag 1, Abschnitt „Effort immer
+ausdrücklich“).
+- Die Vorgabe muss ein Wert des Harness sein (Stufe 36, `einst.effort_wert`), sonst `einst.typ_falsch` (6) für einen Wert, der kein
+  Text ist; `null` ist kein gültiger Wert. Sie muss nicht in `erlaubt` stehen: Ob sie erlaubt ist, prüft Stufe 18 von Vertrag 1, und
+  eine Vorgabe außerhalb der Grenze endet dort mit `start.effort_grenze`. Grund: Die Prüfung gilt dem Wert, der wirklich gesendet
+  wird, und sie steht an einer Stelle.
+- Grund der Vorgabe: Ohne Option sendet die Copilot CLI 1.0.88 mit `gpt-6-luna` selbst `reasoning_effort` `medium`, mit
+  `--reasoning-effort none` fehlt das Feld (gemessen am 27.11.2026 ohne Konto, über den Halter). Die Grenze muss also für den
+  weitergegebenen Wert gelten.
+- Typisierte Sicht: `EffortGrenze::vorgabe() -> Option<&str>` und `Einstellungen::effort_vorgabe(harness, route, modell) ->
+  Option<&str>`; eine unbekannte Route ergibt `None`.
+- Fälle: `gueltig-effort-vorgabe`, `gueltig-effort-vorgabe-ausserhalb`, `effort-vorgabe-*`; die gültigen nennen in `erwartet/` je
+  Eintrag von `efforts` dazu `vorgabe` (oder `null`).
 
 - Codes in den vorhandenen Stufen: `einst.schluessel_unbekannt` (3), `einst.schluessel_fehlt` (5, `grenzen`, `harness` oder
   `erlaubt` fehlt), `einst.typ_falsch` (6), `einst.anzahl` (8, `erlaubt` leer oder mit mehr als 7 Werten, mehr als 64 Einträge),

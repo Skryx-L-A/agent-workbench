@@ -3,12 +3,13 @@
 
 use std::fmt;
 
-use formate::kette::sha256_hex;
+use formate::kette::{kanonisch, sha256_hex};
+use serde_json::json;
 
 use crate::form;
 
 /// Checks the proof of a human for one challenge.
-pub trait Nachweispruefer {
+pub trait Nachweispruefer: Send + Sync {
     /// `Ok(pseudonym)` when the proof holds for exactly these challenge bytes, otherwise `Err(())`.
     /// The core calls it once per `mcp.entscheiden` and treats any value that is no pseudonym as `Err`.
     ///
@@ -64,6 +65,40 @@ pub(crate) fn hmac_sha256(schluessel: &[u8; 32], nachricht: &[u8]) -> [u8; 32] {
 /// Equality of two MACs in constant time: every byte is looked at, whatever the first difference.
 pub(crate) fn gleich_konstant(a: &[u8; 32], b: &[u8; 32]) -> bool {
     a.iter().zip(b).fold(0u8, |summe, (x, y)| summe | (x ^ y)) == 0
+}
+
+/// The challenge of the human (contract 6, section 6) as bytes: RFC 8785 of `{"anfrage", "art": "mcp.entscheidung", "digest",
+/// "entscheidung", "vorschau_sha256"}`. The point builds it from its own state; the service of the human from `mcp.offene`.
+#[must_use]
+pub fn herausforderung(
+    anfrage: &str,
+    digest: &str,
+    entscheidung: &str,
+    vorschau_sha256: Option<&str>,
+) -> Vec<u8> {
+    let wert = json!({
+        "anfrage": anfrage,
+        "art": "mcp.entscheidung",
+        "digest": digest,
+        "entscheidung": entscheidung,
+        "vorschau_sha256": vorschau_sha256,
+    });
+    kanonisch(&wert).unwrap_or_default().into_bytes()
+}
+
+/// The proof `h1:<pseudonym>:<64 hex>` for a challenge: HMAC-SHA256 with the key over the pseudonym, LF and the challenge. The
+/// service of the human issues it (addendum of contract `dienst`, channel to the point); [`PrueferH1`] checks it.
+#[must_use]
+pub fn nachweis_h1(schluessel: &[u8; 32], pseudonym: &str, herausforderung: &[u8]) -> String {
+    const ZIFFERN: &[u8; 16] = b"0123456789abcdef";
+    let mut nachricht = format!("{pseudonym}\n").into_bytes();
+    nachricht.extend_from_slice(herausforderung);
+    let mac: String = hmac_sha256(schluessel, &nachricht)
+        .iter()
+        .flat_map(|b| [ZIFFERN[usize::from(b >> 4)], ZIFFERN[usize::from(b & 15)]])
+        .map(char::from)
+        .collect();
+    format!("h1:{pseudonym}:{mac}")
 }
 
 /// The checker `h1`: the proof is the text `h1:<pseudonym>:<64 hex>`.

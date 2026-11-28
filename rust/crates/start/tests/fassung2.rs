@@ -157,7 +157,9 @@ fn the_limit_of_stage_18_follows_the_settings_file() {
         code(&|w| w["effort"] = json!("high")),
         "start.effort_grenze"
     );
-    assert_eq!(code(&|w| w["effort"] = Value::Null), "cloud");
+    // without an effort copilot gets `none` (decision of the operator, 28 November 2026), and the limit allows only low
+    // and medium
+    assert_eq!(code(&|w| w["effort"] = Value::Null), "start.effort_grenze");
     assert_eq!(
         code(&|w| w["harness"] = json!("claude")),
         "start.effort_grenze"

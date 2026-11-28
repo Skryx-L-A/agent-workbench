@@ -1,7 +1,7 @@
-//! The application menu (B75): one list of entries for both forms. Under Windows and Linux the window draws it as the
-//! menu in the title row; under macOS it is the menu bar of the system, built with `muda` from the same list
-//! ([`Menueleiste`]). The list holds only entries whose operating path shows (OF8); [`crate::fenster::Fenster`] builds it
-//! and carries out the chosen entry.
+//! The application menu (B75): one list of entries for both forms. Under Windows and Linux the window draws it as a
+//! menu in the foot of the sidebar next to the gear (G3); under macOS it is the menu bar of the system, built with
+//! `muda` from the same list ([`Menueleiste`]). The list holds only entries whose operating path shows (OF8);
+//! [`crate::fenster::Fenster`] builds it and carries out the chosen entry.
 
 /// What an entry of the menu does.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -213,8 +213,8 @@ pub fn feste_reihe(vorher: bool) -> Vec<Fest> {
 
 /// The menu of `muda` for the list. The first menu, "Werkbank", is the application menu of macOS: it holds the entries of
 /// the window and then the fixed entries of the system. The entry "Werkbank beenden" of the list is left out there, because
-/// the fixed entry Quit replaces it (B75); Windows and Linux keep it in the title row. Every other key stays with the
-/// window, and the system adds only the key equivalents of its own entries (Command+H, Command+Q; SE1 point 8).
+/// the fixed entry Quit replaces it (B75); Windows and Linux keep it in the foot of the sidebar. Every other key stays
+/// with the window, and the system adds only the key equivalents of its own entries (Command+H, Command+Q; SE1 point 8).
 #[cfg(target_os = "macos")]
 fn bauen(liste: &[Untermenue]) -> muda::Result<muda::Menu> {
     use muda::{MenuItem, PredefinedMenuItem, Submenu};

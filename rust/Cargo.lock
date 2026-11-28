@@ -896,6 +896,7 @@ dependencies = [
  "serde_json",
  "signal-hook",
  "start",
+ "stelle",
  "traeger",
  "zustandskern",
 ]
@@ -1566,6 +1567,7 @@ dependencies = [
  "muda",
  "rasterauszug",
  "serde_json",
+ "unicode-width",
 ]
 
 [[package]]
@@ -3885,6 +3887,8 @@ version = "0.1.0"
 dependencies = [
  "einstellungen",
  "formate",
+ "peerkanal",
+ "rustix 1.1.6",
  "serde_json",
  "start",
 ]

@@ -75,23 +75,14 @@ pub struct Lauf {
     pub rahmen_max: usize,
     /// The most ended sessions in the list; [`BEENDET_MAX`] unless the start file lowers it (test mode only).
     pub beendet_max: usize,
+    /// Where the decision point is and who it must be (addendum "Kanal zur Stelle (L6, Nr. 98)"), optional: without it
+    /// there is no channel and every `Freigabe` on the local way is `stelle_nicht_erreichbar`.
+    pub stelle: Option<crate::stelle::Ort>,
     /// The file of the Bestand (optional, absolute path, Nachtrag 26.11.2026, DI-L5 point 3): the list of the sessions across a restart.
     pub bestand: Option<String>,
     /// The folder of the conversations of the harnesses (optional, absolute path, Nachtrag 27.11.2026, DI-E4 point 2 and DI12 point 15):
     /// `Loeschen` removes `<gespraeche>/<kennung>`, and a number whose entry `<gespraeche>/s-<n>` exists is not handed out again.
     pub gespraeche: Option<String>,
-    /// The channel to the decision point (optional, Nachtrag 26.11.2026, DI-L6 point 2). Only its form is read here; with it the local
-    /// way carries `Freigabe` (Nachtrag 27.11.2026, DI-E5 point 4).
-    pub stelle: Option<Stelle>,
-}
-
-/// The key `lauf.stelle` (DI-L6 point 2): `{"kanal": <name>, "ordner": "/abs/pfad"}`, `ordner` optional and only under Unix.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Stelle {
-    /// The channel of `peerkanal` (`^[a-z0-9][a-z0-9._-]{0,63}$`).
-    pub kanal: String,
-    /// The folder of the channel (absolute), `None` for the folder of `peerkanal`.
-    pub ordner: Option<String>,
 }
 
 /// What the start file says, checked.
@@ -344,6 +335,10 @@ fn lauf_pfad_wahl(
 }
 
 /// The key `lauf` (DI12): exactly `programm`, `env`, `groesse`, `einstellungen`; `nummer_max`, `rahmen_max` and `beendet_max` only in test mode.
+#[allow(
+    clippy::too_many_lines,
+    reason = "one check per key of `lauf`, in the order of the contract"
+)]
 fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
     let Some(karte) = wert.as_object() else {
         return ungueltig("lauf");
@@ -360,9 +355,9 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
                 "laufzeit",
                 "marker_datei",
                 "marker_ordner",
+                "stelle",
                 "bestand",
                 "gespraeche",
-                "stelle",
             ]
             .contains(&k.as_str())
     }) || !pflicht.iter().all(|k| karte.contains_key(*k))
@@ -382,7 +377,6 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
     let marker_ordner = lauf_pfad_wahl(karte, "marker_ordner")?;
     let bestand = lauf_pfad_wahl(karte, "bestand")?;
     let gespraeche = lauf_pfad_wahl(karte, "gespraeche")?;
-    let stelle = karte.get("stelle").map(stelle_lesen).transpose()?;
     let Some(env) = env_ok(&karte["env"]) else {
         return ungueltig("lauf.env");
     };
@@ -406,6 +400,7 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
     let Ok(groesse) = groesse_lesen(&karte["groesse"]) else {
         return ungueltig("lauf.groesse");
     };
+    let stelle = stelle_lesen(karte.get("stelle"))?;
     Ok(Lauf {
         programm,
         env,
@@ -419,43 +414,21 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
         nummer_max,
         rahmen_max,
         beendet_max,
+        stelle,
         bestand,
         gespraeche,
-        stelle,
     })
 }
 
-/// The key `lauf.stelle` (DI-L6 point 2): an object with `kanal` (a channel name of `peerkanal`) and, only under Unix, `ordner` (an
-/// absolute path); no other key.
-fn stelle_lesen(wert: &Value) -> Result<Stelle, StartFehler> {
-    let Some(karte) = wert.as_object() else {
-        return ungueltig("lauf.stelle");
-    };
-    let erlaubt: &[&str] = if cfg!(unix) {
-        &["kanal", "ordner"]
-    } else {
-        &["kanal"]
-    };
-    if karte.keys().any(|k| !erlaubt.contains(&k.as_str())) {
-        return ungueltig("lauf.stelle");
+/// `lauf.stelle` (addendum "Kanal zur Stelle (L6, Nr. 98)"): optional; `erwartet` is mandatory, so there is no channel
+/// without the expected identity of the point and no fallback to whoever sits at the socket.
+fn stelle_lesen(wert: Option<&Value>) -> Result<Option<crate::stelle::Ort>, StartFehler> {
+    match wert {
+        None => Ok(None),
+        Some(w) => crate::stelle::ort_lesen(w)
+            .map(Some)
+            .map_or_else(|| ungueltig("lauf_stelle_ungueltig"), Ok),
     }
-    let Some(kanal) = karte.get("kanal").and_then(Value::as_str) else {
-        return ungueltig("lauf.stelle");
-    };
-    if peerkanal::Kanalname::neu(kanal).is_err() {
-        return ungueltig("lauf.stelle.kanal");
-    }
-    let ordner = match karte.get("ordner") {
-        None => None,
-        Some(w) => match lauf_pfad(Some(w)) {
-            Some(p) => Some(p),
-            None => return ungueltig("lauf.stelle.ordner muss ein absoluter Pfad sein"),
-        },
-    };
-    Ok(Stelle {
-        kanal: kanal.to_owned(),
-        ordner,
-    })
 }
 
 /// A limit that only test mode may lower: missing gives `max`, otherwise a whole number from 1 to `max` in test mode; anything else is
@@ -1252,58 +1225,6 @@ mod tests {
         rot(&ohne_kind(|o| {
             o.remove("anfang");
         }));
-    }
-
-    /// DI-L6 point 2: `lauf.stelle` is optional, `kanal` a channel name of `peerkanal`, `ordner` (only under Unix) an absolute path,
-    /// no other key.
-    #[test]
-    fn lauf_stelle_form() {
-        let mit_stelle = |st: Value| {
-            ohne_kind(|o| {
-                let mut l = lauf_gut();
-                l["stelle"] = st.clone();
-                o.insert("lauf".into(), l);
-            })
-        };
-        let gut = mit_stelle(json!({"kanal": "stelle"})).expect("valid");
-        assert_eq!(
-            gut.lauf.and_then(|l| l.stelle),
-            Some(Stelle {
-                kanal: "stelle".to_owned(),
-                ordner: None
-            })
-        );
-        let ohne = ohne_kind(|o| {
-            o.insert("lauf".into(), lauf_gut());
-        })
-        .expect("valid");
-        assert_eq!(ohne.lauf.and_then(|l| l.stelle), None);
-        #[cfg(unix)]
-        {
-            let mit_ordner =
-                mit_stelle(json!({"kanal": "a.b-c", "ordner": "/run/x"})).expect("valid");
-            assert_eq!(
-                mit_ordner
-                    .lauf
-                    .and_then(|l| l.stelle)
-                    .and_then(|s| s.ordner),
-                Some("/run/x".to_owned())
-            );
-            rot(&mit_stelle(json!({"kanal": "stelle", "ordner": "relativ"})));
-            rot(&mit_stelle(json!({"kanal": "stelle", "ordner": 1})));
-        }
-        for schlecht in [
-            json!("stelle"),
-            json!({}),
-            json!({"kanal": "stelle", "x": 1}),
-            json!({"ordner": "/run/x"}),
-            json!({"kanal": 1}),
-            json!({"kanal": "Gross"}),
-            json!({"kanal": ""}),
-            json!({"kanal": "a/b"}),
-        ] {
-            rot(&mit_stelle(schlecht));
-        }
     }
 
     #[test]

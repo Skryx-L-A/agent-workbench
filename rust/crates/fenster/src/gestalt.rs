@@ -45,8 +45,10 @@ pub struct Masse {
     pub kopf_einzug: f32,
     /// Height of the head of a pane, focus frame included (B41).
     pub pane_kopf: f32,
-    /// Space between the tiles of the worker view.
+    /// Space between two tiles of the worker view (today's app: `Kachelung.fuge`); none at the edge of the stage.
     pub kachelabstand: f32,
+    /// Radius of a tile (today's app: `Kachel.eckenradius`).
+    pub radius_kachel: f32,
     /// Height of the head of the sidebar (B08).
     pub leistenkopf: f32,
     /// Height of the foot of the sidebar (B22, B23).
@@ -109,7 +111,7 @@ pub struct Masse {
     pub schrift_seite: f32,
     /// Font size of the terminal (OF4 point 2; it can be chosen in the settings).
     pub schrift_terminal: f32,
-    /// Width of the focus frame (SE2 point 6: at least 2).
+    /// Width of the focus frame (SE2 point 6: at least 2), also the frame of the active tile.
     pub fokusrahmen: f32,
     /// Diameter of a state dot.
     pub punkt: f32,
@@ -119,8 +121,14 @@ pub struct Masse {
     pub kurzmeldung_s: f64,
     /// Width and height of the window "Sitzungen" (B68).
     pub sitzungsfenster: (f32, f32),
-    /// Width and height of the settings (B72, B78).
+    /// Width and height of the settings (B72, B78), as in the browser view (`.fenster.einstellungen`).
     pub einstellungsfenster: (f32, f32),
+    /// Least space between a dialog and the title row above and the foot of the sidebar below (B72).
+    pub dialog_rand: f32,
+    /// Margin of a page of the settings to the left and right (`.einst-inhalt` of the browser view).
+    pub einstellungsrand: f32,
+    /// Side of the symbol in the head of a page of the settings (`.einst-gross`).
+    pub einstellungskopf: f32,
 }
 
 /// The measures (OF2 point 2), measured at the reference pictures.
@@ -140,6 +148,7 @@ pub const MASSE: Masse = Masse {
     kopf_einzug: 14.0,
     pane_kopf: 24.0,
     kachelabstand: 4.0,
+    radius_kachel: 8.0,
     leistenkopf: 34.0,
     leistenfuss: 34.0,
     kapsel: 36.0,
@@ -176,7 +185,10 @@ pub const MASSE: Masse = Masse {
     kacheln_je_tab: 6,
     kurzmeldung_s: 4.0,
     sitzungsfenster: (900.0, 652.0),
-    einstellungsfenster: (1120.0, 760.0),
+    einstellungsfenster: (980.0, 680.0),
+    dialog_rand: 8.0,
+    einstellungsrand: 28.0,
+    einstellungskopf: 40.0,
 };
 
 /// The role colours of one colour set (OF3 point 1).
@@ -186,6 +198,8 @@ pub struct Rollen {
     pub fenster: Color32,
     /// The ground of the middle and of windows.
     pub grund: Color32,
+    /// The ground of the stage behind the tiles: the joint between two tiles and their corners.
+    pub buehne: Color32,
     /// The ground of the sidebar and of the capsules of the title row.
     pub leiste: Color32,
     /// Raised surfaces: groups, fields, bubbles.
@@ -236,6 +250,7 @@ pub struct Rollen {
 pub const HELL: Rollen = Rollen {
     fenster: rgb(0xff, 0xff, 0xff),
     grund: rgb(0xff, 0xff, 0xff),
+    buehne: rgb(0xff, 0xff, 0xff),
     leiste: rgb(0xf7, 0xf7, 0xf7),
     erhoben: rgb(0xf7, 0xf7, 0xf7),
     linie: rgb(0xe6, 0xe6, 0xe6),
@@ -264,6 +279,9 @@ pub const HELL: Rollen = Rollen {
 pub const GRAU_DUNKEL: Rollen = Rollen {
     fenster: rgb(0x1f, 0x20, 0x20),
     grund: rgb(0x1f, 0x20, 0x20),
+    // the joint of today's app is #1f2020 on a terminal of #1e1e1e (1.02:1, not visible); the stage takes the ground of
+    // the sidebar, the same value as in the browser view
+    buehne: rgb(0x29, 0x2a, 0x2a),
     leiste: rgb(0x29, 0x2a, 0x2a),
     erhoben: rgb(0x26, 0x26, 0x27),
     linie: rgb(0x35, 0x36, 0x36),
@@ -294,6 +312,8 @@ pub const GRAU_DUNKEL: Rollen = Rollen {
 pub const BLAUSCHWARZ: Rollen = Rollen {
     fenster: rgb(0x0b, 0x0d, 0x10),
     grund: rgb(0x10, 0x12, 0x16),
+    // the stage of blue-black, the same value as in the browser view
+    buehne: rgb(0x1b, 0x1e, 0x22),
     leiste: rgb(0x17, 0x1a, 0x20),
     erhoben: rgb(0x1e, 0x23, 0x2b),
     linie: rgb(0x26, 0x2b, 0x34),
@@ -542,6 +562,53 @@ pub fn radius(x: f32) -> CornerRadius {
     CornerRadius::same(x.round() as u8)
 }
 
+/// How many columns `n` tiles take: one, two up to four, three beyond.
+#[must_use]
+pub fn kachelspalten(n: usize) -> usize {
+    match n {
+        0 | 1 => 1,
+        2..=4 => 2,
+        _ => 3,
+    }
+}
+
+/// The places of `anzahl` tiles on the stage `flaeche`, row by row: a joint of [`Masse::kachelabstand`] between two tiles,
+/// none at the edge of the stage (today's app, `Kachelung.fugen`).
+#[must_use]
+pub fn kachel_lagen(flaeche: egui::Rect, anzahl: usize) -> Vec<egui::Rect> {
+    if anzahl == 0 {
+        return Vec::new();
+    }
+    let spalten = kachelspalten(anzahl);
+    let reihen = anzahl.div_ceil(spalten);
+    let fuge = MASSE.kachelabstand;
+    // a handful of tiles: the counts are tiny
+    #[allow(clippy::cast_precision_loss)]
+    let (sp, re) = (spalten as f32, reihen as f32);
+    let breite = (flaeche.width() - (sp - 1.0) * fuge) / sp;
+    let hoehe = (flaeche.height() - (re - 1.0) * fuge) / re;
+    (0..anzahl)
+        .map(|i| {
+            #[allow(clippy::cast_precision_loss)]
+            let (spalte, reihe) = ((i % spalten) as f32, (i / spalten) as f32);
+            egui::Rect::from_min_size(
+                egui::pos2(
+                    flaeche.left() + spalte * (breite + fuge),
+                    flaeche.top() + reihe * (hoehe + fuge),
+                ),
+                egui::vec2(breite, hoehe),
+            )
+        })
+        .collect()
+}
+
+/// Whether a tile carries the frame: the active one, and only when more than one tile stands on the stage; a single tile
+/// has nothing to stand out from (today's app, `Kachel.nachziehen`).
+#[must_use]
+pub fn kachel_rahmen(aktiv: bool, anzahl: usize) -> bool {
+    aktiv && anzahl > 1
+}
+
 /// The relative luminance of a colour (WCAG 2.x).
 #[must_use]
 pub fn leuchtdichte(c: Color32) -> f64 {
@@ -639,6 +706,7 @@ pub fn kontrastpaare(r: &Rollen, t: &Terminalfarben) -> Vec<Kontrastpaar> {
     }
     for (g, c) in [
         ("grund", r.grund),
+        ("buehne", r.buehne),
         ("leiste", r.leiste),
         ("erhoben", r.erhoben),
         ("inspektor", r.inspektor),
@@ -685,6 +753,26 @@ pub fn kontrastpaare(r: &Rollen, t: &Terminalfarben) -> Vec<Kontrastpaar> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tiles_have_joints_between_and_none_at_the_edge() {
+        assert_eq!(
+            (MASSE.kachelabstand, MASSE.radius_kachel, MASSE.fokusrahmen),
+            (4.0, 8.0, 2.0)
+        );
+        let f = egui::Rect::from_min_size(egui::pos2(240.0, 90.0), egui::vec2(1040.0, 710.0));
+        let l = kachel_lagen(f, 6);
+        assert_eq!(l.len(), 6);
+        assert_eq!(l[0].min, f.min);
+        assert_eq!(l[5].max, f.max);
+        assert!((l[1].left() - l[0].right() - 4.0).abs() < 1e-3);
+        assert!((l[3].top() - l[0].bottom() - 4.0).abs() < 1e-3);
+        assert_eq!(kachel_lagen(f, 1), vec![f]);
+        assert_eq!(kachel_lagen(f, 0), Vec::<egui::Rect>::new());
+        assert!(kachel_rahmen(true, 2));
+        assert!(!kachel_rahmen(true, 1));
+        assert!(!kachel_rahmen(false, 6));
+    }
 
     #[test]
     fn every_combination_keeps_the_contrast_of_of3() {

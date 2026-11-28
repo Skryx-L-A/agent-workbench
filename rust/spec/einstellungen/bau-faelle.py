@@ -110,7 +110,7 @@ for _z in ERSTSTARTDATEI["routen"][0]["netzziele"]:
     if _z["host"] in MODELL_HOSTS:
         _z["pfade"] = copy.deepcopy(ERSTSTART_PFADE)
 # Block effort des Erststart-Profils (Entscheid des Betreibers, 28.11.2026): für copilot an der Route des Profils (Klasse
-# internal) mit gpt-6-luna genau none und low, ohne Vorgabe. Ein Start ohne effort bleibt ohne Option; mit none lässt die
+# internal) mit gpt-6-luna genau none und low, ohne Vorgabe. Ein Start ohne effort bekommt none (Nachtrag 28.11.2026); mit none lässt die
 # Copilot CLI 1.0.88 das Feld reasoning_effort weg (gemessen 27.11.2026, ohne Option sendet sie medium).
 ERSTSTART_EFFORT = {"grenzen": [{"harness": "copilot", "klasse": "internal", "modell": ERSTSTART_MODELL,
                                  "erlaubt": ["none", "low"]}]}
@@ -771,13 +771,14 @@ def effort_code(datei):
         if not isinstance(e, dict):
             stufen.append((6, "einst.typ_falsch"))
             continue
-        if set(e) - {"harness", "klasse", "modell", "erlaubt"}:
+        if set(e) - {"harness", "klasse", "modell", "erlaubt", "vorgabe"}:
             stufen.append((3, "einst.schluessel_unbekannt"))
         if not {"harness", "erlaubt"} <= set(e):
             stufen.append((5, "einst.schluessel_fehlt"))
             continue
         if not isinstance(e["harness"], str) or ("klasse" in e and not isinstance(e["klasse"], str)) \
                 or ("modell" in e and not isinstance(e["modell"], str)) or not isinstance(e["erlaubt"], list) \
+                or ("vorgabe" in e and not isinstance(e["vorgabe"], str)) \
                 or any(not isinstance(x, str) for x in e["erlaubt"]):
             stufen.append((6, "einst.typ_falsch"))
             continue
@@ -797,7 +798,7 @@ def effort_code(datei):
             stufen.append((23, "einst.modell_form"))
         if e["harness"] not in EFFORTS:
             stufen.append((35, "einst.effort_harness"))
-        elif any(x not in EFFORTS[e["harness"]] for x in e["erlaubt"]):
+        elif any(x not in EFFORTS[e["harness"]] for x in e["erlaubt"] + ([e["vorgabe"]] if "vorgabe" in e else [])):
             stufen.append((36, "einst.effort_wert"))
     # Stufe 34 (harness.copilot.werkzeuge_ohne_rueckfrage) steht vor dem Effort; nur für den Fall der Reihenfolge.
     werkzeuge = datei.get("harness", {}).get("copilot", {}).get("werkzeuge_ohne_rueckfrage", [])
@@ -816,9 +817,17 @@ def erlaubte_efforts(datei, harness, route, modell):
     return [w for w in EFFORTS[harness] if all(w in e["erlaubt"] for e in passend)]
 
 
-def fall_effort(name, beschreibung, datei, soll, efforts=None):
+def effort_vorgabe(datei, harness, route, modell):
+    """Die Vorgabe der Admins (Entscheid des Betreibers, 28.11.2026): `vorgabe` der ersten passenden Grenze, die eine trägt."""
+    klasse = next(r["klasse"] for r in datei["routen"] if r["schluessel"] == route)
+    return next((e["vorgabe"] for e in datei.get("effort", {}).get("grenzen", []) if e["harness"] == harness
+                 and e.get("klasse", klasse) == klasse and e.get("modell", modell) == modell and "vorgabe" in e), None)
+
+
+def fall_effort(name, beschreibung, datei, soll, efforts=None, vorgaben=None):
     """Ein Fall zum Block effort; soll ist der ausgeschriebene Code, die Referenz muss ihn treffen. `efforts` nennt
-    für gültige Fälle die erlaubten Efforts je (Harness, Route, Modell); sie stehen auch in der Erwartung."""
+    für gültige Fälle die erlaubten Efforts je (Harness, Route, Modell); sie stehen auch in der Erwartung. `vorgaben` nennt
+    je Eintrag von `efforts` die Vorgabe (oder None); dann trägt jeder Eintrag der Erwartung dazu `vorgabe`."""
     ist = effort_code(datei)
     if ist != soll:
         raise SystemExit(f"FEHLER {name}: Referenz {ist!r}, Tabelle {soll!r}")
@@ -826,9 +835,16 @@ def fall_effort(name, beschreibung, datei, soll, efforts=None):
         for (h, r, m), liste in efforts:
             if erlaubte_efforts(datei, h, r, m) != liste:
                 raise SystemExit(f"FEHLER {name}: erlaubte_efforts({h}, {r}, {m}) = {erlaubte_efforts(datei, h, r, m)!r}, Tabelle {liste!r}")
+    if vorgaben is not None:
+        for ((h, r, m), _), v in zip(efforts, vorgaben):
+            if effort_vorgabe(datei, h, r, m) != v:
+                raise SystemExit(f"FEHLER {name}: effort_vorgabe({h}, {r}, {m}) = {effort_vorgabe(datei, h, r, m)!r}, Tabelle {v!r}")
     erwartet = {"gueltig": True} if soll is None else {"gueltig": False, "code": soll}
     if efforts:
         erwartet["efforts"] = [{"harness": h, "route": r, "modell": m, "erlaubt": liste} for (h, r, m), liste in efforts]
+    if vorgaben is not None:
+        for eintrag, v in zip(erwartet["efforts"], vorgaben):
+            eintrag["vorgabe"] = v
     FAELLE.append((name, {"beschreibung": beschreibung, "text": text(datei)}, erwartet))
 
 
@@ -894,6 +910,25 @@ fall_effort("effort-harness-vor-wert", "unbekannter Harness geht vor dem Wert (S
 fall_effort("effort-nach-werkzeug", "Werkzeugwert in harness (Stufe 34) geht vor dem Effort (Stufe 36)",
              f2(lambda o: o.update(harness={"copilot": {"werkzeuge_ohne_rueckfrage": ["yolo"]}},
                                    effort={"grenzen": [{"harness": "pi", "erlaubt": ["ultra"]}]})), "einst.werkzeug_wert")
+# Vorgabe einer Grenze (Entscheid des Betreibers, 28.11.2026): der Effort, den „Lauf starten“ für einen Start ohne effort
+# weitergibt. Ein Wert des Harness (Stufe 36); ob er erlaubt ist, prüft erst Stufe 18 von Vertrag 1.
+fall_effort("gueltig-effort-vorgabe", "Vorgabe low für copilot, none für gpt-6-luna; es gilt die erste passende Grenze mit Vorgabe",
+             eff([{"harness": "copilot", "erlaubt": ["none", "low"], "vorgabe": "low"},
+                  {"harness": "copilot", "modell": "gpt-6-luna", "erlaubt": ["none", "low"], "vorgabe": "none"},
+                  {"harness": "pi", "klasse": "kundendaten", "erlaubt": ["off", "low"]}]), None,
+             [(("copilot", "cloud-beispiel", "auto"), ["none", "low"]),
+              (("copilot", "cloud-beispiel", "gpt-6-luna"), ["none", "low"]),
+              (("pi", "lokal-beispiel", "qwen3:8b"), ["off", "low"])],
+             ["low", "low", None])
+fall_effort("gueltig-effort-vorgabe-ausserhalb", "Vorgabe medium außerhalb von erlaubt: die Datei ist gültig, der Start nicht",
+             eff([{"harness": "copilot", "erlaubt": ["none", "low"], "vorgabe": "medium"}]), None,
+             [(("copilot", "cloud-beispiel", "auto"), ["none", "low"])], ["medium"])
+fall_effort("effort-vorgabe-typ", "Vorgabe als Zahl", eff([{"harness": "copilot", "erlaubt": ["low"], "vorgabe": 1}]),
+             "einst.typ_falsch")
+fall_effort("effort-vorgabe-wert-fremd", "Vorgabe none gibt es bei copilot, nicht bei pi",
+             eff([{"harness": "pi", "erlaubt": ["low"], "vorgabe": "none"}]), "einst.effort_wert")
+fall_effort("effort-vorgabe-wert-gross", "Vorgabe groß geschrieben",
+             eff([{"harness": "copilot", "erlaubt": ["low"], "vorgabe": "Low"}]), "einst.effort_wert")
 
 
 def main():

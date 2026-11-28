@@ -338,7 +338,9 @@ ABGEWIESEN_KUNDE = {"exit": 77, "stderr": "lauf.ordner_anderer_kunde: Ordner geh
 ABGEWIESEN_KAPUTT = {"exit": 78, "stderr": "lauf.ordner_marke_kaputt: Ordnermarke unlesbar oder beschaedigt",
                      "suche_gestartet": False, "modellweg_gestartet": False}
 
-COP_ARGV = ["copilot", "--model", "claude-sonnet-5.5", "--disable-builtin-mcps", "--additional-mcp-config", "@<heim>/.copilot/wb-mcp.json"]
+# Seit dem Entscheid des Betreibers vom 28.11.2026 bekommt copilot immer einen ausdrücklichen Effort; ohne Effort und ohne Vorgabe
+# none, direkt nach dem Modell (Abschnitt „Effort immer ausdrücklich“).
+COP_ARGV = ["copilot", "--model", "claude-sonnet-5.5", "--reasoning-effort", "none", "--disable-builtin-mcps", "--additional-mcp-config", "@<heim>/.copilot/wb-mcp.json"]
 
 AUFRUFE = [
     ("aufruf-ein-argument", "argv ohne Pfad", {"argv": ["<programm>"]},
@@ -649,8 +651,10 @@ def einst_werkzeuge(werte, route_modell=None):
     return obj
 
 
-def argv_cop(modell_args=("--model", "claude-sonnet-5.5"), werte=()):
+def argv_cop(modell_args=("--model", "claude-sonnet-5.5"), werte=(), effort="none"):
+    """Startbefehl von copilot; das Effort-Paar steht direkt nach dem Modell, bei auto also vor --auto-tier."""
     zusatz = [x for w in werte for x in ("--allow-tool", w)]
+    modell_args = [*modell_args[:2], "--reasoning-effort", effort, *modell_args[2:]]
     return ["copilot", *modell_args, "--disable-builtin-mcps", "--additional-mcp-config",
             "@<heim>/.copilot/wb-mcp.json", *zusatz]
 
@@ -1007,6 +1011,30 @@ def erlaubte_efforts(einst, harness, route, modell):
     return [w for w in EFFORTS[harness] if all(w in e["erlaubt"] for e in passend)]
 
 
+# Effort immer ausdrücklich (Entscheid des Betreibers, 28.11.2026): Ohne Option sendet die Copilot CLI selbst medium.
+COPILOT_RUECKFALL = "none"
+
+
+def effort_vorgabe(einst, harness, route, modell):
+    """Die vorgabe der ersten passenden Grenze, die eine trägt (Reihenfolge der Datei), sonst None (Vertrag 2)."""
+    klasse = next(r["klasse"] for r in einst["routen"] if r["schluessel"] == route)
+    return next((e["vorgabe"] for e in einst.get("effort", {}).get("grenzen", []) if e["harness"] == harness
+                 and e.get("klasse", klasse) == klasse and e.get("modell", modell) == modell and "vorgabe" in e), None)
+
+
+def effort_gewaehlt(start, einst):
+    """Der Effort des Starts, sonst die Vorgabe der Admins."""
+    if start["effort"] is not None:
+        return start["effort"]
+    return effort_vorgabe(einst, start["harness"], start["route"], start["modell"])
+
+
+def effort_wirksam(start, einst):
+    """Der Effort, den „Lauf starten“ weitergibt: gewählt, sonst none für copilot, sonst keiner."""
+    e = effort_gewaehlt(start, einst)
+    return COPILOT_RUECKFALL if e is None and start["harness"] == "copilot" else e
+
+
 def code_f2(start, einst, form=None):
     """Referenz der Stufen von Fassung 2 für Starts, deren übrige Felder gültig sind (Stufen 3 bis 18).
 
@@ -1047,7 +1075,14 @@ def code_f2(start, einst, form=None):
         return "start.kunde_unbekannt"
     if ROUTENART[start["harness"]] != r["art"]:
         return "start.harness_route_unvertraeglich"
-    if e is not None and e not in erlaubte_efforts(einst, start["harness"], start["route"], start["modell"]):
+    # Stufe 18 prüft den weitergegebenen Effort (Entscheid des Betreibers, 28.11.2026). Der Rückfall none steht für den
+    # Start ohne Effort und ist gültig, solange kein Effort wählbar ist.
+    erlaubt = erlaubte_efforts(einst, start["harness"], start["route"], start["modell"])
+    g = effort_gewaehlt(start, einst)
+    if g is not None and g not in erlaubt:
+        return "start.effort_grenze"
+    w = effort_wirksam(start, einst)
+    if g is None and w is not None and erlaubt and w not in erlaubt:
         return "start.effort_grenze"
     return None
 
@@ -1195,8 +1230,8 @@ def sitzungsoption(harness, kennung, fortsetzen):
     return {"claude": ["--resume", kennung], "copilot": [f"--resume={kennung}"], "pi": ["--session", kennung]}[harness]
 
 
-def harness_argv_f2(start, kennung, fortsetzen):
-    h, m, e = start["harness"], start["modell"], start["effort"]
+def harness_argv_f2(start, einst, kennung, fortsetzen):
+    h, m, e = start["harness"], start["modell"], effort_wirksam(start, einst)
     argv = {"claude": ["claude", "--model", m], "copilot": ["copilot", "--model", m],
             "pi": ["pi", "--provider", "wb-lokal", "--model", m], "opencode": ["opencode", "--model", "wb-lokal/" + m]}[h]
     if e is not None and h != "opencode":  # opencode: Effort als Eintrag der Konfigurationsdatei, nie im argv
@@ -1220,7 +1255,7 @@ def lauf_f2(start, lage):
     if alt is None:
         g = {"fassung": 1, "harness": h, "arbeitsordner": start["arbeitsordner"], "route": start["route"], "kunde": start["kunde"],
              "kennung": None if h in OHNE_FORTSETZEN else NEU_KENNUNG}
-        aus = {"exec": h, "harness_argv": harness_argv_f2(start, NEU_KENNUNG, False), "stderr": "", "suche_gestartet": True,
+        aus = {"exec": h, "harness_argv": harness_argv_f2(start, lage["einstellungen"], NEU_KENNUNG, False), "stderr": "", "suche_gestartet": True,
                "gespraeche_danach": {**gespraeche, neu: g}, "zustandsordner_beim_start": "leer"}
         if h in OHNE_FORTSETZEN:
             aus["gespraech_mit_zustand"] = [neu]
@@ -1246,7 +1281,7 @@ def lauf_f2(start, lage):
     if neu in gespraeche:
         return abgewiesen("lauf.sitzung_belegt")
     danach = {k: v for k, v in gespraeche.items() if k != alt}
-    return {"exec": h, "harness_argv": harness_argv_f2(start, g["kennung"], True), "stderr": "", "suche_gestartet": True,
+    return {"exec": h, "harness_argv": harness_argv_f2(start, lage["einstellungen"], g["kennung"], True), "stderr": "", "suche_gestartet": True,
             "gespraeche_danach": {**danach, neu: g}, "zustandsordner_beim_start": "gespraech der vorgaengersitzung"}
 
 
@@ -1325,6 +1360,71 @@ aufruf_f2("aufruf-f2-fortsetzen-gespraech-ohne-route", "gespraech.json ohne rout
 aufruf_f2("aufruf-f2-fortsetzen-neu-belegt", "zur neuen Sitzung liegt schon ein Gespräch",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2), "s-4": gespraech(COP2)}},
                   "lauf.sitzung_belegt")
+
+
+# Effort immer ausdrücklich (Entscheid des Betreibers, 28.11.2026; Abschnitt „Effort immer ausdrücklich“): Bei copilot gibt „Lauf
+# starten“ immer einen Effort weiter, ohne Effort die Vorgabe der passenden Grenze, ohne Vorgabe none. pi und opencode bekommen
+# ohne Vorgabe keinen. Die Grenzen gleichen dem Erststart-Profil (none und low), hier für das Modell der Fälle.
+def einst_vorgabe(*grenzen):
+    obj = copy.deepcopy(EINSTELLUNGEN_2)
+    obj["effort"] = {"grenzen": list(grenzen)}
+    return obj
+
+
+COP_NONE_LOW = {"harness": "copilot", "modell": COPILOT["modell"], "erlaubt": ["none", "low"]}
+EINST_NONE_LOW = einst_vorgabe(COP_NONE_LOW)
+EINST_VORGABE_LOW = einst_vorgabe(dict(COP_NONE_LOW, vorgabe="low"))
+EINST_VORGABE_AUSSEN = einst_vorgabe(dict(COP_NONE_LOW, vorgabe="medium"))
+EINST_PI_VORGABE = einst_vorgabe({"harness": "pi", "erlaubt": ["off", "low"], "vorgabe": "low"})
+COP2_OHNE = dict(COP2, effort=None)
+PI2_OHNE = dict(PI2, effort=None)
+
+
+def aufruf_effort(name, beschreibung, start, einst, soll_code=None, sitzung="s-2"):
+    """Neuer Start der Fassung 2; mit soll_code endet „Lauf starten“ in Schritt 4 mit 65 und startet kein Kind."""
+    if soll_code is None:
+        aufruf_f2(name, beschreibung, dict(start, fortsetzung_von=None), {"einstellungen": einst}, sitzung=sitzung)
+        return
+    inhalt = {"fassung": 2, "sitzung": sitzung, **{k: v for k, v in heim(dict(start, fortsetzung_von=None)).items()
+                                                   if k != "fassung"}}
+    ist = code_f2(inhalt, einst, D)
+    if ist != soll_code:
+        raise SystemExit(f"FEHLER {name}: Referenz {ist!r}, Tabelle {soll_code!r}")
+    lage = {**LAGE_GRUND, "einstellungen": einst, "start": inhalt}
+    FAELLE.append((name, {"beschreibung": beschreibung, "form": "aufruf", "lage": lage},
+                   {"exit": 65, "stderr": f"{soll_code}: Effort ausserhalb der Grenze", "suche_gestartet": False,
+                    "modellweg_gestartet": False}))
+
+
+aufruf_effort("aufruf-effort-copilot-ohne-vorgabe", "copilot ohne Effort und ohne Vorgabe: --reasoning-effort none",
+              COP2_OHNE, EINST_NONE_LOW)
+aufruf_effort("aufruf-effort-copilot-ohne-block", "copilot ohne Effort, Einstellungen ohne Block: auch dann none",
+              COP2_OHNE, EINSTELLUNGEN_2)
+aufruf_effort("aufruf-effort-copilot-vorgabe", "copilot ohne Effort, die Grenze hat die Vorgabe low: --reasoning-effort low",
+              COP2_OHNE, EINST_VORGABE_LOW)
+aufruf_effort("aufruf-effort-copilot-ausdruecklich", "copilot mit low: low, die Vorgabe zählt nicht",
+              dict(COP2, effort="low"), EINST_VORGABE_LOW)
+aufruf_effort("aufruf-effort-copilot-none-vor-vorgabe", "copilot mit none bei Vorgabe low: none",
+              dict(COP2, effort="none"), EINST_VORGABE_LOW)
+aufruf_effort("aufruf-effort-vorgabe-ausserhalb", "die Vorgabe medium liegt außerhalb der Grenze none und low: 65",
+              COP2_OHNE, EINST_VORGABE_AUSSEN, "start.effort_grenze")
+aufruf_effort("aufruf-effort-rueckfall-ausserhalb", "die Grenze erlaubt low, medium und high, nicht none: 65",
+              COP2_OHNE, EINST_EFFORT, "start.effort_grenze")
+aufruf_effort("aufruf-effort-pi-ohne-vorgabe", "pi ohne Effort und ohne Vorgabe: keine Option wie bisher",
+              PI2_OHNE, EINST_NONE_LOW)
+aufruf_effort("aufruf-effort-pi-vorgabe", "pi ohne Effort, die Grenze hat die Vorgabe low: --thinking low",
+              PI2_OHNE, EINST_PI_VORGABE)
+aufruf_effort("aufruf-effort-opencode-ohne-vorgabe", "opencode ohne Effort und ohne Vorgabe: keine Option wie bisher",
+              dict(OC2, effort=None), EINST_NONE_LOW)
+ausstehend("anfrage-f2-gueltig-effort-rueckfall", A, "copilot ohne Effort: none ist erlaubt", COP2_OHNE, None, einst=EINST_NONE_LOW)
+ausstehend("anfrage-f2-gueltig-effort-vorgabe", A, "copilot ohne Effort mit Vorgabe low in der Grenze", COP2_OHNE, None,
+           einst=EINST_VORGABE_LOW)
+ausstehend("anfrage-f2-effort-vorgabe-ausserhalb", A, "die Vorgabe medium liegt außerhalb der Grenze", COP2_OHNE,
+           "start.effort_grenze", einst=EINST_VORGABE_AUSSEN)
+ausstehend("anfrage-f2-effort-rueckfall-ausserhalb", A, "none liegt außerhalb der Grenze low, medium und high", COP2_OHNE,
+           "start.effort_grenze")
+ausstehend("datei-f2-effort-vorgabe-ausserhalb", D, "Startdatei: die Vorgabe medium liegt außerhalb der Grenze", COP2_OHNE,
+           "start.effort_grenze", einst=EINST_VORGABE_AUSSEN)
 
 
 # Gespräch einer Sitzung der Fassung 1 (Absatz „Vorgänger der Fassung 1“, Entscheid des Betreibers, 27.11.2026): Schritt 8 legt

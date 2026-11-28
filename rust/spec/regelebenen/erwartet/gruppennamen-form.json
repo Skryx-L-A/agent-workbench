@@ -1,0 +1,157 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.kennung_form",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.kennung_form",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "e1dbcbc86f684db076f85a423b3f4fc50076d427f1734e11e1c0f935d764d4ce",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "e84077ed8b6d5d80664f2606a4f09dd824fcb38bcaeada491ecf68baff18db8b",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "bab4d9fb798290f96c836583d7137cf3bba4c9ae06014e833e1b4219489db01b",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "6790265e4b6c7ec5fe79fe8151f68c08f1889863134a28bece69fd52f271077b",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.typ_falsch",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.typ_falsch",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "7d8439b7103ea19662410b37820ba5ba0e189402f8b9a18d906b53ce5bd757d8",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.typ_falsch",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.typ_falsch",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "89240e46bb040d5783bab5304e9cb05be175b7bbebbcdd83b34f31da12e0d5b5",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": true,
+   "code": null,
+   "zeile": {
+    "aktionsname": "regel.geaendert",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": null,
+    "ebene": "firma",
+    "ergebnis": "geaendert",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "389555de2fd1a889ed7dc23fa2a3e6d8847f6481caa22e1dc35863c5fc893ca3",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.gruppe_unbekannt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "389555de2fd1a889ed7dc23fa2a3e6d8847f6481caa22e1dc35863c5fc893ca3",
+    "antrag": null,
+    "code": "ebenen.gruppe_unbekannt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "915a101c135c849c3af70cf4155c4462b336d38d1094e682b1c7d93ad75d5f2a",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.name_doppelt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "389555de2fd1a889ed7dc23fa2a3e6d8847f6481caa22e1dc35863c5fc893ca3",
+    "antrag": null,
+    "code": "ebenen.name_doppelt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "f77c925c2039aa672c6a732b080ae9d43ccb13a2a05a853a1bf4f7e6bda95ca0",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  }
+ ]
+}

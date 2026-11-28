@@ -784,6 +784,57 @@
       }
     },
     {
+      "fall": "vorgang.abgelehnt mit Vorgang person.pseudonym: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.person_fehler\",\"vorgang\":\"person.pseudonym\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"97992625e1a4b5c305cb8ebbcc48a3aef4877bedc098e43e957194e3f7c4c655\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Vorgang worker.anfordern: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.worker_hoechstzahl\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"fea09943c8029f2a54757106ae23fc47850a24e37988476cc1a0adbedc6a08a6\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Vorgang worker.starten: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"worker.starten\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
       "fall": "vorgang.abgelehnt mit Grund null: Form falsch",
       "dateien": [
         {

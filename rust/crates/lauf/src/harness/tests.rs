@@ -315,3 +315,117 @@ fn opencode_gets_its_model_of_the_provider_and_its_effort_only_in_its_file() {
     // no key of any kind in the file: the model path needs none (contract 1, E4)
     assert!(!opencode_konfig("m", Some("low")).contains("apiKey"));
 }
+
+#[test]
+fn the_excerpt_names_only_option_names_and_the_values_of_model_and_effort() {
+    let heim = PathBuf::from("/heim/nutzerin/heim");
+    let sitzung = neu_optionen("6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b");
+    let a = argv(
+        "copilot",
+        Path::new("/heim/nutzerin/bin/copilot"),
+        "gpt-6-luna",
+        &heim,
+        &[einstellungen::Werkzeug::Shell],
+        Some("none"),
+        &sitzung,
+    );
+    assert_eq!(
+        argv_auszug("copilot", &a),
+        "copilot --model gpt-6-luna --reasoning-effort none --disable-builtin-mcps --additional-mcp-config \
+         --allow-tool --session-id"
+    );
+    let auto = argv(
+        "copilot",
+        Path::new("/x/copilot"),
+        "auto",
+        &heim,
+        &[],
+        Some("low"),
+        &[],
+    );
+    assert_eq!(
+        argv_auszug("copilot", &auto),
+        "copilot --model auto --reasoning-effort low --auto-tier --disable-builtin-mcps --additional-mcp-config"
+    );
+    let fortsetzen = fortsetzen_optionen("copilot", "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b")
+        .expect("copilot continues");
+    let weiter = argv(
+        "copilot",
+        Path::new("/x/copilot"),
+        "m",
+        &heim,
+        &[],
+        None,
+        &fortsetzen,
+    );
+    assert_eq!(
+        argv_auszug("copilot", &weiter),
+        "copilot --model m --disable-builtin-mcps --additional-mcp-config --resume"
+    );
+    let pi = argv(
+        "pi",
+        Path::new("/x/pi"),
+        "qwen3:8b",
+        &heim,
+        &[],
+        Some("low"),
+        &sitzung,
+    );
+    assert_eq!(
+        argv_auszug("pi", &pi),
+        "pi --provider --model qwen3:8b --thinking low --session-id"
+    );
+    let claude = argv(
+        "claude",
+        Path::new("/x/claude"),
+        "m",
+        &heim,
+        &[],
+        Some("high"),
+        &[],
+    );
+    assert_eq!(
+        argv_auszug("claude", &claude),
+        "claude --model m --effort high"
+    );
+    // opencode has no effort option: a value after a foreign option name is never taken
+    let oc = w(&[
+        "/x/opencode",
+        "--model",
+        "wb-lokal/m",
+        "--thinking",
+        "geheim",
+    ]);
+    assert_eq!(
+        argv_auszug("opencode", &oc),
+        "opencode --model wb-lokal/m --thinking"
+    );
+}
+
+#[test]
+fn no_other_value_reaches_the_excerpt() {
+    // counter check: a prompt text, a path with a user name and the key of a session never appear
+    let a = w(&[
+        "/heim/nutzerin/bin/copilot",
+        "--model",
+        "gpt-6-luna",
+        "--reasoning-effort",
+        "none",
+        "-p",
+        "Geheimer Prompt-Text",
+        "--additional-mcp-config",
+        "@/heim/nutzerin/.copilot/wb-mcp.json",
+        "--resume=6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b",
+        "frei stehender Wert",
+    ]);
+    let z = argv_auszug("copilot", &a);
+    for verboten in [
+        "Geheimer", "Prompt", "nutzerin", "/heim", "6f1c2e3a", "frei", "-p ",
+    ] {
+        assert!(!z.contains(verboten), "{verboten} in {z}");
+    }
+    assert_eq!(
+        z,
+        "copilot --model gpt-6-luna --reasoning-effort none --additional-mcp-config --resume"
+    );
+}

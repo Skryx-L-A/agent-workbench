@@ -1,0 +1,134 @@
+{
+  "beschreibung": "Es gibt nur eine Ebene: Ein mit Zusage gestarteter Worker fordert selbst an und bekommt stelle.orchestrator_ist_worker, vor Route, Klasse und Kunde.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "Nachtrag 27.11.2026, Abschnitt 15.3"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]},{\"schluessel\":\"cloud-offen\",\"art\":\"cloud\",\"klasse\":\"oeffentlich\",\"netzziele\":[{\"host\":\"offen.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}},\"effort\":{\"grenzen\":[{\"harness\":\"claude\",\"erlaubt\":[\"low\",\"medium\"]},{\"harness\":\"pi\",\"erlaubt\":[\"low\"]}]}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "worker_regeln": {
+    "text": "{\"fassung\":1,\"worker\":{\"hoechstzahl\":4,\"harness\":[\"claude\",\"pi\"],\"modelle\":[\"claude-sonnet-5-5\",\"claude-sonnet-5.5\",\"qwen3:8b\"],\"effort\":[\"low\",\"medium\"]}}"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600100,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "medium",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "frei",
+          "sitzung": "s-1",
+          "zusage": "zs-1795179540000-1",
+          "zusage_bis_ms": 1795179630100
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600200,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-3",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:00.200Z\"}",
+            "sha256": "a26947361959adf3eabedfa36c1bd4619d1954b7e80bf660cd43b3904dbad448"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600300,
+      "eingabe": {
+        "sitzung": "s-3",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "medium",
+        "laufend": 0,
+        "route": "r-fremd",
+        "kunde": null
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.orchestrator_ist_worker",
+          "grund": "Orchestrator ist selbst ein Worker"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.orchestrator_ist_worker\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"a26947361959adf3eabedfa36c1bd4619d1954b7e80bf660cd43b3904dbad448\",\"zeit\":\"2026-11-20T13:00:00.300Z\"}",
+            "sha256": "88e0df46a9d8da53fcb4cab4464f3c777df5e683c3f53651bbd2c38220abafd1"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1",
+      "s-3"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "zeilen": 3,
+    "letzte": "88e0df46a9d8da53fcb4cab4464f3c777df5e683c3f53651bbd2c38220abafd1"
+  }
+}

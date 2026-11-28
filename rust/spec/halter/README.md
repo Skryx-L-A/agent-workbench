@@ -306,9 +306,24 @@ ohne Nachweis setzt nichts), Abschnitt 11.
   derselbe. Ein gesetztes `XDG_STATE_HOME` in der Shell lenkte sonst die Anmeldung an einen Ort, den der Halter nicht liest.
 - **Ebenen der Ablage (Schritt 3):** Der Halter öffnet das Heim und jede Ebene (`.local`, `.local/state`, `agent-workbench`,
   `halter`, `geheim`) relativ zur vorigen mit `O_NOFOLLOW`. Jede Ebene ist ein Ordner der eigenen Kennung, für Gruppe und andere
-  nicht schreibbar; `geheim` hat genau 0700. Fehlt eine Ebene, legt er sie mit 0700 an, wie `werkbank-anmelden` (Anmelde-Vertrag,
+  nicht schreibbar (einzige Ausnahme: die private Gruppe, nächster Punkt); `geheim` hat genau 0700. Fehlt eine Ebene, legt er sie mit 0700 an, wie `werkbank-anmelden` (Anmelde-Vertrag,
   Abschnitt 2). Verletzt eine Ebene die Regel, endet der Start mit Exit 78 (`halter.ablage_rechte`). alt: „Der Halter prüft
   Eigentümer und Modus jeder Ebene ab dem Heimordner (Schritt 3) und öffnet mit `O_NOFOLLOW`“, ohne Regel für eine fehlende Ebene.
+- **Private Gruppe (Entscheid des Betreibers, 28.11.2026):** Eine Ebene über `geheim` (`.local`, `.local/state`,
+  `agent-workbench`, `halter`) darf für ihre Gruppe schreibbar sein, wenn diese Gruppe (gid aus `fstat` der Ebene) die
+  private Gruppe der eigenen Kennung ist. Das gilt nur, wenn alle drei Bedingungen zutreffen: (a) die gid ist die
+  Hauptgruppe (Feld 4) des einen Eintrags der eigenen uid in `/etc/passwd`; (b) `/etc/group` hat genau eine Zeile mit
+  dieser gid, und sie nennt kein Mitglied außer der eigenen Kennung; (c) kein anderer Eintrag in `/etc/passwd` hat diese
+  gid als Hauptgruppe. Der Halter liest beide Dateien selbst und streng: Eine Zeile in NIS-Form (`+` oder `-` am Anfang),
+  eine kaputte Zeile in `/etc/passwd`, die den Namen, die uid oder die gid nennt, eine kaputte Zeile in `/etc/group` mit
+  der gid oder dem Namen der Gruppe, ein zweiter Eintrag der eigenen uid oder des eigenen Namens und eine nicht lesbare
+  Datei heben die Ausnahme auf. Dann bleibt es bei Exit 78 (`halter.ablage_rechte`, fail closed). Schreibrecht für andere
+  (o+w) ist nie erlaubt. `geheim` bleibt genau 0700, jede Datei der Ablage genau 0600. Der Halter bestimmt die private
+  Gruppe einmal beim Start und wendet sie bei jedem späteren Öffnen der Ebenen an. Grund: Ubuntu gibt einem Nutzer mit
+  eigener Gruppe (`USERGROUPS_ENAB`) die umask 002; `~/.local` hat dann 0775, und der Halter endete nach der Installation
+  mit Exit 78 (gemessen auf dem Ubuntu-Cloud-Abbild 26.04.1). Eine Gruppe ohne weiteres Mitglied gibt niemandem außer der
+  eigenen Kennung Schreibrecht. Mitgliedschaften aus anderen Quellen als `/etc/group` (etwa LDAP über NSS) sieht der Halter
+  nicht. alt: Jede Ebene war für Gruppe und andere nicht schreibbar.
 - **Datei der Ablage (Nachtrag Anmelden und Paket):** Inhalt ist der Wert (1 bis 12288 Zeichen) und genau ein LF; die Datei hat höchstens
   12289 Byte. Diese Form gilt für alle Programme der Werkbank, auch für `werkbank-pruefen` (Fund F11; Paketvertrag, Prüfung `copilot`). Der Halter nimmt den Wert ohne das LF;
   eine Datei ohne LF am Ende, mit einem zweiten LF oder mit einem Zeichen außerhalb von `\x21` bis `\x7e` gilt als kein

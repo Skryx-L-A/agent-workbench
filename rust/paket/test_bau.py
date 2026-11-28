@@ -675,8 +675,58 @@ class LaufJson(unittest.TestCase):
                 else:
                     self.assertEqual(r.stdout.strip().splitlines(), ["LOG werkbank: opencode nicht in der festen Fassung, nicht eingetragen", "[][]"], r.stdout)
                     self.assertNotIn("/srv/", r.stdout.splitlines()[0])
-        # the fixed sum is the one of the program file of opencode-linux-x64 1.19.5 (measured: sha256 of package/bin/opencode of the tarball)
+        # the fixed sums are the ones of the program files of opencode-linux-x64 and opencode-linux-x64-baseline 1.19.5 (measured 27.11.2026:
+        # sha256 of package/bin/opencode of each tarball; the two files are byte-identical in this version, so the sums are equal)
         self.assertIn("LK_OPENCODE_SHA256=7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802c\n", self.block)
+        self.assertIn("LK_OPENCODE_BASELINE_SHA256=7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802c\n", self.block)
+
+    def opencode_suche(self, flags, summe):
+        """Runs `lk_suche opencode` in a fake root whose /proc/cpuinfo has the line `flags` (None: no file). The two fixed sums are
+        replaced by two different fake sums (`fest-avx2`, `fest-baseline`), so that a wrong choice between them shows; the file has the sum `summe`.
+        Returns (the entered program or "", the journal lines)."""
+        wurzel = "/srv/beispiel/.npm-global/lib/node_modules/opencode-ai"
+        with tempfile.TemporaryDirectory() as t0:
+            t = os.path.realpath(t0)
+            programm = os.path.join(t, wurzel.lstrip("/"), "bin/opencode.exe")
+            os.makedirs(os.path.dirname(programm))
+            with open(programm, "w", encoding="utf-8") as d:
+                d.write("#!/bin/sh\n")
+            os.chmod(programm, 0o755)
+            os.makedirs(os.path.join(t, "srv/beispiel/.npm-global/bin"))
+            os.symlink("../lib/node_modules/opencode-ai/bin/opencode.exe", os.path.join(t, "srv/beispiel/.npm-global/bin/opencode"))
+            if flags is not None:
+                os.makedirs(os.path.join(t, "proc"))
+                with open(os.path.join(t, "proc/cpuinfo"), "w", encoding="utf-8") as d:
+                    d.write(f"processor\t: 0\nmodel name\t: Beispiel\nflags\t\t: {flags}\n\nprocessor\t: 1\nflags\t\t: {flags}\n")
+            block = self.block.replace('LK_WURZEL=""', f'LK_WURZEL={t}')
+            skript = ("LK_OPENCODE_SHA256=fest-avx2\nLK_OPENCODE_BASELINE_SHA256=fest-baseline\n"
+                      f'lk_summe() {{ printf "%s\\n" {shlex.quote(summe)}; }}\n'
+                      'log() { printf "LOG %s\\n" "$*"; }\nheim=/srv/beispiel\nLK_OPENCODE=""\n'
+                      'lk_suche opencode\nprintf "[%s]\\n" "$LK_OPENCODE"\n')
+            r = subprocess.run(["sh", "-c", block + skript], capture_output=True, text=True, check=False)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            zeilen = r.stdout.strip().splitlines()
+            self.assertTrue(zeilen[-1].startswith("[") and zeilen[-1].endswith("]"), r.stdout)
+            return zeilen[-1][1:-1].replace(wurzel, "<w>"), zeilen[:-1]
+
+    def test_opencode_sum_follows_the_avx2_of_the_cpu(self):
+        """opencode, decision of the operator 27.11.2026: with the flag avx2 only the sum of the normal build is entered, without it (or without a readable
+        /proc/cpuinfo) only the sum of the baseline build; the other sum, a wrong sum and the sum of the other build are not entered."""
+        eingetragen = "<w>/bin/opencode.exe"
+        abgelehnt = ["LOG werkbank: opencode nicht in der festen Fassung, nicht eingetragen"]
+        mit = "fpu vme sse4_2 avx avx2 bmi2 avx512f"
+        ohne = "fpu vme sse4_2 avx avx512f bmi2 xavx2 avx2x"  # avx, avx512f and words that only contain avx2 are no avx2
+        for flags, richtig, fremd in ((mit, "fest-avx2", "fest-baseline"), (ohne, "fest-baseline", "fest-avx2"), (None, "fest-baseline", "fest-avx2")):
+            with self.subTest(flags=flags):
+                self.assertEqual(self.opencode_suche(flags, richtig), (eingetragen, []))
+                self.assertEqual(self.opencode_suche(flags, fremd), ("", abgelehnt))
+                self.assertEqual(self.opencode_suche(flags, "7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802d"), ("", abgelehnt))
+                self.assertEqual(self.opencode_suche(flags, ""), ("", abgelehnt))
+        # the flag counts in any case, as in the postinstall of opencode-ai (regular expression with the flag i)
+        self.assertEqual(self.opencode_suche("FPU AVX2 BMI2", "fest-avx2"), (eingetragen, []))
+        self.assertEqual(self.opencode_suche("FPU AVX2 BMI2", "fest-baseline"), ("", abgelehnt))
+        # the flag at the end of the line counts too
+        self.assertEqual(self.opencode_suche("fpu avx avx2", "fest-avx2"), (eingetragen, []))
 
     def test_a_dirty_value_writes_no_file(self):
         with tempfile.TemporaryDirectory() as t:

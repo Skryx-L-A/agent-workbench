@@ -3,9 +3,11 @@
 // Jeder Fall traegt die Absicht von Hand (Antwort, Zeilenarten, Endzustand). Das Modell rechnet jeden Schritt nach;
 // weicht es von der Absicht ab, bricht das Skript ab. Bytes der Zeilen kommen aus der JCS-Referenz (RFC 8785) und node:crypto.
 // Aufruf: node rust/spec/stelle/bau-faelle.mjs (leicht, ohne Abhaengigkeit). Gleicher Stand ergibt gleiche Bytes.
+// Pruefschalter: node rust/spec/stelle/bau-faelle.mjs --pruefen erzeugt im Speicher neu, schreibt nichts und vergleicht Byte fuer Byte
+// mit faelle/ (gleiche Namen, gleiche Bytes). Exit 0 nur bei Gleichheit, sonst Exit 1 mit den abweichenden Namen (wie in fassung2/).
 
 import { createHash, createHmac } from 'node:crypto';
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { jcs } from '../../../spec/protokoll/jcs.mjs';
@@ -18,6 +20,9 @@ const SCHLUESSEL = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const WERKZEUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const PSEUDONYM = /^ps_[0-9a-f]{32}$/;
 const ANFRAGE = /^mf-[0-9]{1,15}-[1-9][0-9]{0,9}$/;
+const ZUSAGE = /^zs-[0-9]{1,15}-[1-9][0-9]{0,9}$/; // Abschnitt 15.2
+const MODELL = /^[A-Za-z0-9._:/@+-]{1,128}$/; // Form von modell aus Vertrag 1 (Abschnitt 15.3)
+const ZUSAGE_FRIST = 30000; // Abschnitt 15.3 Stufe 12
 const ZEIT = /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$/;
 const MAX_MS = Date.UTC(9999, 11, 31, 23, 59, 59, 999);
 const T0 = Date.UTC(2026, 10, 20, 13, 0, 0);
@@ -25,8 +30,8 @@ const LADEN = T0 - 60000; // fester laden_ms der Faelle
 const LADEN2 = T0 + 2500; // zweiter Ladezeitpunkt (Neustart)
 const mf = (n, laden = LADEN) => `mf-${laden}-${n}`;
 const ARTEN = ['kern', 'hub', 'mensch', 'agent', 'takt', 'unbekannt'];
-const VORGAENGE = ['sitzung.starten', 'mcp.anfragen', 'mcp.entscheiden', 'mcp.einloesen', 'mcp.offene', 'mcp.stand', 'ablauf.pruefen'];
-const ERLAUBT = { 'sitzung.starten': 'kern', 'mcp.anfragen': 'hub', 'mcp.entscheiden': 'mensch', 'mcp.einloesen': 'hub', 'mcp.offene': 'mensch', 'mcp.stand': 'hub', 'ablauf.pruefen': 'takt' };
+const VORGAENGE = ['sitzung.starten', 'mcp.anfragen', 'mcp.entscheiden', 'mcp.einloesen', 'mcp.offene', 'mcp.stand', 'ablauf.pruefen', 'worker.anfordern'];
+const ERLAUBT = { 'sitzung.starten': 'kern', 'mcp.anfragen': 'hub', 'mcp.entscheiden': 'mensch', 'mcp.einloesen': 'hub', 'mcp.offene': 'mensch', 'mcp.stand': 'hub', 'ablauf.pruefen': 'takt', 'worker.anfordern': 'kern' };
 
 const GRUENDE = {
   'stelle.aufrufer_nicht_erlaubt': 'Aufrufer nicht erlaubt',
@@ -45,6 +50,17 @@ const GRUENDE = {
   'stelle.digest_abweichend': 'Aufruf weicht von der Anfrage ab',
   'stelle.nachweis_ungueltig': 'Nachweis ungueltig',
   'stelle.zeit_ungueltig': 'Zeit ungueltig',
+  'stelle.vorgabe_fehlt': 'Vorgabe fehlt oder unsicher',
+  'stelle.harness_nicht_erlaubt': 'Harness nicht erlaubt',
+  'stelle.modell_nicht_erlaubt': 'Modell nicht erlaubt',
+  'stelle.effort_nicht_erlaubt': 'Effort nicht erlaubt',
+  'stelle.worker_hoechstzahl': 'Hoechstzahl der Worker erreicht',
+  'stelle.zusage_ungueltig': 'Zusage fehlt oder passt nicht',
+  'stelle.orchestrator_ist_worker': 'Orchestrator ist selbst ein Worker',
+  'stelle.route_unbekannt': 'Route unbekannt',
+  'stelle.worker_klasse_hoeher': 'Klasse hoeher als beim Orchestrator',
+  'stelle.worker_fremder_kunde': 'Kunde weicht vom Orchestrator ab',
+  'stelle.zusagen_erschoepft': 'Zusagen erschoepft, Neustart noetig',
   'start.zu_gross': 'Start zu gross',
   'start.json_ungueltig': 'kein gueltiges JSON',
   'start.schluessel_unbekannt': 'unbekannter Schluessel',
@@ -119,7 +135,12 @@ function modellLaden(text, ladenMs) {
   const m = mcpLaden(d);
   if (m.fehler) return { fehler: m.fehler };
   const mcp = m.mcp;
-  return { z: { routen, kunden, mcp, sitzungen: {}, anfragen: {}, zaehler: 0, laden_ms: ladenMs, zeit_max: ladenMs } };
+  // Abschnitt 15: Klassen und Klasse je Route fuer worker.anfordern, Modell je Route und Block effort fuer Starts der Fassung 2
+  const klassen = d.klassen ?? [];
+  const klasse = Object.fromEntries(d.routen.map((r) => [r.schluessel, r.klasse]));
+  const routeModell = Object.fromEntries(d.routen.filter((r) => typeof r.modell === 'string').map((r) => [r.schluessel, r.modell]));
+  const grenzen = d.effort?.grenzen ?? null;
+  return { z: { routen, kunden, mcp, klassen, klasse, routeModell, grenzen, sitzungen: {}, anfragen: {}, zaehler: 0, zusagen: {}, zaehler_zusage: 0, laden_ms: ladenMs, zeit_max: ladenMs } };
 }
 
 // ---------- Referenzmodell: Pruefer der Tests und Bindung ----------
@@ -139,12 +160,35 @@ const nachweisFuer = (person, anfrage, digest, entscheidung, vorschau, schluesse
 // ---------- Referenzmodell: Start (Vertrag 1, Stufen 1 bis 14, soweit nachgerechnet) ----------
 
 const HARNESS = { claude: 'cloud', pi: 'lokal' };
+const EFFORT_WERTE = { claude: ['low', 'medium', 'high', 'xhigh', 'max'], pi: ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] };
+// Erlaubte Efforts eines Starts nach Vertrag 2, Block effort: die Werte des Harness, die in jedem passenden Eintrag stehen.
+function efforts(z, harness, route, modell) {
+  const passend = (z.grenzen ?? []).filter((g) => g.harness === harness && (g.klasse === undefined || g.klasse === z.klasse[route])
+    && (modell === 'auto' ? (g.modell === undefined || g.modell === 'auto') : (g.modell === undefined || g.modell === modell)));
+  if (passend.length === 0) return [];
+  return EFFORT_WERTE[harness].filter((w) => passend.every((g) => g.erlaubt.includes(w)));
+}
+// Startdatei der Fassung 2 (Vertrag 1, Nachtrag 26.11.2026): nur gueltige Starts mit Effort, name und fortsetzung_von null.
+// Was ausserhalb liegt, rechnet dieses Modell nicht nach; das Skript bricht dann ab, statt eine Erwartung zu raten.
+function start2Pruefen(d, z) {
+  const ausserhalb = (warum) => { throw new Error(`Startdatei der Fassung 2 ausserhalb des Modells: ${warum}`); };
+  const alle = ['fassung', 'sitzung', 'harness', 'modell', 'route', 'kunde', 'arbeitsordner', 'effort', 'name', 'fortsetzung_von'];
+  if (Object.keys(d).length !== alle.length || alle.some((k) => !(k in d))) ausserhalb('Schluessel');
+  if (d.name !== null || d.fortsetzung_von !== null) ausserhalb('name oder fortsetzung_von');
+  if (![d.sitzung, d.harness, d.route].every((v) => typeof v === 'string' && SCHLUESSEL.test(v)) || (d.kunde !== null && !(typeof d.kunde === 'string' && SCHLUESSEL.test(d.kunde)))) ausserhalb('Kennung');
+  if (typeof d.modell !== 'string' || !MODELL.test(d.modell) || d.arbeitsordner !== '/home/beispiel/projekt') ausserhalb('Modell oder Ordner');
+  if (!(d.harness in HARNESS) || !(d.route in z.routen) || (d.kunde !== null && !z.kunden.includes(d.kunde)) || HARNESS[d.harness] !== z.routen[d.route]) ausserhalb('Harness, Route oder Kunde');
+  if (d.route in z.routeModell && z.routeModell[d.route] !== d.modell) ausserhalb('Modell der Route');
+  if (typeof d.effort !== 'string' || !/^[a-z]{1,16}$/.test(d.effort) || !efforts(z, d.harness, d.route, d.modell).includes(d.effort)) ausserhalb('Effort');
+  return { ok: true, d, art: z.routen[d.route] };
+}
 function startPruefen(bytes, z) {
   const nein = (code, d) => ({ code, d });
   if (bytes.length > 4096) return nein('start.zu_gross', null);
   let d;
   try { d = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)); } catch { return nein('start.json_ungueltig', null); }
   if (!istObjekt(d)) return nein('start.json_ungueltig', null);
+  if (d.fassung === 2) return start2Pruefen(d, z);
   const alle = ['fassung', 'sitzung', 'harness', 'modell', 'route', 'kunde', 'arbeitsordner'];
   if (Object.keys(d).some((k) => !alle.includes(k))) return nein('start.schluessel_unbekannt', d);
   if (alle.some((k) => !(k in d))) return nein('start.schluessel_fehlt', d);
@@ -198,7 +242,32 @@ const FORM = {
   'mcp.offene': {},
   'mcp.stand': { anfrage: (v) => typeof v === 'string' && ANFRAGE.test(v) },
   'ablauf.pruefen': {},
+  'worker.anfordern': {
+    effort: (v) => typeof v === 'string' && SCHLUESSEL.test(v),
+    harness: (v) => typeof v === 'string' && SCHLUESSEL.test(v),
+    kunde: (v) => v === null || (typeof v === 'string' && SCHLUESSEL.test(v)),
+    laufend: (v) => Number.isInteger(v) && v >= 0 && v <= 1000,
+    modell: (v) => typeof v === 'string' && MODELL.test(v),
+    rolle: (v) => typeof v === 'string' && SCHLUESSEL.test(v),
+    route: (v) => typeof v === 'string' && SCHLUESSEL.test(v),
+    sitzung: (v) => typeof v === 'string' && SCHLUESSEL.test(v),
+  },
 };
+
+// Regeln der Admins fuer Worker (Abschnitt 14.5): geschlossen, sonst keine Regeln.
+function workerLaden(text) {
+  if (text === undefined) return null;
+  let d;
+  try { d = JSON.parse(text); } catch { return null; }
+  const liste = (x, form = SCHLUESSEL) => Array.isArray(x) && x.length >= 1 && x.length <= 64 && x.every((w) => typeof w === 'string' && form.test(w)) && new Set(x).size === x.length;
+  if (!istObjekt(d) || Object.keys(d).sort().join() !== 'fassung,worker' || d.fassung !== 1) return null;
+  const w = d.worker;
+  if (!istObjekt(w) || Object.keys(w).sort().join() !== 'effort,harness,hoechstzahl,modelle') return null;
+  if (!Number.isInteger(w.hoechstzahl) || w.hoechstzahl < 1 || w.hoechstzahl > 64) return null;
+  // Abschnitt 15.3: modelle in der Form von modell aus Vertrag 1
+  if (!liste(w.harness) || !liste(w.modelle, MODELL) || !liste(w.effort)) return null;
+  return w;
+}
 
 function endzeile(r, ergebnis) {
   return {
@@ -220,6 +289,8 @@ function entscheide(z0, e, jetzt) {
     const r = z.anfragen[id];
     if ((r.zustand === 'offen' || r.zustand === 'erteilt') && eff >= r.bis) { r.zustand = 'abgelaufen'; r.vorschau = null; zeilen.push(endzeile(r, 'abgelaufen')); abgelaufen += 1; }
   }
+  // Abschnitt 15.3, Fristen: abgelaufene Zusagen fallen weg, ohne Zeile; eine Zusage gilt, solange jetzt kleiner als ihr Fristende ist.
+  for (const id of Object.keys(z.zusagen)) if (eff >= z.zusagen[id].bis) delete z.zusagen[id];
   const aus = (antwort) => ({ z, antwort, zeilen, zeit_ms: eff });
   const nein = (code, sicht = {}) => {
     zeilen.push(e.vorgang === 'sitzung.starten'
@@ -236,7 +307,7 @@ function entscheide(z0, e, jetzt) {
   if (e.vorgang === 'mcp.offene') {
     const offene = ids.filter((id) => z.anfragen[id].zustand === 'offen').map((id) => {
       const r = z.anfragen[id];
-      return { anfrage: id, server: r.server, werkzeug: r.werkzeug, vorschau: r.vorschau, vorschau_sha256: r.vorschau_sha256, digest: r.digest, frist_bis_ms: r.bis };
+      return { anfrage: id, server: r.server, sitzung: r.sitzung, werkzeug: r.werkzeug, vorschau: r.vorschau, vorschau_sha256: r.vorschau_sha256, digest: r.digest, frist_bis_ms: r.bis };
     });
     return aus({ ok: true, ergebnis: 'offene', offene });
   }
@@ -246,12 +317,41 @@ function entscheide(z0, e, jetzt) {
     const r = startPruefen(bytes, z);
     if (!r.ok) return nein(r.code, { d: r.d });
     if (r.d.sitzung in z.sitzungen) return nein('stelle.sitzung_vergeben', { d: r.d });
-    z.sitzungen[r.d.sitzung] = { route: r.d.route, kunde: r.d.kunde, harness: r.d.harness };
+    // Abschnitt 15.2, Stufe 4: nur mit orchestrator; die Zusage muss bestehen, zum Orchestrator gehoeren und in jedem Feld gleichen
+    const orch = e.eingabe.orchestrator ?? null;
+    if (orch !== null) {
+      const zs = z.zusagen[e.eingabe.zusage];
+      if (!zs) return nein('stelle.zusage_ungueltig', { d: r.d });
+      if (zs.orchestrator !== orch || ['harness', 'modell', 'effort', 'route', 'kunde'].some((k) => !(k in r.d) || r.d[k] !== zs[k])) return nein('stelle.zusage_ungueltig', { d: r.d });
+      delete z.zusagen[e.eingabe.zusage];
+    }
+    z.sitzungen[r.d.sitzung] = { route: r.d.route, kunde: r.d.kunde, harness: r.d.harness, orchestrator: orch };
     zeilen.push({ aktionsname: 'sitzung.gestartet', ergebnis: 'gestartet', grund: null, ...stelleSicht(r.d) });
     return aus({ ok: true, ergebnis: 'gestartet', sitzung: r.d.sitzung, route: r.d.route, route_art: r.art });
   }
 
   const i = e.eingabe;
+  if (e.vorgang === 'worker.anfordern') {
+    // Abschnitt 15.3, Stufe 4 in dieser Reihenfolge
+    const w = z.worker;
+    if (!w) return nein('stelle.vorgabe_fehlt');
+    const o = z.sitzungen[i.sitzung];
+    if (!o) return nein('stelle.sitzung_unbekannt');
+    if (o.orchestrator !== null) return nein('stelle.orchestrator_ist_worker');
+    if (!(i.route in z.routen)) return nein('stelle.route_unbekannt');
+    if (z.klassen.indexOf(z.klasse[i.route]) > z.klassen.indexOf(z.klasse[o.route])) return nein('stelle.worker_klasse_hoeher');
+    if (i.kunde !== o.kunde) return nein('stelle.worker_fremder_kunde');
+    if (!w.harness.includes(i.harness)) return nein('stelle.harness_nicht_erlaubt');
+    if (!w.modelle.includes(i.modell)) return nein('stelle.modell_nicht_erlaubt');
+    if (!w.effort.includes(i.effort)) return nein('stelle.effort_nicht_erlaubt');
+    if (i.laufend >= w.hoechstzahl) return nein('stelle.worker_hoechstzahl');
+    if (z.zaehler_zusage >= 9999999999) return nein('stelle.zusagen_erschoepft');
+    z.zaehler_zusage += 1;
+    const zusage = `zs-${z.laden_ms}-${z.zaehler_zusage}`;
+    const bis = eff + ZUSAGE_FRIST;
+    z.zusagen[zusage] = { orchestrator: i.sitzung, harness: i.harness, modell: i.modell, effort: i.effort, route: i.route, kunde: i.kunde, bis };
+    return aus({ ok: true, ergebnis: 'frei', sitzung: i.sitzung, zusage, zusage_bis_ms: bis });
+  }
   if (e.vorgang === 'mcp.anfragen') {
     const s = z.mcp[i.server];
     if (!s) return nein('stelle.server_unbekannt');
@@ -301,7 +401,11 @@ function entscheide(z0, e, jetzt) {
 }
 
 function startForm(eingabe) {
-  if (!istObjekt(eingabe) || Object.keys(eingabe).length !== 1 || !istObjekt(eingabe.start)) return false;
+  if (!istObjekt(eingabe) || !istObjekt(eingabe.start)) return false;
+  // Abschnitt 15.2: orchestrator und zusage sind Felder des Vorgangs; zusage ohne orchestrator ist ungueltig
+  if (Object.keys(eingabe).some((x) => !['start', 'orchestrator', 'zusage'].includes(x))) return false;
+  if ('orchestrator' in eingabe && !(typeof eingabe.orchestrator === 'string' && SCHLUESSEL.test(eingabe.orchestrator))) return false;
+  if ('zusage' in eingabe && (!(typeof eingabe.zusage === 'string' && ZUSAGE.test(eingabe.zusage)) || !('orchestrator' in eingabe))) return false;
   const k = Object.keys(eingabe.start);
   if (k.length !== 1) return false;
   if (k[0] === 'text') return typeof eingabe.start.text === 'string';
@@ -591,6 +695,119 @@ fall('zeit-ungueltig', ['A102'], 'Eine Zeit ausserhalb 1970 bis 9999 wird ohne Z
     { ...st('takt', 'ablauf.pruefen', 0, {}, { ok: false, code: 'stelle.zeit_ungueltig', zeilen: [] }), abs: MAX_MS + 1 }],
   { sitzungen: ['s-1'], anfragen: {}, zaehler: 0 });
 
+// worker.anfordern (Abschnitt 14.5)
+const W_REGELN = JSON.stringify({ fassung: 1, worker: { hoechstzahl: 2, harness: ['claude', 'pi'], modelle: ['claude-sonnet-5-5'], effort: ['niedrig', 'mittel'] } });
+// Abschnitt 15.3: route und kunde sind die Werte, die der Dienst danach startet (hier die des Orchestrators s-1).
+const wanf = (ueber = {}) => ({ sitzung: 's-1', rolle: 'pruefer', harness: 'claude', modell: 'claude-sonnet-5-5', effort: 'mittel', laufend: 0, route: 'cloud-beispiel', kunde: 'k-beispiel', ...ueber });
+const wz = (n, laden = LADEN) => `zs-${laden}-${n}`;
+const FREI = (sitzung = 's-1', n = 1, t = 100, laden = LADEN) => ({ ok: true, ergebnis: 'frei', sitzung, zusage: wz(n, laden), zusage_bis_ms: T0 + t + ZUSAGE_FRIST, zeilen: [] });
+fall('worker-frei', ['Nachtrag 27.11.2026'], 'worker.anfordern nach den Regeln der Admins: Harness, Modell und Effort stehen in der Vorgabe, laufend liegt unter der Hoechstzahl; frei, keine Zeile.',
+  [START1(), st('kern', 'worker.anfordern', 100, wanf(), FREI('s-1', 1, 100)), st('kern', 'worker.anfordern', 101, wanf({ harness: 'pi', effort: 'niedrig', laufend: 1 }), FREI('s-1', 2, 101))],
+  { sitzungen: ['s-1'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN });
+fall('worker-gruende', ['Nachtrag 27.11.2026', 'A92'], 'Pruefreihenfolge von worker.anfordern (Abschnitt 15.3): Aufrufer, Eingabe, Sitzung, Route, Klasse, Kunde, Harness, Modell, Effort, Hoechstzahl; jede Ablehnung mit Zeile vorgang.abgelehnt ohne Anfrage.',
+  [START1(),
+    ...['hub', 'mensch', 'agent', 'takt', 'unbekannt'].map((a, n) => st(a, 'worker.anfordern', 100 + n, wanf(), ABG('stelle.aufrufer_nicht_erlaubt'))),
+    st('kern', 'worker.anfordern', 200, { ...wanf(), orchestrator: 's-1' }, ABG('stelle.eingabe_ungueltig')),
+    st('kern', 'worker.anfordern', 201, wanf({ laufend: 1001 }), ABG('stelle.eingabe_ungueltig')),
+    st('kern', 'worker.anfordern', 202, wanf({ laufend: -1 }), ABG('stelle.eingabe_ungueltig')),
+    st('kern', 'worker.anfordern', 203, wanf({ modell: 'Claude Sonnet' }), ABG('stelle.eingabe_ungueltig')),
+    st('kern', 'worker.anfordern', 209, (({ route, ...r }) => r)(wanf()), ABG('stelle.eingabe_ungueltig')),
+    st('kern', 'worker.anfordern', 210, (({ kunde, ...r }) => r)(wanf()), ABG('stelle.eingabe_ungueltig')),
+    st('kern', 'worker.anfordern', 211, wanf({ kunde: 5 }), ABG('stelle.eingabe_ungueltig')),
+    st('kern', 'worker.anfordern', 212, wanf({ route: 'Cloud Beispiel' }), ABG('stelle.eingabe_ungueltig')),
+    st('kern', 'worker.anfordern', 204, wanf({ sitzung: 's-9', route: 'r-fremd', kunde: null }), ABG('stelle.sitzung_unbekannt')),
+    st('kern', 'worker.anfordern', 213, wanf({ route: 'r-fremd', kunde: null, harness: 'codex' }), ABG('stelle.route_unbekannt')),
+    st('kern', 'worker.anfordern', 214, wanf({ route: 'lokal-beispiel', kunde: null, harness: 'codex' }), ABG('stelle.worker_klasse_hoeher')),
+    st('kern', 'worker.anfordern', 215, wanf({ kunde: null, harness: 'codex', modell: 'gpt-9', effort: 'hoch', laufend: 2 }), ABG('stelle.worker_fremder_kunde')),
+    st('kern', 'worker.anfordern', 205, wanf({ harness: 'codex', modell: 'gpt-9', effort: 'hoch', laufend: 2 }), ABG('stelle.harness_nicht_erlaubt')),
+    st('kern', 'worker.anfordern', 206, wanf({ modell: 'gpt-9', effort: 'hoch', laufend: 2 }), ABG('stelle.modell_nicht_erlaubt')),
+    st('kern', 'worker.anfordern', 207, wanf({ effort: 'hoch', laufend: 2 }), ABG('stelle.effort_nicht_erlaubt')),
+    st('kern', 'worker.anfordern', 208, wanf({ laufend: 2 }), ABG('stelle.worker_hoechstzahl'))],
+  { sitzungen: ['s-1'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN });
+fall('worker-ohne-vorgabe', ['Nachtrag 27.11.2026'], 'Ohne Regeln der Admins gibt es keinen Worker: auch eine sonst gueltige Anfrage ergibt stelle.vorgabe_fehlt, vor der Pruefung der Sitzung.',
+  [START1(), st('kern', 'worker.anfordern', 100, wanf(), ABG('stelle.vorgabe_fehlt')), st('kern', 'worker.anfordern', 101, wanf({ sitzung: 's-9' }), ABG('stelle.vorgabe_fehlt'))],
+  { sitzungen: ['s-1'], anfragen: {}, zaehler: 0 });
+fall('worker-hoechstzahl-grenzen', ['Nachtrag 27.11.2026'], 'laufend gleich Hoechstzahl minus 1 ist frei, gleich der Hoechstzahl nicht; 1000 ist eine gueltige Eingabe.',
+  [START1(), st('kern', 'worker.anfordern', 100, wanf({ laufend: 1 }), FREI('s-1', 1, 100)), st('kern', 'worker.anfordern', 101, wanf({ laufend: 2 }), ABG('stelle.worker_hoechstzahl')),
+    st('kern', 'worker.anfordern', 102, wanf({ laufend: 1000 }), ABG('stelle.worker_hoechstzahl'))],
+  { sitzungen: ['s-1'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN });
+
+// Abschnitt 15: Worker startet nur der Orchestrator (Faelle von 15.5)
+// Einstellungen mit einer dritten Route der niedrigsten Klasse und einem Block effort (Vertrag 2), damit ein Worker mit Effort startet.
+const E_WORKER = JSON.stringify({
+  ...E_BASIS,
+  routen: [...E_BASIS.routen, { schluessel: 'cloud-offen', art: 'cloud', klasse: 'oeffentlich', netzziele: [
+    { host: 'offen.beispiel.invalid', port: 443, zugriff: 'kopf-einsetzen', schluessel: true, pfade: [{ methode: 'GET', pfad: '/modelle/*' }] }] }],
+  effort: { grenzen: [{ harness: 'claude', erlaubt: ['low', 'medium'] }, { harness: 'pi', erlaubt: ['low'] }] },
+});
+const W_REGELN_2 = JSON.stringify({ fassung: 1, worker: { hoechstzahl: 4, harness: ['claude', 'pi'], modelle: ['claude-sonnet-5-5', 'claude-sonnet-5.5', 'qwen3:8b'], effort: ['low', 'medium'] } });
+const wanf2 = (ueber = {}) => wanf({ effort: 'medium', ...ueber });
+// Startdatei des Workers in Fassung 2 (mit effort); orchestrator und zusage sind Felder des Vorgangs, nicht des Starts.
+const S_WORKER = { fassung: 2, sitzung: 's-3', harness: 'claude', modell: 'claude-sonnet-5-5', route: 'cloud-beispiel', kunde: 'k-beispiel', arbeitsordner: '/home/beispiel/projekt', effort: 'medium', name: null, fortsetzung_von: null };
+const KW = (t, obj, orchestrator, zusage, absicht) => st('kern', 'sitzung.starten', t, { ...startE(obj), ...(orchestrator === undefined ? {} : { orchestrator }), ...(zusage === undefined ? {} : { zusage }) }, absicht);
+const S_OFFEN = { ...S_CLOUD, sitzung: 's-4', route: 'cloud-offen' };
+
+fall('worker-klasse', ['Nachtrag 27.11.2026, Abschnitt 15.3'], 'Ein Worker bekommt nie eine Route hoeherer Klasse als sein Orchestrator: gleiche und niedrigere Klasse sind frei, eine hoehere Cloud-Route und eine lokale Route hoeherer Klasse sind stelle.worker_klasse_hoeher.',
+  [START1(), K(1, S_OFFEN, GESTARTET('cloud')),
+    st('kern', 'worker.anfordern', 100, wanf2(), FREI('s-1', 1, 100)),
+    st('kern', 'worker.anfordern', 101, wanf2({ route: 'cloud-offen' }), FREI('s-1', 2, 101)),
+    st('kern', 'worker.anfordern', 102, wanf2({ route: 'lokal-beispiel', harness: 'pi', modell: 'qwen3:8b', effort: 'low' }), ABG('stelle.worker_klasse_hoeher')),
+    st('kern', 'worker.anfordern', 103, wanf2({ sitzung: 's-4', route: 'cloud-offen' }), FREI('s-4', 3, 103)),
+    st('kern', 'worker.anfordern', 104, wanf2({ sitzung: 's-4' }), ABG('stelle.worker_klasse_hoeher')),
+    st('kern', 'worker.anfordern', 105, wanf2({ sitzung: 's-4', route: 'lokal-beispiel', harness: 'pi', modell: 'qwen3:8b', effort: 'low' }), ABG('stelle.worker_klasse_hoeher'))],
+  { sitzungen: ['s-1', 's-4'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN_2, einst: E_WORKER });
+fall('worker-kunde', ['Nachtrag 27.11.2026, Abschnitt 15.3'], 'Ein Worker bekommt nie einen Kunden, den der Orchestrator nicht hat: gleicher Kunde und beide null sind frei; ein anderer Kunde, null gegen einen Kunden und ein Kunde gegen null sind stelle.worker_fremder_kunde.',
+  [START1(), K(1, S_LOKAL, GESTARTET('lokal')),
+    st('kern', 'worker.anfordern', 100, wanf2(), FREI('s-1', 1, 100)),
+    st('kern', 'worker.anfordern', 101, wanf2({ kunde: 'k-anders' }), ABG('stelle.worker_fremder_kunde')),
+    st('kern', 'worker.anfordern', 102, wanf2({ kunde: null }), ABG('stelle.worker_fremder_kunde')),
+    st('kern', 'worker.anfordern', 103, wanf2({ sitzung: 's-2', route: 'lokal-beispiel', kunde: null, harness: 'pi', modell: 'qwen3:8b', effort: 'low' }), FREI('s-2', 2, 103)),
+    st('kern', 'worker.anfordern', 104, wanf2({ sitzung: 's-2', route: 'lokal-beispiel', harness: 'pi', modell: 'qwen3:8b', effort: 'low' }), ABG('stelle.worker_fremder_kunde'))],
+  { sitzungen: ['s-1', 's-2'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN_2, einst: E_WORKER });
+fall('worker-nur-eine-ebene', ['Nachtrag 27.11.2026, Abschnitt 15.3'], 'Es gibt nur eine Ebene: Ein mit Zusage gestarteter Worker fordert selbst an und bekommt stelle.orchestrator_ist_worker, vor Route, Klasse und Kunde.',
+  [START1(), st('kern', 'worker.anfordern', 100, wanf2(), FREI('s-1', 1, 100)),
+    KW(200, S_WORKER, 's-1', wz(1), GESTARTET('cloud')),
+    st('kern', 'worker.anfordern', 300, wanf2({ sitzung: 's-3', route: 'r-fremd', kunde: null }), ABG('stelle.orchestrator_ist_worker'))],
+  { sitzungen: ['s-1', 's-3'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN_2, einst: E_WORKER });
+fall('worker-modellname', ['Nachtrag 27.11.2026, Abschnitt 15.3'], 'modell hat die Form aus Vertrag 1: qwen3:8b und claude-sonnet-5.5 sind gueltig und stehen in der Vorgabe; ein Leerzeichen ist stelle.eingabe_ungueltig.',
+  [START1(),
+    st('kern', 'worker.anfordern', 100, wanf2({ modell: 'qwen3:8b' }), FREI('s-1', 1, 100)),
+    st('kern', 'worker.anfordern', 101, wanf2({ modell: 'claude-sonnet-5.5' }), FREI('s-1', 2, 101)),
+    st('kern', 'worker.anfordern', 102, wanf2({ modell: 'qwen3 8b' }), ABG('stelle.eingabe_ungueltig'))],
+  { sitzungen: ['s-1'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN_2, einst: E_WORKER });
+fall('worker-start-mit-zusage', ['Nachtrag 27.11.2026, Abschnitt 15.2'], 'Der Worker startet mit der Zusage seines Orchestrators, wenn harness, modell, effort, route und kunde genau gleichen; danach ist die Zusage verbraucht, ein zweiter Start ist stelle.zusage_ungueltig.',
+  [START1(), st('kern', 'worker.anfordern', 100, wanf2(), FREI('s-1', 1, 100)),
+    KW(200, S_WORKER, 's-1', wz(1), GESTARTET('cloud')),
+    KW(201, { ...S_WORKER, sitzung: 's-5' }, 's-1', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt'))],
+  { sitzungen: ['s-1', 's-3'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN_2, einst: E_WORKER });
+fall('worker-start-zusage-gruende', ['Nachtrag 27.11.2026, Abschnitt 15.2'], 'Start mit orchestrator: ohne Zusage, unbekannte Zusage, fremder Orchestrator, je ein abweichendes Feld und ein Start der Fassung 1 ohne effort sind stelle.zusage_ungueltig und verbrauchen die Zusage nicht; zusage ohne orchestrator ist stelle.eingabe_ungueltig; eine Zusage mit genau erreichter Frist ist abgelaufen.',
+  [START1(), K(1, S_LOKAL, GESTARTET('lokal')),
+    st('kern', 'worker.anfordern', 100, wanf2(), FREI('s-1', 1, 100)),
+    st('kern', 'worker.anfordern', 101, wanf2({ harness: 'pi' }), FREI('s-1', 2, 101)),
+    st('kern', 'worker.anfordern', 102, wanf2(), FREI('s-1', 3, 102)),
+    KW(200, S_WORKER, 's-1', undefined, ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(201, S_WORKER, 's-1', wz(9), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(202, S_WORKER, 's-2', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(203, S_WORKER, 's-1', wz(2), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(204, { ...S_WORKER, modell: 'claude-sonnet-5.5' }, 's-1', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(205, { ...S_WORKER, effort: 'low' }, 's-1', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(206, { ...S_WORKER, route: 'cloud-offen' }, 's-1', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(207, { ...S_WORKER, kunde: null }, 's-1', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(208, { ...S_CLOUD, sitzung: 's-3' }, 's-1', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(209, S_WORKER, undefined, wz(1), ABG('stelle.eingabe_ungueltig', 'sitzung.abgelehnt')),
+    KW(30099, S_WORKER, 's-1', wz(1), GESTARTET('cloud')),
+    KW(30102, { ...S_WORKER, sitzung: 's-5' }, 's-1', wz(3), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt'))],
+  { sitzungen: ['s-1', 's-2', 's-3'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN_2, einst: E_WORKER });
+fall('worker-zusage-neustart', ['Nachtrag 27.11.2026, Abschnitt 15.3', 'E1'], 'Ein Neustart verwirft alle Zusagen: Nach dem Neustart ist die alte Zusage stelle.zusage_ungueltig, auch wenn eine neue Zusage mit derselben Nummer besteht; die neue traegt den neuen laden_ms.',
+  [START1(), st('kern', 'worker.anfordern', 100, wanf2(), FREI('s-1', 1, 100)),
+    { neustart: { laden_ms: LADEN2 } },
+    K(3000, S_CLOUD, GESTARTET('cloud')),
+    KW(3001, S_WORKER, 's-1', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    st('kern', 'worker.anfordern', 3002, wanf2(), FREI('s-1', 1, 3002, LADEN2)),
+    KW(3003, S_WORKER, 's-1', wz(1), ABG('stelle.zusage_ungueltig', 'sitzung.abgelehnt')),
+    KW(3004, S_WORKER, 's-1', wz(1, LADEN2), GESTARTET('cloud'))],
+  { sitzungen: ['s-1', 's-3'], anfragen: {}, zaehler: 0 }, { worker: W_REGELN_2, einst: E_WORKER });
+
 // ---------- Lauf ----------
 
 function ende(z) {
@@ -598,27 +815,30 @@ function ende(z) {
 }
 const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-mkdirSync(AUS, { recursive: true });
-for (const f of readdirSync(AUS)) if (f.endsWith('.json')) rmSync(join(AUS, f));
+const PRUEFEN = process.argv.slice(2).includes('--pruefen');
+if (process.argv.slice(2).some((a) => a !== '--pruefen')) { console.error('Aufruf: bau-faelle.mjs [--pruefen]'); process.exit(64); }
+const erzeugt = new Map();
 let zeilenGesamt = 0;
 let schritteGesamt = 0;
 const namen = new Set();
 for (const f of FAELLE) {
   if (namen.has(f.name)) throw new Error(`Fall doppelt: ${f.name}`);
   namen.add(f.name);
-  const ausgabe = { beschreibung: f.beschreibung, laden_ms: LADEN, regeln: f.regeln, einstellungen: f.laden ? { text: f.laden.text } : { text: EINST }, pruefer: { art: 'h1', schluessel_hex: SCHLUESSEL_1.toString('hex') } };
+  const einst = f.einst ?? EINST;
+  const ausgabe = { beschreibung: f.beschreibung, laden_ms: LADEN, regeln: f.regeln, einstellungen: f.laden ? { text: f.laden.text } : { text: einst }, pruefer: { art: 'h1', schluessel_hex: SCHLUESSEL_1.toString('hex') } };
+  if (f.worker !== undefined) ausgabe.worker_regeln = { text: f.worker };
   if (f.laden) {
     const r = modellLaden(f.laden.text, LADEN);
     if (r.fehler !== f.laden.fehler) throw new Error(`${f.name}: Laden ergab ${r.fehler ?? 'ok'}, Absicht ${f.laden.fehler}`);
     ausgabe.erwartet_laden = { fehler: f.laden.fehler, grund: GRUENDE[f.laden.fehler] };
   } else {
-    let z = modellLaden(EINST, LADEN).z;
+    let z = { ...modellLaden(einst, LADEN).z, worker: workerLaden(f.worker) };
     let vorher = NULL64;
     ausgabe.schritte = [];
     const alleZeilen = [];
     for (const [n, s] of f.schritte.entries()) {
       if (s.neustart) {
-        z = modellLaden(EINST, s.neustart.laden_ms).z;
+        z = { ...modellLaden(einst, s.neustart.laden_ms).z, worker: workerLaden(f.worker) };
         ausgabe.schritte.push({ neustart: { laden_ms: s.neustart.laden_ms } });
         continue;
       }
@@ -629,7 +849,7 @@ for (const f of FAELLE) {
       const r = entscheide(z, { aufrufer: s.aufrufer, vorgang: s.vorgang, eingabe: s.eingabe }, jetzt);
       if (JSON.stringify(z) !== vorZ) throw new Error(`${wo}: entscheide hat den alten Zustand veraendert`);
       const a = s.absicht;
-      for (const k of ['ok', 'code', 'ergebnis', 'anfrage', 'route_art', 'abgelaufen', 'frist_bis_ms', 'einloesen_bis_ms', 'zustand'].filter((k) => k in a)) {
+      for (const k of ['ok', 'code', 'ergebnis', 'anfrage', 'route_art', 'abgelaufen', 'frist_bis_ms', 'einloesen_bis_ms', 'zustand', 'sitzung', 'zusage', 'zusage_bis_ms'].filter((k) => k in a)) {
         if (!gleich(r.antwort[k], a[k])) throw new Error(`${wo}: Antwort ${k} = ${JSON.stringify(r.antwort[k])}, Absicht ${JSON.stringify(a[k])}`);
       }
       if ('offene_ids' in a && !gleich(r.antwort.offene.map((o) => o.anfrage), a.offene_ids)) throw new Error(`${wo}: offene ${JSON.stringify(r.antwort.offene.map((o) => o.anfrage))}, Absicht ${JSON.stringify(a.offene_ids)}`);
@@ -659,6 +879,23 @@ for (const f of FAELLE) {
       if (alleZeilen[0] !== gold) throw new Error('Handgeschriebene Zeile weicht ab');
     }
   }
-  writeFileSync(join(AUS, `${f.name}.json`), `${JSON.stringify(ausgabe, null, 2)}\n`);
+  erzeugt.set(`${f.name}.json`, `${JSON.stringify(ausgabe, null, 2)}\n`);
+}
+if (PRUEFEN) {
+  let vorhanden = [];
+  try { vorhanden = readdirSync(AUS).filter((f) => f.endsWith('.json')); } catch { vorhanden = []; }
+  const abweichend = [];
+  for (const [name, text] of erzeugt) {
+    let alt = null;
+    try { alt = readFileSync(join(AUS, name)); } catch { alt = null; }
+    if (alt === null || !alt.equals(Buffer.from(text, 'utf8'))) abweichend.push(name);
+  }
+  for (const name of vorhanden) if (!erzeugt.has(name)) abweichend.push(`${name} (ueberzaehlig)`);
+  if (abweichend.length) { console.error(`rot: ${abweichend.length} Dateien weichen ab: ${abweichend.sort().join(', ')}`); process.exit(1); }
+  console.log(`gleich: ${erzeugt.size} Faelle Byte fuer Byte wie in faelle/`);
+} else {
+  mkdirSync(AUS, { recursive: true });
+  for (const f of readdirSync(AUS)) if (f.endsWith('.json')) rmSync(join(AUS, f));
+  for (const [name, text] of erzeugt) writeFileSync(join(AUS, name), text);
 }
 console.log(`ok: ${FAELLE.length} Faelle, ${schritteGesamt} Schritte, ${zeilenGesamt} Zeilen`);

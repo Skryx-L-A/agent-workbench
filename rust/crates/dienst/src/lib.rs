@@ -51,6 +51,14 @@ mod rechte;
 mod sitzung;
 mod startdatei;
 mod starten;
+#[cfg_attr(
+    any(not(test), windows),
+    allow(
+        dead_code,
+        reason = "the report path and the local way take their parts later; the tests run under Unix"
+    )
+)]
+mod stelle;
 mod sys;
 mod verwaltung;
 mod waisen;

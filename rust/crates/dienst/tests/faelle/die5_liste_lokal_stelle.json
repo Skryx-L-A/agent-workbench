@@ -92,7 +92,10 @@
    ],
    "programm": "@laufkind",
    "stelle": {
-    "kanal": "stelle"
+    "erwartet": {
+     "uid": 0
+    },
+    "ordner": "@ordner"
    }
   },
   "lokal": {

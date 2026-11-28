@@ -87,6 +87,13 @@ fn efforts_abweichung(
         if ist != soll {
             return Some(format!("efforts {eintrag}: got {ist:?}"));
         }
+        // the default of the admins (decision of the operator, 28 November 2026), when the expectation names it
+        if let Some(vorgabe) = eintrag.get("vorgabe") {
+            let ist = einstellungen.effort_vorgabe(text("harness"), text("route"), text("modell"));
+            if ist != vorgabe.as_str() {
+                return Some(format!("vorgabe {eintrag}: got {ist:?}"));
+            }
+        }
     }
     None
 }

@@ -22,7 +22,7 @@ SCHEMA_CODES = {"ebenen.schluessel_unbekannt", "ebenen.schluessel_fehlt", "ebene
 CODES = SCHEMA_CODES | {"ebenen.zu_gross", "ebenen.json_ungueltig", "ebenen.ebene_falsch", "ebenen.kennung_doppelt",
                         "ebenen.route_unbekannt", "ebenen.nutzer_mehrfach", "ebenen.nicht_befugt",
                         "ebenen.gruppe_unbekannt", "ebenen.kunde_unbekannt", "ebenen.klasse_unbekannt",
-                        "ebenen.lockerung", "ebenen.keine_route"}
+                        "ebenen.lockerung", "ebenen.keine_route", "ebenen.name_doppelt"}
 HINWEISE = {"ebenen.lockerung_ignoriert", "ebenen.route_unbekannt_ignoriert", "ebenen.kunde_unbekannt_ignoriert",
             "ebenen.klasse_unbekannt_gesperrt"}
 ZEILE = {"aktionsname", "alt", "antrag", "code", "ebene", "ergebnis", "handelnd", "neu", "pflicht", "ziel", "zweiter"}  # Vertrag 5, Abschnitt 6.6
@@ -52,6 +52,7 @@ CODES_SETZEN = {"ebenen.einstellung_unbekannt", "ebenen.bereich_falsch", "ebenen
 SICHT = {"wert", "herkunft", "aenderbar", "grund"}
 HERKUNFT = re.compile(r"^(firma|nutzer|gruppe [a-z0-9][a-z0-9._-]{0,63})$")
 STAND_LAUF = {"klassen", "admins", "gruppen", "werte"}
+STAND_LAUF_OPTIONAL = {"gruppennamen"}  # Abschnitt 15.3: Anzeigenamen der Gruppen, nur wenn die Firmendatei welche nennt
 PSEUDONYM = re.compile(r"^ps_[0-9a-f]{32}$")
 
 
@@ -103,7 +104,7 @@ def pruefen_setzen(fehler):
             continue
         if "konto-" in (HIER / "erwartet-setzen" / name).read_text(encoding="utf-8"):
             fehler.append(f"setzen {name}: ein Ergebnis nennt ein Konto (S10)")
-        if set(fall) != FALL_FELDER or fall["name"] + ".json" != name or set(fall["stand"]) != STAND_LAUF:
+        if set(fall) != FALL_FELDER or fall["name"] + ".json" != name or not STAND_LAUF <= set(fall["stand"]) <= STAND_LAUF | STAND_LAUF_OPTIONAL:
             fehler.append(f"setzen {name}: Felder des Falls, des Stands oder Name falsch")
             continue
         if any(not re.match(r"^ps_[0-9a-f]{32}$", a) for a in fall["stand"]["admins"]):

@@ -1,0 +1,213 @@
+{
+  "beschreibung": "Ein Worker bekommt nie einen Kunden, den der Orchestrator nicht hat: gleicher Kunde und beide null sind frei; ein anderer Kunde, null gegen einen Kunden und ein Kunde gegen null sind stelle.worker_fremder_kunde.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "Nachtrag 27.11.2026, Abschnitt 15.3"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]},{\"schluessel\":\"cloud-offen\",\"art\":\"cloud\",\"klasse\":\"oeffentlich\",\"netzziele\":[{\"host\":\"offen.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}},\"effort\":{\"grenzen\":[{\"harness\":\"claude\",\"erlaubt\":[\"low\",\"medium\"]},{\"harness\":\"pi\",\"erlaubt\":[\"low\"]}]}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "worker_regeln": {
+    "text": "{\"fassung\":1,\"worker\":{\"hoechstzahl\":4,\"harness\":[\"claude\",\"pi\"],\"modelle\":[\"claude-sonnet-5-5\",\"claude-sonnet-5.5\",\"qwen3:8b\"],\"effort\":[\"low\",\"medium\"]}}"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600001,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-2\",\"harness\":\"pi\",\"modell\":\"qwen3:8b\",\"route\":\"lokal-beispiel\",\"kunde\":null,\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-2",
+          "route": "lokal-beispiel",
+          "route_art": "lokal"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"pi\",\"kunde\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:00.001Z\"}",
+            "sha256": "e76c1562da72a1ec6a01a358a15471a7abb97f92ac6e6309a82bce0b00332bbf"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600100,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "medium",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "frei",
+          "sitzung": "s-1",
+          "zusage": "zs-1795179540000-1",
+          "zusage_bis_ms": 1795179630100
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600101,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "medium",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-anders"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.worker_fremder_kunde",
+          "grund": "Kunde weicht vom Orchestrator ab"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.worker_fremder_kunde\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"e76c1562da72a1ec6a01a358a15471a7abb97f92ac6e6309a82bce0b00332bbf\",\"zeit\":\"2026-11-20T13:00:00.101Z\"}",
+            "sha256": "0c1881aa407e1bc8a4c7031f70bef18d502a1521d674646775f3b88d0aa0cd9e"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600102,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "medium",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": null
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.worker_fremder_kunde",
+          "grund": "Kunde weicht vom Orchestrator ab"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.worker_fremder_kunde\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"0c1881aa407e1bc8a4c7031f70bef18d502a1521d674646775f3b88d0aa0cd9e\",\"zeit\":\"2026-11-20T13:00:00.102Z\"}",
+            "sha256": "1ea07a9ec2a8b52e96797af782614417994d0d7c5fe9b5ec31e069ee2f6bbabf"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600103,
+      "eingabe": {
+        "sitzung": "s-2",
+        "rolle": "pruefer",
+        "harness": "pi",
+        "modell": "qwen3:8b",
+        "effort": "low",
+        "laufend": 0,
+        "route": "lokal-beispiel",
+        "kunde": null
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "frei",
+          "sitzung": "s-2",
+          "zusage": "zs-1795179540000-2",
+          "zusage_bis_ms": 1795179630103
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600104,
+      "eingabe": {
+        "sitzung": "s-2",
+        "rolle": "pruefer",
+        "harness": "pi",
+        "modell": "qwen3:8b",
+        "effort": "low",
+        "laufend": 0,
+        "route": "lokal-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.worker_fremder_kunde",
+          "grund": "Kunde weicht vom Orchestrator ab"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.worker_fremder_kunde\",\"vorgang\":\"worker.anfordern\",\"vorher\":\"1ea07a9ec2a8b52e96797af782614417994d0d7c5fe9b5ec31e069ee2f6bbabf\",\"zeit\":\"2026-11-20T13:00:00.104Z\"}",
+            "sha256": "515154e065608a60f1d7c0307428ceb8adadc7eb6c7df9849cc4b5c19931ac39"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1",
+      "s-2"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "zeilen": 5,
+    "letzte": "515154e065608a60f1d7c0307428ceb8adadc7eb6c7df9849cc4b5c19931ac39"
+  }
+}

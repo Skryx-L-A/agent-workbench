@@ -14,7 +14,7 @@ use stelle::{
 
 const LADEN: i64 = 1_795_179_540_000;
 const T0: i64 = LADEN + 60_000;
-const VORGAENGE: [&str; 7] = [
+const VORGAENGE: [&str; 9] = [
     "sitzung.starten",
     "mcp.anfragen",
     "mcp.entscheiden",
@@ -22,6 +22,8 @@ const VORGAENGE: [&str; 7] = [
     "mcp.offene",
     "mcp.stand",
     "ablauf.pruefen",
+    "person.pseudonym",
+    "worker.anfordern",
 ];
 const ARTEN: [Aufrufer; 6] = [
     Aufrufer::Kern,
@@ -31,7 +33,7 @@ const ARTEN: [Aufrufer; 6] = [
     Aufrufer::Takt,
     Aufrufer::Unbekannt,
 ];
-const ERGEBNISSE: [&str; 10] = [
+const ERGEBNISSE: [&str; 12] = [
     "gestartet",
     "lesend",
     "ohne_freigabe",
@@ -42,15 +44,23 @@ const ERGEBNISSE: [&str; 10] = [
     "offene",
     "stand",
     "geprueft",
+    "pseudonym",
+    "frei",
 ];
 /// Field names of the seven operations, so that a crooked value lands on a field the point really reads.
-const FELDER: [&str; 12] = [
+const FELDER: [&str; 18] = [
     "anfrage",
     "argumente",
+    "effort",
     "entscheidung",
     "frist_ms",
+    "harness",
+    "kennung",
+    "laufend",
+    "modell",
     "nachweis",
     "person",
+    "rolle",
     "server",
     "sitzung",
     "start",
@@ -285,7 +295,7 @@ fn krumme_eingaben_loesen_keine_panik_aus() {
         }
         assert_eq!(zustand.abbild(), vorher, "entscheide changed the state");
     }
-    assert_eq!(laeufe, 2 * 7 * 6 * 14);
+    assert_eq!(laeufe, 2 * 9 * 6 * 14);
     // Without a refusal the set would say nothing: the crooked inputs have to meet the checks.
     assert!(abgewiesen > laeufe / 2, "{abgewiesen} of {laeufe}");
 }

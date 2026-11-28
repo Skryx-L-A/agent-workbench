@@ -25,6 +25,9 @@ const SCHLUESSEL = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const WERKZEUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const PSEUDONYM = /^ps_[0-9a-f]{32}$/;
 const ANFRAGE = /^mf-[0-9]{1,15}-[1-9][0-9]{0,9}$/;
+const ZUSAGE = /^zs-[0-9]{1,15}-[1-9][0-9]{0,9}$/; // Fassung 1, Abschnitt 15.2
+const MODELL = /^[A-Za-z0-9._:/@+-]{1,128}$/; // Form von modell aus Vertrag 1 (Fassung 1, Abschnitt 15.3)
+const ZUSAGE_FRIST = 30000;
 const ANTRAG = /^an-[0-9]{1,15}-[1-9][0-9]{0,9}$/;
 const ZUGANG = /^hz-[0-9]{1,15}-[1-9][0-9]{0,9}$/;
 const NONCE = /^[0-9a-f]{32}$/;
@@ -40,7 +43,7 @@ const hz = (n, laden = LADEN) => `hz-${laden}-${n}`;
 const ARTEN = ['kern', 'hub', 'brain', 'brain_mensch', 'mensch', 'hersteller', 'agent', 'takt', 'unbekannt'];
 const ERLAUBT = {
   'sitzung.starten': ['kern'], 'mcp.anfragen': ['hub', 'brain', 'brain_mensch'], 'mcp.entscheiden': ['mensch'], 'mcp.einloesen': ['hub', 'brain', 'brain_mensch'],
-  'mcp.offene': ['mensch'], 'mcp.stand': ['hub', 'brain', 'brain_mensch'], 'ablauf.pruefen': ['takt'],
+  'mcp.offene': ['mensch'], 'mcp.stand': ['hub', 'brain', 'brain_mensch'], 'ablauf.pruefen': ['takt'], 'worker.anfordern': ['kern'],
   'einsicht.anfragen': ['mensch'], 'pflicht.aendern': ['mensch'], 'antrag.bestaetigen': ['mensch'], 'antrag.offene': ['mensch'], 'antrag.ergebnis': ['mensch'],
   'hersteller.gewaehren': ['mensch'], 'hersteller.beenden': ['mensch'], 'hersteller.zugriff': ['hersteller'],
 };
@@ -70,6 +73,17 @@ const GRUENDE = {
   'stelle.digest_abweichend': 'Aufruf weicht von der Anfrage ab',
   'stelle.nachweis_ungueltig': 'Nachweis ungueltig',
   'stelle.zeit_ungueltig': 'Zeit ungueltig',
+  'stelle.vorgabe_fehlt': 'Vorgabe fehlt oder unsicher',
+  'stelle.harness_nicht_erlaubt': 'Harness nicht erlaubt',
+  'stelle.modell_nicht_erlaubt': 'Modell nicht erlaubt',
+  'stelle.effort_nicht_erlaubt': 'Effort nicht erlaubt',
+  'stelle.worker_hoechstzahl': 'Hoechstzahl der Worker erreicht',
+  'stelle.zusage_ungueltig': 'Zusage fehlt oder passt nicht',
+  'stelle.orchestrator_ist_worker': 'Orchestrator ist selbst ein Worker',
+  'stelle.route_unbekannt': 'Route unbekannt',
+  'stelle.worker_klasse_hoeher': 'Klasse hoeher als beim Orchestrator',
+  'stelle.worker_fremder_kunde': 'Kunde weicht vom Orchestrator ab',
+  'stelle.zusagen_erschoepft': 'Zusagen erschoepft, Neustart noetig',
   // neu in Fassung 2
   'stelle.server_nicht_erlaubt': 'Server fuer diesen Aufrufer nicht erlaubt',
   'stelle.zu_viele_offen': 'Zu viele offene Anfragen',
@@ -224,9 +238,15 @@ function modellLaden(text, ladenMs, regelNeu = null, rollen = {}) {
   // Pflichten zur Laufzeit (Abschnitt 5): Startwert aus der Datei, Aenderung nur ueber pflicht.aendern, ein Neustart nimmt wieder den Wert der Datei.
   const pflichten = { vier_augen: m.st.vier_augen, senken_zweite_person: m.st.senken_zweite_person, halter_bescheinigung: m.st.halter_bescheinigung };
   for (const [name, x] of Object.entries(m.mcp)) pflichten[`mcp.${name}.freigabe`] = x.freigabe;
+  // Fassung 1, Abschnitt 15: Klassen und Klasse je Route fuer worker.anfordern, Modell je Route und Block effort fuer Starts der Fassung 2
+  const klassen = d.klassen ?? [];
+  const klasse = Object.fromEntries(d.routen.map((r) => [r.schluessel, r.klasse]));
+  const routeModell = Object.fromEntries(d.routen.filter((r) => typeof r.modell === 'string').map((r) => [r.schluessel, r.modell]));
+  const grenzen = d.effort?.grenzen ?? null;
   return {
     z: {
       routen, kunden, mcp: m.mcp, st: m.st, pflichten, datei: d, ebene: 'firma', sitzungen: {}, anfragen: {}, zaehler: 0, laden_ms: ladenMs, zeit_max: ladenMs,
+      klassen, klasse, routeModell, grenzen, zusagen: {}, zaehler_zusage: 0,
       antraege: {}, zaehler_antrag: 0, zugaenge: {}, zaehler_zugang: 0, nonces: {},
       flut: { fenster: 0, zeilen: {}, unterdrueckt: {} },
     },
@@ -261,12 +281,34 @@ const inhaltVon = (a) => (a.art === 'einsicht'
 // ---------- Start (Vertrag 1), unveraendert aus Fassung 1 ----------
 
 const HARNESS = { claude: 'cloud', pi: 'lokal' };
+const EFFORT_WERTE = { claude: ['low', 'medium', 'high', 'xhigh', 'max'], pi: ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] };
+// Erlaubte Efforts eines Starts nach Vertrag 2, Block effort: die Werte des Harness, die in jedem passenden Eintrag stehen.
+function efforts(z, harness, route, modell) {
+  const passend = (z.grenzen ?? []).filter((g) => g.harness === harness && (g.klasse === undefined || g.klasse === z.klasse[route])
+    && (modell === 'auto' ? (g.modell === undefined || g.modell === 'auto') : (g.modell === undefined || g.modell === modell)));
+  if (passend.length === 0) return [];
+  return EFFORT_WERTE[harness].filter((w) => passend.every((g) => g.erlaubt.includes(w)));
+}
+// Startdatei der Fassung 2 (Vertrag 1), wie im Modell von Fassung 1: nur gueltige Starts mit Effort; sonst bricht das Skript ab.
+function start2Pruefen(d, z) {
+  const ausserhalb = (warum) => { throw new Error(`Startdatei der Fassung 2 ausserhalb des Modells: ${warum}`); };
+  const alle = ['fassung', 'sitzung', 'harness', 'modell', 'route', 'kunde', 'arbeitsordner', 'effort', 'name', 'fortsetzung_von'];
+  if (Object.keys(d).length !== alle.length || alle.some((k) => !(k in d))) ausserhalb('Schluessel');
+  if (d.name !== null || d.fortsetzung_von !== null) ausserhalb('name oder fortsetzung_von');
+  if (![d.sitzung, d.harness, d.route].every((v) => typeof v === 'string' && SCHLUESSEL.test(v)) || (d.kunde !== null && !(typeof d.kunde === 'string' && SCHLUESSEL.test(d.kunde)))) ausserhalb('Kennung');
+  if (typeof d.modell !== 'string' || !MODELL.test(d.modell) || d.arbeitsordner !== '/home/beispiel/projekt') ausserhalb('Modell oder Ordner');
+  if (!(d.harness in HARNESS) || !(d.route in z.routen) || (d.kunde !== null && !z.kunden.includes(d.kunde)) || HARNESS[d.harness] !== z.routen[d.route]) ausserhalb('Harness, Route oder Kunde');
+  if (d.route in z.routeModell && z.routeModell[d.route] !== d.modell) ausserhalb('Modell der Route');
+  if (typeof d.effort !== 'string' || !/^[a-z]{1,16}$/.test(d.effort) || !efforts(z, d.harness, d.route, d.modell).includes(d.effort)) ausserhalb('Effort');
+  return { ok: true, d, art: z.routen[d.route] };
+}
 function startPruefen(bytes, z) {
   const nein = (code, d) => ({ code, d });
   if (bytes.length > 4096) return nein('start.zu_gross', null);
   let d;
   try { d = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)); } catch { return nein('start.json_ungueltig', null); }
   if (!istObjekt(d)) return nein('start.json_ungueltig', null);
+  if (d.fassung === 2) return start2Pruefen(d, z);
   const alle = ['fassung', 'sitzung', 'harness', 'modell', 'route', 'kunde', 'arbeitsordner'];
   if (Object.keys(d).some((k) => !alle.includes(k))) return nein('start.schluessel_unbekannt', d);
   if (alle.some((k) => !(k in d))) return nein('start.schluessel_fehlt', d);
@@ -284,7 +326,11 @@ function startPruefen(bytes, z) {
   return { ok: true, d, art: z.routen[d.route] };
 }
 function startForm(eingabe) {
-  if (!istObjekt(eingabe) || Object.keys(eingabe).length !== 1 || !istObjekt(eingabe.start)) return false;
+  if (!istObjekt(eingabe) || !istObjekt(eingabe.start)) return false;
+  // Fassung 1, Abschnitt 15.2: orchestrator und zusage sind Felder des Vorgangs; zusage ohne orchestrator ist ungueltig
+  if (Object.keys(eingabe).some((x) => !['start', 'orchestrator', 'zusage'].includes(x))) return false;
+  if ('orchestrator' in eingabe && !(typeof eingabe.orchestrator === 'string' && SCHLUESSEL.test(eingabe.orchestrator))) return false;
+  if ('zusage' in eingabe && (!(typeof eingabe.zusage === 'string' && ZUSAGE.test(eingabe.zusage)) || !('orchestrator' in eingabe))) return false;
   const k = Object.keys(eingabe.start);
   if (k.length !== 1) return false;
   if (k[0] === 'text') return typeof eingabe.start.text === 'string';
@@ -319,6 +365,7 @@ const FORM = {
   'mcp.offene': [{}],
   'mcp.stand': [{ anfrage: P.anfrage }],
   'ablauf.pruefen': [{}],
+  'worker.anfordern': [{ effort: P.server, harness: P.server, kunde: (v) => v === null || P.server(v), laufend: (v) => ganzIn(v, 0, 1000), modell: (v) => stellenText(v) && MODELL.test(v), rolle: P.server, route: P.server, sitzung: P.server }],
   'einsicht.anfragen': [{ monat: (v) => stellenText(v) && MONAT.test(v), nachweis: P.nachweis, nonce: P.nonce, quelle: (v) => QUELLEN.includes(v), zweck: (v) => v === null || (stellenText(v) && SCHLUESSEL.test(v)) }],
   'pflicht.aendern': [{ nachweis: P.nachweis, nonce: P.nonce, pflicht: (v) => stellenText(v) && SCHLUESSEL.test(v), wert: (v) => typeof v === 'boolean' }],
   'antrag.bestaetigen': [{ antrag: P.antrag, nachweis: P.nachweis }],
@@ -382,6 +429,8 @@ function entscheide(z0, e, jetzt) {
     const g = z.zugaenge[id];
     if (g.zustand === 'aktiv' && g.bis !== null && eff >= g.bis) { g.zustand = 'abgelaufen'; zeilen.push(zugangZeile(g, 'abgelaufen', null)); abgelaufen += 1; }
   }
+  // Fassung 1, Abschnitt 15.3: abgelaufene Zusagen fallen weg, ohne Zeile und ohne Zaehlung in abgelaufen
+  for (const id of Object.keys(z.zusagen)) if (eff >= z.zusagen[id].bis) delete z.zusagen[id];
   let datei = null;
   const aus = (antwort) => ({ z, antwort, zeilen, zeit_ms: eff, ...(datei ? { datei } : {}) });
   // Nachtrag 5: Eine wirksame Pflichtaenderung schreibt die Stelle selbst in die Datei der Ebene. Erst die Zeile regel.geaendert, dann die Datei (Huelle).
@@ -423,7 +472,7 @@ function entscheide(z0, e, jetzt) {
       const inhalt = { digest: r.digest, server: r.server, vorschau_sha256: r.vorschau_sha256, werkzeug: r.werkzeug };
       // Nachtrag 3, I2: einheitliche Felder in mcp.offene und antrag.offene
       return {
-        anfrage: id, server: r.server, werkzeug: r.werkzeug, vorschau: r.vorschau, vorschau_sha256: r.vorschau_sha256, digest: r.digest, frist_bis_ms: r.bis,
+        anfrage: id, server: r.server, sitzung: r.sitzung, werkzeug: r.werkzeug, vorschau: r.vorschau, vorschau_sha256: r.vorschau_sha256, digest: r.digest, frist_bis_ms: r.bis,
         antragsteller: r.person, art: 'mcp.schreibaufruf', erste_freigabe: r.mit === null ? null : { person: r.mit, zeit_ms: r.zeit_mit }, inhalt, inhalt_sha256: sha(jcs(inhalt)),
       };
     });
@@ -443,7 +492,15 @@ function entscheide(z0, e, jetzt) {
     const r = startPruefen(bytes, z);
     if (!r.ok) return nein(r.code, { d: r.d });
     if (r.d.sitzung in z.sitzungen) return nein('stelle.sitzung_vergeben', { d: r.d });
-    z.sitzungen[r.d.sitzung] = { route: r.d.route, kunde: r.d.kunde, harness: r.d.harness };
+    // Fassung 1, Abschnitt 15.2, Stufe 4
+    const orch = ein.orchestrator ?? null;
+    if (orch !== null) {
+      const zs = z.zusagen[ein.zusage];
+      if (!zs) return nein('stelle.zusage_ungueltig', { d: r.d });
+      if (zs.orchestrator !== orch || ['harness', 'modell', 'effort', 'route', 'kunde'].some((k) => !(k in r.d) || r.d[k] !== zs[k])) return nein('stelle.zusage_ungueltig', { d: r.d });
+      delete z.zusagen[ein.zusage];
+    }
+    z.sitzungen[r.d.sitzung] = { route: r.d.route, kunde: r.d.kunde, harness: r.d.harness, orchestrator: orch };
     zeilen.push({ aktionsname: 'sitzung.gestartet', ergebnis: 'gestartet', grund: null, ...stelleSicht(r.d) });
     return aus({ ok: true, ergebnis: 'gestartet', sitzung: r.d.sitzung, route: r.d.route, route_art: r.art });
   }
@@ -454,6 +511,27 @@ function entscheide(z0, e, jetzt) {
   const hatRolle = (p, rollen) => (z.st.rollen[p] ?? []).some((x) => rollen.includes(x));
   const nonceNehmen = () => { if (z.nonces[i.nonce]) return false; z.nonces[i.nonce] = true; return true; };
 
+  if (e.vorgang === 'worker.anfordern') {
+    // Fassung 1, Abschnitt 15.3: Regeln der Admins, Klasse und Kunde des Orchestrators, dann die Zusage.
+    const w = z.worker;
+    if (!w) return nein('stelle.vorgabe_fehlt');
+    const o = z.sitzungen[i.sitzung];
+    if (!o) return nein('stelle.sitzung_unbekannt');
+    if ((o.orchestrator ?? null) !== null) return nein('stelle.orchestrator_ist_worker');
+    if (!(i.route in z.routen)) return nein('stelle.route_unbekannt');
+    if (z.klassen.indexOf(z.klasse[i.route]) > z.klassen.indexOf(z.klasse[o.route])) return nein('stelle.worker_klasse_hoeher');
+    if (i.kunde !== o.kunde) return nein('stelle.worker_fremder_kunde');
+    if (!w.harness.includes(i.harness)) return nein('stelle.harness_nicht_erlaubt');
+    if (!w.modelle.includes(i.modell)) return nein('stelle.modell_nicht_erlaubt');
+    if (!w.effort.includes(i.effort)) return nein('stelle.effort_nicht_erlaubt');
+    if (i.laufend >= w.hoechstzahl) return nein('stelle.worker_hoechstzahl');
+    if (z.zaehler_zusage >= 9999999999) return nein('stelle.zusagen_erschoepft');
+    z.zaehler_zusage += 1;
+    const zusage = `zs-${z.laden_ms}-${z.zaehler_zusage}`;
+    const bis = eff + ZUSAGE_FRIST;
+    z.zusagen[zusage] = { orchestrator: i.sitzung, harness: i.harness, modell: i.modell, effort: i.effort, route: i.route, kunde: i.kunde, bis };
+    return aus({ ok: true, ergebnis: 'frei', sitzung: i.sitzung, zusage, zusage_bis_ms: bis });
+  }
   if (e.vorgang === 'mcp.anfragen') {
     const istBrain = i.server === SERVER_BRAIN;
     if ((e.aufrufer === 'brain' || e.aufrufer === 'brain_mensch') !== istBrain) return nein('stelle.server_nicht_erlaubt');
@@ -716,11 +794,13 @@ for (const datei of readdirSync(F1_FAELLE).filter((f) => f.endsWith('.json')).so
     continue;
   }
   if (geladen.fehler) throw new Error(`${wo0}: laedt nicht (${geladen.fehler})`);
-  let z = geladen.z;
+  // Die Regeln fuer Worker eines Falls (Fassung 1, Abschnitt 14.5) sind dort schon geprueft; hier nur uebernommen.
+  const worker = f.worker_regeln ? JSON.parse(f.worker_regeln.text).worker : null;
+  let z = { ...geladen.z, worker };
   let vorher = NULL64;
   let zeilen = 0;
   for (const [n, s] of f.schritte.entries()) {
-    if (s.neustart) { z = modellLaden(f.einstellungen.text, s.neustart.laden_ms).z; continue; }
+    if (s.neustart) { z = { ...modellLaden(f.einstellungen.text, s.neustart.laden_ms).z, worker }; continue; }
     const r = entscheide(z, { aufrufer: s.aufrufer, vorgang: s.vorgang, eingabe: s.eingabe }, s.jetzt_ms);
     const antwort = { ...r.antwort };
     if (['mcp.anfragen', 'mcp.stand', 'mcp.einloesen'].includes(s.vorgang) && antwort.ok) { delete antwort.entscheidend; delete antwort.zweite_person; delete antwort.mitentscheidend; delete antwort.werkzeug; }

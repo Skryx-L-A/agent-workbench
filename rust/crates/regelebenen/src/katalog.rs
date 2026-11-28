@@ -147,9 +147,9 @@ impl Eintrag {
 }
 
 /// The harnesses of the pilot.
-pub const HARNESSES: [&str; 3] = ["claude", "copilot", "pi"];
+pub const HARNESSES: [&str; 4] = ["claude", "copilot", "pi", "opencode"];
 /// The effort values per harness, word for word from the help of the programs (contract 2, block `effort`).
-pub const EFFORTS: [(&str, &[&str]); 3] = [
+pub const EFFORTS: [(&str, &[&str]); 4] = [
     ("claude", &["low", "medium", "high", "xhigh", "max"]),
     (
         "copilot",
@@ -158,6 +158,10 @@ pub const EFFORTS: [(&str, &[&str]); 3] = [
     (
         "pi",
         &["off", "minimal", "low", "medium", "high", "xhigh", "max"],
+    ),
+    (
+        "opencode",
+        &["none", "minimal", "low", "medium", "high", "xhigh", "max"],
     ),
 ];
 /// Every effort value of any harness, sorted.
@@ -168,6 +172,10 @@ pub const ALLE_EFFORTS: [&str; 8] = [
 pub const LESEKLASSEN_MAX: usize = 4096;
 /// Most entries of a list per class (15.1).
 pub const KLASSENLISTE_MAX: usize = 16;
+/// Most entries of `gruppennamen` (3.1).
+pub const GRUPPENNAMEN_MAX: usize = 256;
+/// Most characters of the display name of a group (3.1).
+pub const GRUPPENNAME_MAX: usize = 64;
 /// Most limits of the effort (15.1).
 pub const GRENZEN_MAX: usize = 64;
 /// Longest deadline of a release in milliseconds, 24 h (15.1.2, as contract 2).
@@ -487,6 +495,28 @@ fn grenzen_gut(wert: &Value, klassen: &[String]) -> bool {
     true
 }
 
+/// The display names of the groups after 3.1 (stages 8, 9, 11, 14a and 14b): at most 256 entries, each key in identifier
+/// form and a key of `gruppen`, each name 1 to 64 characters without a control character (U+0000 to U+001F, U+007F), no name twice
+/// (the same characters, case counts).
+#[must_use]
+pub fn gruppennamen_gut(namen: &[(String, String)], gruppen: &[(String, Vec<String>)]) -> bool {
+    if namen.len() > GRUPPENNAMEN_MAX {
+        return false;
+    }
+    for (i, (schluessel, name)) in namen.iter().enumerate() {
+        let laenge = name.chars().count();
+        if !ist_kennung(schluessel)
+            || !gruppen.iter().any(|(g, _)| g == schluessel)
+            || !(1..=GRUPPENNAME_MAX).contains(&laenge)
+            || name.chars().any(|c| c <= '\u{1f}' || c == '\u{7f}')
+            || namen[..i].iter().any(|(_, n)| n == name)
+        {
+            return false;
+        }
+    }
+    true
+}
+
 /// The form of `leseklassen` with pseudonyms (15.11): at most 4096 objects with exactly `ebene`, `wer` and `klasse`
 /// as texts; `ebene` `gruppe` with a key of `gruppen`, `ebene` `nutzer` with a pseudonym; `klasse` byte for byte in
 /// `klassen`; each pair of `ebene` and `wer` once.
@@ -586,6 +616,11 @@ mod tests {
         alle.sort_unstable();
         alle.dedup();
         assert_eq!(alle, ALLE_EFFORTS);
+        assert_eq!(HARNESSES, ["claude", "copilot", "pi", "opencode"]);
+        assert_eq!(
+            efforts_von("opencode"),
+            ["none", "minimal", "low", "medium", "high", "xhigh", "max"]
+        );
         assert_eq!(Vorgabe::Zahl(13).wert(), json!(13));
         assert_eq!(Vorgabe::Objekt.wert(), json!({}));
     }
@@ -716,6 +751,78 @@ mod tests {
             .collect();
         assert!(g(Value::Array(viele[..64].to_vec())));
         assert!(!g(Value::Array(viele)));
+    }
+
+    #[test]
+    fn opencode_ist_ein_harness_des_katalogs() {
+        assert!(gueltig("harnesses", &json!({"intern": ["opencode", "pi"]})));
+        assert!(gueltig(
+            "effort.grenzen",
+            &json!([
+                {"harness": "opencode", "erlaubt": ["none", "minimal", "low", "medium", "high", "xhigh", "max"]},
+                {"harness": "opencode", "klasse": "intern", "erlaubt": ["none"]},
+                {"harness": "opencode", "modell": "qwen3:8b", "erlaubt": ["low"]}
+            ])
+        ));
+        // `off` is a value of pi, `ultra` of no harness
+        for w in [
+            json!([{"harness": "opencode", "erlaubt": ["off"]}]),
+            json!([{"harness": "opencode", "erlaubt": ["ultra"]}]),
+            json!([{"harness": "opencode", "erlaubt": ["none"]}, {"harness": "opencode", "erlaubt": ["low"]}]),
+        ] {
+            assert!(!gueltig("effort.grenzen", &w), "{w}");
+        }
+        assert!(!gueltig(
+            "harnesses",
+            &json!({"intern": ["opencode", "opencode"]})
+        ));
+    }
+
+    #[test]
+    fn gruppennamen() {
+        let gruppen = vec![("g-eins".to_owned(), vec![]), ("g-zwei".to_owned(), vec![])];
+        let n = |l: &[(&str, &str)]| -> Vec<(String, String)> {
+            l.iter()
+                .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+                .collect()
+        };
+        assert!(gruppennamen_gut(&[], &gruppen));
+        assert!(gruppennamen_gut(
+            &n(&[("g-eins", "Gruppe Entwicklung"), ("g-zwei", "Vertrieb")]),
+            &gruppen
+        ));
+        // exactly 64 characters count by characters, not by bytes
+        assert!(gruppennamen_gut(
+            &n(&[("g-eins", &"\u{e4}".repeat(64))]),
+            &gruppen
+        ));
+        assert!(gruppennamen_gut(&n(&[("g-eins", "\u{80}")]), &gruppen));
+        for schlecht in [
+            n(&[("g-drei", "Es gibt sie nicht")]),
+            n(&[("G Eins", "Entwicklung")]),
+            n(&[("g-eins", "")]),
+            n(&[("g-eins", &"x".repeat(65))]),
+            n(&[("g-eins", &"\u{e4}".repeat(65))]),
+            n(&[("g-eins", "Ent\nwicklung")]),
+            n(&[("g-eins", "Ent\u{1f}wicklung")]),
+            n(&[("g-eins", "Ent\u{7f}wicklung")]),
+            n(&[("g-eins", "Vertrieb"), ("g-zwei", "Vertrieb")]),
+        ] {
+            assert!(!gruppennamen_gut(&schlecht, &gruppen), "{schlecht:?}");
+        }
+        // case counts: two names that differ only in case are two names
+        assert!(gruppennamen_gut(
+            &n(&[("g-eins", "Vertrieb"), ("g-zwei", "vertrieb")]),
+            &gruppen
+        ));
+        // the limit of 256 entries comes before the check of each entry
+        let viele: Vec<(String, String)> = (0..257)
+            .map(|i| (format!("g-{i}"), format!("n{i}")))
+            .collect();
+        let alle: Vec<(String, Vec<String>)> =
+            viele.iter().map(|(g, _)| (g.clone(), vec![])).collect();
+        assert!(gruppennamen_gut(&viele[..256], &alle));
+        assert!(!gruppennamen_gut(&viele, &alle));
     }
 
     #[test]

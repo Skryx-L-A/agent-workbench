@@ -1,0 +1,25 @@
+{
+ "exec": "pi",
+ "harness_argv": [
+  "pi",
+  "--provider",
+  "wb-lokal",
+  "--model",
+  "qwen3:8b",
+  "--session-id",
+  "<harness-kennung>"
+ ],
+ "stderr": "",
+ "suche_gestartet": true,
+ "gespraeche_danach": {
+  "s-2": {
+   "fassung": 1,
+   "harness": "pi",
+   "arbeitsordner": "/heim/beispiel/projekt",
+   "route": "lokal-beispiel",
+   "kunde": "k-beispiel",
+   "kennung": "<harness-kennung>"
+  }
+ },
+ "zustandsordner_beim_start": "leer"
+}

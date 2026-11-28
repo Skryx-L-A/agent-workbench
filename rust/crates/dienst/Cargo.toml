@@ -51,6 +51,11 @@ rustix = { version = "=1.1.6", features = ["process", "event", "fs", "net"] }
 serde_json = "1"
 signal-hook = "=0.4.6"
 start = { path = "../start" }
+# peerkanal (above) also carries the channel to the decision point with the check of the other side (addendum "Kanal zur
+# Stelle (L6, Nr. 98)").
+# stelle (path, no new package): the challenge and the proof `h1` of contract 6, section 6, from one source with the checker of
+# the point. The service issues the proof of a release; the view never does (addendum "Kanal zur Stelle", point 4).
+stelle = { path = "../stelle" }
 traeger = { path = "../traeger" }
 zustandskern = { path = "../zustandskern" }
 

@@ -77,7 +77,8 @@ pub struct Stand {
     /// Every event the window sent, in order.
     pub ereignisse: Vec<Value>,
     admin: bool,
-    einstellungen: Vec<(String, Value, String, bool)>,
+    /// Key, value, origin, and for a user who is no admin: whether it may be changed and the reason of a lock.
+    einstellungen: Vec<(String, Value, String, bool, Option<String>)>,
 }
 
 /// A handle on the state of a mock-up (for the runner and the pictures).
@@ -123,9 +124,9 @@ fn arbeiter(id: &str, sitzung: &str, rolle: &str, modell: &str, zustand: &str, n
 }
 
 /// The text of the terminal of the orchestrator in the mock-up: plain lines in the line form of `rasterauszug`.
-fn orchestrator_text() -> Vec<String> {
+pub(crate) fn orchestrator_text() -> Vec<String> {
     [
-        "\u{1b}[1mclaude\u{1b}[0m · opus · ~/AI/werkbank",
+        "\u{1b}[1mcopilot\u{1b}[0m · opus · ~/AI/werkbank",
         "",
         "> Plane den Pilot des App-Fensters und verteile die Arbeit.",
         "",
@@ -135,7 +136,7 @@ fn orchestrator_text() -> Vec<String> {
         "\u{1b}[32m●\u{1b}[0m Worker 1 baut die Leiste, Worker 2 das Terminal, Worker 3 den Inspektor.",
         "",
         "┌──────────────────────────────────────────────┐",
-        "│ Grüße aus dem Terminal: äöü ÄÖÜ ß € – „“ … │",
+        "│ Grüße aus dem Terminal: äöü ÄÖÜ ß € – „“ …   │",
         "└──────────────────────────────────────────────┘",
         "",
         "\u{1b}[2m? für Hilfe\u{1b}[0m",
@@ -167,7 +168,7 @@ impl Attrappe {
                 "s-1",
                 "Planung Pilot",
                 "werkbank",
-                ("claude", "opus", "cloud"),
+                ("copilot", "opus", "cloud"),
                 true,
                 0,
                 1,
@@ -176,7 +177,7 @@ impl Attrappe {
                 "s-2",
                 "Abnahme Fenster",
                 "werkbank",
-                ("claude", "sonnet", "cloud"),
+                ("copilot", "sonnet", "cloud"),
                 true,
                 0,
                 2,
@@ -194,7 +195,7 @@ impl Attrappe {
                 "s-4",
                 "Import Altbestand",
                 "kunde-nord",
-                ("pi", "qwen3-coder", "lokal"),
+                ("opencode", "qwen3-coder", "lokal"),
                 false,
                 137,
                 4,
@@ -225,66 +226,108 @@ impl Attrappe {
         for (i, a) in arbeiter_liste.iter().enumerate() {
             texte.push((a.nr, worker_text(&a.rolle, i + 1)));
         }
+        // the view `sicht` of `regelebenen` 15.5 for a user who is no admin: value, origin, whether it may be changed, the
+        // reason of a lock; an admin may change every key except a fixed one (rule 0 and 1)
+        let e = |k: &str, w: Value, h: &str, aenderbar: bool, grund: Option<&str>| {
+            (
+                k.to_owned(),
+                w,
+                h.to_owned(),
+                aenderbar,
+                grund.map(str::to_owned),
+            )
+        };
         let einstellungen = vec![
-            (
-                "aussehen.thema".to_owned(),
-                json!("system"),
-                "du".to_owned(),
-                true,
-            ),
-            (
-                "aussehen.farbsatz".to_owned(),
-                json!("grau"),
-                "Firma".to_owned(),
-                true,
-            ),
-            (
-                "aussehen.terminal".to_owned(),
-                json!("dunkel"),
-                "Firma".to_owned(),
-                true,
-            ),
-            (
-                "aussehen.schriftgroesse".to_owned(),
+            e("aussehen.thema", json!("system"), "nutzer", true, None),
+            e("aussehen.farbsatz", json!("grau"), "firma", true, None),
+            e("aussehen.terminal", json!("dunkel"), "firma", true, None),
+            e(
+                crate::einstellungstexte::SCHLUESSEL_SCHRIFTGROESSE,
                 json!(13),
-                "Firma".to_owned(),
+                "firma",
                 true,
+                None,
             ),
-            (
-                "sitzung.harness".to_owned(),
-                json!("claude"),
-                "Gruppe Entwicklung".to_owned(),
+            e(
+                "sitzung.harness",
+                json!("copilot"),
+                "gruppe Entwicklung",
                 true,
+                None,
             ),
-            (
-                "sitzung.modell".to_owned(),
-                json!("sonnet"),
-                "du".to_owned(),
+            e("sitzung.modell", json!("sonnet"), "nutzer", true, None),
+            e("sitzung.effort", json!("medium"), "nutzer", true, None),
+            e(
+                "harnesses",
+                json!({"intern": ["copilot", "pi", "opencode"], "kundendaten": ["pi"]}),
+                "firma",
                 true,
+                Some("nur_strenger"),
             ),
-            (
-                "sitzung.effort".to_owned(),
-                json!("medium"),
-                "du".to_owned(),
+            e(
+                "modelle",
+                json!({"intern": ["sonnet", "opus"], "kundendaten": ["sonnet"]}),
+                "firma",
                 true,
+                Some("nur_strenger"),
             ),
-            (
-                "admin.harness.pi".to_owned(),
-                json!(true),
-                "Firma".to_owned(),
+            e(
+                "effort.grenzen",
+                json!([{"harness": "copilot", "erlaubt": ["low", "medium", "high"]}]),
+                "firma",
                 false,
+                Some("nur_admin"),
             ),
-            (
-                "admin.modell.opus.effort_max".to_owned(),
-                json!("high"),
-                "Firma".to_owned(),
-                false,
-            ),
-            (
-                "admin.aufsicht.guard".to_owned(),
+            e(
+                "optionen.copilot_ohne_rueckfrage",
                 json!(false),
-                "Firma".to_owned(),
+                "firma",
                 false,
+                Some("nur_admin"),
+            ),
+            e(
+                "optionen.copilot_telemetrie",
+                json!(false),
+                "firma",
+                false,
+                Some("nur_admin"),
+            ),
+            e(
+                "optionen.copilot_eingeschraenktes_token",
+                json!(false),
+                "firma",
+                false,
+                Some("nur_admin"),
+            ),
+            e(
+                "optionen.lokale_ca",
+                json!(false),
+                "firma",
+                false,
+                Some("nur_admin"),
+            ),
+            e(
+                "optionen.herstellerzugang",
+                json!(false),
+                "firma",
+                false,
+                Some("fest"),
+            ),
+            // the deadlines of a release (`regelebenen` 15.1.2): only the company sets them; 120 s is the catalogue of the
+            // case of the decision (`frist-wirksam-server-strenger`)
+            e(
+                "aufsicht.freigabefrist_ms",
+                json!(120_000),
+                "firma",
+                false,
+                Some("nur_admin"),
+            ),
+            e(
+                "aufsicht.einloesefrist_ms",
+                json!(300_000),
+                "firma",
+                false,
+                Some("nur_admin"),
             ),
         ];
         let stand = Stand {
@@ -332,6 +375,8 @@ impl Attrappe {
             if form == Form::Ziel {
                 s.agenten();
                 s.einstellungen_senden();
+                s.schutzstand_senden();
+                s.fristen_senden();
             }
         }
         (
@@ -382,7 +427,7 @@ impl Stand {
 
     fn startwahl(&mut self) {
         let mut n = json!({"art": "Startwahl", "fassung": 1,
-            "harness": [{"name": "claude"}, {"name": "pi"}],
+            "harness": [{"name": "copilot"}, {"name": "pi"}, {"name": "opencode"}],
             "routen": [{"schluessel": "cloud", "art": "cloud", "klasse": "intern", "modell": "sonnet"},
                        {"schluessel": "lokal", "art": "lokal", "klasse": "vertraulich", "modell": "qwen3-coder"}],
             "kunden": ["kunde-nord", null]});
@@ -417,13 +462,51 @@ impl Stand {
         let eintraege: Vec<Value> = self
             .einstellungen
             .iter()
-            .filter(|(k, ..)| self.admin || !k.starts_with("admin."))
-            .map(|(k, w, h, nutzer)| {
-                json!({"schluessel": k, "wert": w, "herkunft": h, "bereich": if k.starts_with("admin.") { "admin" } else { "nutzer" },
-                    "aenderbar": if k.starts_with("admin.") { self.admin } else { *nutzer }})
+            .map(|(k, w, h, nutzer, grund)| {
+                let bereich = if k.starts_with("aussehen.") {
+                    "nutzer"
+                } else {
+                    ansicht::ziel::KATALOG
+                        .iter()
+                        .find(|(x, ..)| x == k)
+                        .map_or("admin", |(_, b, _)| *b)
+                };
+                let fest = grund.as_deref() == Some("fest");
+                let (aenderbar, grund) = if self.admin && !fest {
+                    (true, None)
+                } else {
+                    (*nutzer, grund.clone())
+                };
+                json!({"schluessel": k, "wert": w, "herkunft": h, "bereich": bereich, "aenderbar": aenderbar, "grund": grund})
             })
             .collect();
         self.nachricht(&json!({"art": "Einstellungen", "admin": self.admin, "eintraege": eintraege, "werte": {}}));
+    }
+
+    /// The measured state of the protection layers, read only (decision of the operator, 27.11.2026): dates of the
+    /// installation, the last start (a neutral example time) and the network targets per origin. No message of the
+    /// service carries it yet; the name and the fields are the proposal of the window.
+    fn schutzstand_senden(&mut self) {
+        self.nachricht(&json!({"art": "Schutzstand",
+            "einschluss": {"probelauf": "2026-11-27"},
+            "halter": {"eingerichtet": "2026-11-27"},
+            "letzter_start": {"zeit": 1_000_000_000_000_u64, "ergebnis": "gestartet"},
+            "netzziele": [{"herkunft": "firma", "anzahl": 3}, {"herkunft": "nutzer", "anzahl": 2}]}));
+    }
+
+    /// The effective deadline of a release for each MCP server, read only (`regelebenen` 15.1.2, decision of the operator,
+    /// 27.11.2026), as `regelebenen::frist::wirksam` computes it. Catalogue 120 s and 5 min; the server `tickets` sets 30 s
+    /// and 1 h, the server `wiki` only 1 min to redeem. No message of the service carries it yet; the name and the fields
+    /// are the proposal of the window.
+    fn fristen_senden(&mut self) {
+        let f = |schluessel: &str, server: &str, wert: u64, herkunft: &str| json!({"schluessel": schluessel, "server": server, "wert": wert, "herkunft": herkunft});
+        let (e, l) = ("aufsicht.freigabefrist_ms", "aufsicht.einloesefrist_ms");
+        self.nachricht(&json!({"art": "Fristen", "fristen": [
+            f(e, "tickets", 30_000, "firmendatei"),
+            f(e, "wiki", 120_000, "katalog"),
+            f(l, "tickets", 300_000, "katalog"),
+            f(l, "wiki", 60_000, "firmendatei"),
+        ]}));
     }
 
     /// The picture of raster `nr` at the size the window asked for, as a frame.
@@ -645,9 +728,12 @@ impl Stand {
                 let w = e.get("wert").cloned().unwrap_or(Value::Null);
                 let admin = self.admin;
                 match self.einstellungen.iter_mut().find(|(x, ..)| *x == k) {
-                    Some(eintrag) if eintrag.3 || admin => {
+                    Some(eintrag)
+                        if (eintrag.3 || admin) && eintrag.4.as_deref() != Some("fest") =>
+                    {
                         eintrag.1 = w;
-                        "du".clone_into(&mut eintrag.2);
+                        let ebene = e.get("ebene").and_then(Value::as_str).unwrap_or("nutzer");
+                        ebene.clone_into(&mut eintrag.2);
                         self.einstellungen_senden();
                     }
                     _ => self.ablehnen("einstellung_gesperrt"),
@@ -732,6 +818,8 @@ impl Stand {
         if self.form == Form::Ziel {
             self.agenten();
             self.einstellungen_senden();
+            self.schutzstand_senden();
+            self.fristen_senden();
         }
     }
 }
@@ -768,6 +856,52 @@ impl Weg for Attrappe {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The messages of the mock-up after its first frames, by kind.
+    fn nachrichten(form: Form) -> Vec<Value> {
+        let (mut a, _griff) = Attrappe::neu(form);
+        let mut aus = Vec::new();
+        for _ in 0..4 {
+            for r in a.abholen() {
+                if r.art == NACHRICHT {
+                    aus.push(serde_json::from_slice(&r.nutz).expect("json"));
+                }
+            }
+        }
+        aus
+    }
+
+    #[test]
+    fn the_programs_of_the_mock_up_are_those_of_the_pilot() {
+        let pilot = ["copilot", "pi", "opencode"];
+        let n = nachrichten(Form::Ziel);
+        let wahl = n
+            .iter()
+            .find(|m| m["art"] == "Startwahl")
+            .expect("Startwahl");
+        let namen: Vec<&str> = wahl["harness"]
+            .as_array()
+            .expect("harness")
+            .iter()
+            .filter_map(|h| h["name"].as_str())
+            .collect();
+        assert_eq!(namen, pilot);
+        let liste = n
+            .iter()
+            .find(|m| m["art"] == "Sitzungsliste")
+            .expect("Sitzungsliste");
+        for s in liste["sitzungen"].as_array().expect("sitzungen") {
+            let h = s["harness"].as_str().expect("harness");
+            assert!(pilot.contains(&h), "{h}");
+        }
+        let einstellungen = n
+            .iter()
+            .find(|m| m["art"] == "Einstellungen")
+            .expect("Einstellungen");
+        let text = einstellungen.to_string();
+        assert!(!text.contains("claude"), "{text}");
+        assert!(text.contains("opencode"), "{text}");
+    }
 
     fn ablehnungen(a: &mut Attrappe) -> Vec<String> {
         a.abholen()

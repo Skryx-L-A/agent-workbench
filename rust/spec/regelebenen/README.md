@@ -74,11 +74,20 @@ Ein doppelter Schlüssel in irgendeinem Objekt macht die Datei ungültig (A139).
 | `einstellung` | Objekt | Vertrag 2 Fassung 1, unverändert geprüft | Grundregel für alle (Klassen, Routen, Kunden, Freigaben) |
 | `rollen` | Objekt: Pseudonym → Liste aus `admin`, `einsicht` | 1 bis 1024 Einträge, je 1 bis 2 Rollen ohne Doppel, mindestens ein `admin` | `admin` ändert Firma- und Gruppenebene (A27), `einsicht` sieht das Protokoll ein (Vertrag 6 Fassung 2); die einzige Quelle der Rollen (B09) |
 | `gruppen` | Liste von `{"schluessel", "mitglieder"}` | 0 bis 256; `mitglieder` 0 bis 4096 Pseudonyme | ein Nutzer steht in höchstens einer Gruppe |
+| `gruppennamen` | Objekt, optional: Kennung der Gruppe → Name | 0 bis 256 Einträge; ein Name hat 1 bis 64 Zeichen ohne Steuerzeichen (U+0000 bis U+001F, U+007F) | Anzeigename einer Gruppe für die Oberfläche, siehe unten |
 | `nutzerregeln` | Liste von `{"nutzer", "regeln"}` | 0 bis 4096, `nutzer` (Pseudonym) ohne Doppel | Regelsatz der Firma für einen Nutzer (A26) |
 | `routen_status` | Liste, optional | 0 bis 64, `route` ohne Doppel | A45, siehe unten |
 | `senkung` | Objekt, optional | siehe unten | Senkung durch die Automatik (A39, A41) |
 | `protokoll` | Objekt, optional | siehe unten | Aufbewahrung (A103) |
 
+- **`gruppennamen`** (Entscheid des Betreibers, 27.11.2026): Die Oberfläche zeigt „Gruppe Entwicklung“ statt `g-entwicklung`. Der Schlüssel ist die Kennung einer
+  Gruppe aus `gruppen`; die Form von `gruppen` ändert sich nicht. Jeder Schlüssel muss in `gruppen` stehen (Stufe 14a, `ebenen.gruppe_unbekannt`), und kein
+  Name darf zweimal vorkommen (Stufe 14b, `ebenen.name_doppelt`; verglichen wird die Zeichenfolge, Groß- und Kleinschreibung zählt). Beides ist ein
+  Ladefehler der Firmendatei, auch bei einer Änderung. Die Form prüfen die Stufen 3, 5, 8, 9 und 11: Der Schlüssel muss die Kennungsform haben (9),
+  ein Name ist ein Text (5) von 1 bis 64 Zeichen ohne Steuerzeichen (11), mehr als 256 Einträge sind zu viel (8). Fehlt der Name einer Gruppe oder
+  das ganze Feld, zeigt die Oberfläche den Schlüssel. Der Name ändert keine Regel, keine Herkunft und keine Befugnis; er steht in keiner Zeile des
+  Protokolls außer in der Prüfsumme der ganzen Datei. Fälle: `laden-gruppennamen`, `laden-gruppenname-ohne-gruppe`, `laden-gruppenname-doppelt` und
+  `gruppennamen-form` in `faelle/`, `sicht-gruppenname` in `faelle-setzen/`.
 - **`routen_status`**: je Eintrag `route` (Route aus `einstellung`), `status` (`frei`, `gesperrt` oder `evaluierung`),
   `grund` (Text, 1 bis 200 Zeichen, ohne Steuerzeichen), `seit` (Datum `JJJJ-MM-TT`), `freigabe_durch` (Kennung einer
   Rolle der Firma nach A45, etwa der freigebenden Stelle; sie nennt nie eine Person, auch nicht als Pseudonym, A12) und optional `zone` (Kennung). Alle außer `zone` sind Pflicht. `gesperrt` und `evaluierung` sperren die Route
@@ -269,13 +278,15 @@ Genau ein Code, der der ersten verletzten Stufe. Innerhalb einer Stufe ist gleic
 | 5 | `ebenen.typ_falsch` | falscher JSON-Typ | ja | ja |
 | 6 | `ebenen.fassung_unbekannt` | `fassung` ist eine Ganzzahl, aber nicht `1` | ja | ja |
 | 7 | `ebenen.ebene_falsch` | `ebene` passt nicht zum Platz der Datei, oder `gruppe`/`nutzer` nicht zum Ziel | ja | nein |
-| 8 | `ebenen.anzahl` | eine Liste außerhalb ihrer Grenzen, etwa kein Admin | ja | ja |
-| 9 | `ebenen.kennung_form` | eine Kennung oder ein Pseudonym verletzt die Form | ja | ja |
+| 8 | `ebenen.anzahl` | eine Liste außerhalb ihrer Grenzen, etwa kein Admin, oder `gruppennamen` mit mehr als 256 Einträgen | ja | ja |
+| 9 | `ebenen.kennung_form` | eine Kennung oder ein Pseudonym verletzt die Form, auch ein Schlüssel von `gruppennamen` | ja | ja |
 | 10 | `ebenen.kennung_doppelt` | ein Doppel in einer Liste (auch in den Rollen eines Pseudonyms) oder ein Nutzer zweimal in `nutzerregeln` | ja | ja |
-| 11 | `ebenen.wert_ungueltig` | `ebene`, `status` oder eine Rolle außerhalb ihrer Werte, `seit` kein Datum, `grund` außerhalb der Form, `aufbewahrung_tage` außerhalb der Grenzen | ja | ja |
+| 11 | `ebenen.wert_ungueltig` | `ebene`, `status` oder eine Rolle außerhalb ihrer Werte, `seit` kein Datum, `grund` außerhalb der Form, `aufbewahrung_tage` außerhalb der Grenzen, ein Name in `gruppennamen` außerhalb der Form | ja | ja |
 | 12 | `einst.*` | `einstellung` verletzt Vertrag 2 (dessen Stufen 3 bis 17, dessen Code unverändert) | ja | ja |
 | 13 | `ebenen.route_unbekannt` | `routen_status` nennt eine Route, die nicht in `einstellung` steht | ja | ja |
 | 14 | `ebenen.nutzer_mehrfach` | ein Nutzer steht in zwei Gruppen | ja | ja |
+| 14a | `ebenen.gruppe_unbekannt` | `gruppennamen` nennt eine Gruppe, die nicht in `gruppen` steht | ja | ja |
+| 14b | `ebenen.name_doppelt` | zwei Gruppen tragen denselben Namen in `gruppennamen` | ja | ja |
 | 15 | `ebenen.nicht_befugt` | Abschnitt 7 | nein | ja |
 | 16 | `ebenen.gruppe_unbekannt` | die Gruppe steht nicht in `gruppen` der Firma | nein | ja |
 | 17 | `ebenen.route_unbekannt` | ein Regelsatz nennt eine Route, die nicht in der Firmengrundregel steht | Hinweis | ja |
@@ -496,7 +507,7 @@ der Schlüssel stehen darf. Aussehen und Effort sind Wahlen, keine Optionen (OF9
 | `aussehen.farbsatz` | nutzer | firma, gruppe, nutzer | Wahl: `grau`, `blauschwarz` | `grau` | frei | OF3 Punkt 2 |
 | `aussehen.terminal` | nutzer | firma, gruppe, nutzer | Wahl: `dunkel`, `hell`, `thema` | `dunkel` | frei | OF3 Punkt 2 |
 | `terminal.schriftgroesse` | nutzer | firma, gruppe, nutzer | Ganzzahl 9 bis 32 (Pixel) | `13` | frei | OF4 Punkt 2 |
-| `sitzung.harness` | nutzer | firma, gruppe, nutzer | Wahl: `claude`, `copilot`, `pi` | `null` (keine Vorgabe) | frei, an `harnesses` gebunden | OF9 Punkt 3 |
+| `sitzung.harness` | nutzer | firma, gruppe, nutzer | Wahl: `claude`, `copilot`, `pi`, `opencode` | `null` (keine Vorgabe) | frei, an `harnesses` gebunden | OF9 Punkt 3 |
 | `sitzung.modell` | nutzer | firma, gruppe, nutzer | Modellname (`^[A-Za-z0-9._:/@+-]{1,128}$`, Vertrag 1) | `null` | frei, an `modelle` gebunden | OF9 Punkt 3 |
 | `sitzung.effort` | nutzer | firma, gruppe, nutzer | Wahl aus allen Effort-Werten der Harnesses (Vertrag 2, Block `effort`) | `null` | frei | E2 |
 | `harnesses` | admin | firma, gruppe, nutzer | Objekt: Klasse → Liste von Harnesses, je höchstens 16, ohne Doppel | `{}` (keine Einschränkung) | schnitt | OF9 Punkt 4 |
@@ -626,12 +637,17 @@ einer für `mcp.<server>.freigabe` (Freigabe je schreibendem Aufruf). Die Rückf
 {"klassen": ["oeffentlich", "intern", "kundendaten"],
  "admins": ["ps_00000000000000000000000000000b01"],
  "gruppen": {"g-eins": ["ps_00000000000000000000000000000c01"]},
+ "gruppennamen": {"g-eins": "Gruppe Entwicklung"},
  "werte": {"firma": {"aussehen.thema": "hell"},
            "gruppen": {"g-eins": {"terminal.schriftgroesse": 15}},
            "nutzer": {"ps_00000000000000000000000000000c01": {"aussehen.farbsatz": "blauschwarz"}}}}
 ```
 
 - `klassen` und `gruppen` kommen aus der gespeicherten Firmendatei (Abschnitt 3.1), `admins` vom Dienst (Abschnitt 15.2).
+- `gruppennamen` ist optional und kommt ebenfalls aus der Firmendatei (Abschnitt 3.1, Entscheid des Betreibers, 27.11.2026): Schlüssel einer
+  Gruppe → Anzeigename. Der Schlüssel fehlt im Stand, wenn die Firmendatei keine Namen nennt. Der Stand trägt die Namen nur; `setzen` und `sicht`
+  lesen sie nicht. Die `herkunft` in `sicht` bleibt `gruppe <schluessel>` (Abschnitt 15.5), und `setzen` nimmt weiter den Schlüssel in `ebene`.
+  Die Namen im Stand gelten als geprüft (Stufen 14a und 14b); ein Stand mit einem Namen ohne Gruppe ist ein Ladefehler des Aufrufers.
 - `werte` hält je Platz die gesetzten Schlüssel. Ein fehlender Schlüssel heißt: Auf dieser Ebene steht kein Wert.
 - Wo `werte` gespeichert wird, ist OPEN 1. Die Speicherform ist frei; dieser Vertrag legt nur den Stand fest, den beide Funktionen sehen.
 
@@ -791,11 +807,17 @@ für den Herstellerzugang den Fall `option-herstellerzugang-fest` (Abschnitt 15.
 | `fassung` | Ganzzahl `2` | Form dieses Abschnitts |
 | `admin` | Wahrheitswert | `wer` steht in `stand.admins`; nur dann zeigt die Ansicht den Bereich B78 |
 | `werte` | Objekt | das Ergebnis von `sicht(stand, wer)`, je Schlüssel des Katalogs; für einen Admin mit Konten an der Stelle der Pseudonyme (Abschnitt 15.13) |
+| `gruppennamen` | Objekt, optional | Gruppenschlüssel → Anzeigename (Vorschlag, Entscheid des Betreibers, 27.11.2026); fehlt, wenn es nichts zu nennen gibt |
 
 - Der Dienst schickt sie beim Verbinden und nach jeder angenommenen Änderung, die den Betrachter betrifft.
 - Die Nachricht nennt nie die Liste der Admins. Ein Konto nennt sie nur einem Admin, an der Stelle des Pseudonyms (Entscheid des
   Betreibers, 27.11.2026; Abschnitt 15.13). Einem Betrachter, der kein Admin ist, nennt sie nie ein Konto.
 - `admin` ist eine Anzeige. Die Befugnis prüft `setzen` bei jeder Änderung neu.
+- **`gruppennamen` (Vorschlag).** Die Nachricht nennt die Namen der Gruppen des Betrachters: die Gruppe, in der `wer` steht, mit ihrem Namen aus
+  `stand.gruppennamen`. Ein Nutzer steht in höchstens einer Gruppe, also hat das Feld für einen Nicht-Admin höchstens einen Eintrag. Einem Admin nennt die
+  Nachricht alle Gruppen mit Namen, weil er jede Gruppenebene setzt (`ebene: gruppe <schluessel>`) und dafür ihren Namen braucht. Eine Gruppe ohne Namen steht nicht
+  im Feld; die Oberfläche zeigt dann den Schlüssel. Die `herkunft` in `werte` bleibt `gruppe <schluessel>`; die Oberfläche schlägt den Namen im Feld nach.
+  Der Dienst baut das Feld aus dem Stand; die Mitglieder einer Gruppe und die Namen fremder Gruppen erfährt ein Nicht-Admin nie.
 - Vertrag `zustandskern` nennt für `Einstellungen` heute `wert`, `vorgabe` und `herkunft` mit `vorgabe` als Herkunft
   (`rust/spec/zustandskern/VERTRAG.md:142`). Dieser Abschnitt ersetzt das für Fassung 2. Die Angleichung dort gehört dem Vertrag
   `zustandskern`.

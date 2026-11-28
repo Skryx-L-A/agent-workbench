@@ -25,6 +25,18 @@ pub enum Code {
     DigestAbweichend,
     NachweisUngueltig,
     ProtokollFehler,
+    PersonFehler,
+    VorgabeFehlt,
+    HarnessNichtErlaubt,
+    ModellNichtErlaubt,
+    EffortNichtErlaubt,
+    WorkerHoechstzahl,
+    ZusageUngueltig,
+    OrchestratorIstWorker,
+    RouteUnbekannt,
+    WorkerKlasseHoeher,
+    WorkerFremderKunde,
+    ZusagenErschoepft,
     /// A code and a reason of contract 1 or 2, as the crate `start` or `einstellungen` reports them.
     Vertrag(&'static str, &'static str),
 }
@@ -65,6 +77,33 @@ impl Code {
             ),
             Self::NachweisUngueltig => ("stelle.nachweis_ungueltig", "Nachweis ungueltig"),
             Self::ProtokollFehler => ("stelle.protokoll_fehler", "Protokoll nicht schreibbar"),
+            Self::PersonFehler => ("stelle.person_fehler", "Pseudonym nicht bildbar"),
+            Self::VorgabeFehlt => ("stelle.vorgabe_fehlt", "Vorgabe fehlt oder unsicher"),
+            Self::HarnessNichtErlaubt => ("stelle.harness_nicht_erlaubt", "Harness nicht erlaubt"),
+            Self::ModellNichtErlaubt => ("stelle.modell_nicht_erlaubt", "Modell nicht erlaubt"),
+            Self::EffortNichtErlaubt => ("stelle.effort_nicht_erlaubt", "Effort nicht erlaubt"),
+            Self::WorkerHoechstzahl => (
+                "stelle.worker_hoechstzahl",
+                "Hoechstzahl der Worker erreicht",
+            ),
+            Self::ZusageUngueltig => ("stelle.zusage_ungueltig", "Zusage fehlt oder passt nicht"),
+            Self::OrchestratorIstWorker => (
+                "stelle.orchestrator_ist_worker",
+                "Orchestrator ist selbst ein Worker",
+            ),
+            Self::RouteUnbekannt => ("stelle.route_unbekannt", "Route unbekannt"),
+            Self::WorkerKlasseHoeher => (
+                "stelle.worker_klasse_hoeher",
+                "Klasse hoeher als beim Orchestrator",
+            ),
+            Self::WorkerFremderKunde => (
+                "stelle.worker_fremder_kunde",
+                "Kunde weicht vom Orchestrator ab",
+            ),
+            Self::ZusagenErschoepft => (
+                "stelle.zusagen_erschoepft",
+                "Zusagen erschoepft, Neustart noetig",
+            ),
             Self::Vertrag(code, grund) => (code, grund),
         }
     }
@@ -214,6 +253,66 @@ mod tests {
                 Code::DigestAbweichend,
                 "stelle.digest_abweichend",
                 "Aufruf weicht von der Anfrage ab",
+            ),
+            (
+                Code::PersonFehler,
+                "stelle.person_fehler",
+                "Pseudonym nicht bildbar",
+            ),
+            (
+                Code::VorgabeFehlt,
+                "stelle.vorgabe_fehlt",
+                "Vorgabe fehlt oder unsicher",
+            ),
+            (
+                Code::HarnessNichtErlaubt,
+                "stelle.harness_nicht_erlaubt",
+                "Harness nicht erlaubt",
+            ),
+            (
+                Code::ModellNichtErlaubt,
+                "stelle.modell_nicht_erlaubt",
+                "Modell nicht erlaubt",
+            ),
+            (
+                Code::EffortNichtErlaubt,
+                "stelle.effort_nicht_erlaubt",
+                "Effort nicht erlaubt",
+            ),
+            (
+                Code::WorkerHoechstzahl,
+                "stelle.worker_hoechstzahl",
+                "Hoechstzahl der Worker erreicht",
+            ),
+            (
+                Code::ZusageUngueltig,
+                "stelle.zusage_ungueltig",
+                "Zusage fehlt oder passt nicht",
+            ),
+            (
+                Code::OrchestratorIstWorker,
+                "stelle.orchestrator_ist_worker",
+                "Orchestrator ist selbst ein Worker",
+            ),
+            (
+                Code::RouteUnbekannt,
+                "stelle.route_unbekannt",
+                "Route unbekannt",
+            ),
+            (
+                Code::WorkerKlasseHoeher,
+                "stelle.worker_klasse_hoeher",
+                "Klasse hoeher als beim Orchestrator",
+            ),
+            (
+                Code::WorkerFremderKunde,
+                "stelle.worker_fremder_kunde",
+                "Kunde weicht vom Orchestrator ab",
+            ),
+            (
+                Code::ZusagenErschoepft,
+                "stelle.zusagen_erschoepft",
+                "Zusagen erschoepft, Neustart noetig",
             ),
         ];
         for (code, text, grund) in tabelle {

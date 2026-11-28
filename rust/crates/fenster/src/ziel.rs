@@ -51,12 +51,14 @@ pub struct Einstellung {
     pub schluessel: String,
     /// Effective value.
     pub wert: Value,
-    /// Origin ("Firma", "Gruppe …", "du").
+    /// Origin as `sicht` gives it (`regelebenen` 15.5): `firma`, `gruppe <name>` or `nutzer`.
     pub herkunft: String,
     /// "nutzer" or "admin".
     pub bereich: String,
     /// Whether the viewer may change it.
     pub aenderbar: bool,
+    /// The reason of a lock (`regelebenen` 15.5): `nur_admin`, `nur_strenger` or `fest`.
+    pub grund: Option<String>,
 }
 
 /// One entry of the guard history (L6).
@@ -68,6 +70,40 @@ pub struct Verlauf {
     pub erteilt: bool,
     /// Reason of a refusal.
     pub begruendung: String,
+}
+
+/// The measured state of the protection layers (decision of the operator, 27.11.2026): information, no switch, only what
+/// was measured, with its date; never "on" or "running". No message of the service carries it yet; `Schutzstand` is the
+/// proposal of the window: `{"einschluss": {"probelauf": "<date>"}, "halter": {"eingerichtet": "<date>"},
+/// "letzter_start": {"zeit": <ms>, "ergebnis": "<text>"}, "netzziele": [{"herkunft", "anzahl"}]}`. A part that is `null`
+/// or missing is `None` here, and the page says so.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Schutz {
+    /// The date (`JJJJ-MM-TT`) of the green trial run of the enclosure at the installation.
+    pub probelauf: Option<String>,
+    /// The date (`JJJJ-MM-TT`) on which the installation set up the holder.
+    pub eingerichtet: Option<String>,
+    /// The last start: `None` when the service did not report it, `Some(None)` when there was no start yet (`null`),
+    /// else the time in milliseconds since 1970 (UTC) and the result.
+    pub letzter_start: Option<Option<(u64, String)>>,
+    /// The number of released network targets per origin `firma` and `nutzer` (`gruppe` has no source and is left out);
+    /// `None` when the service did not report them.
+    pub netzziele: Option<Vec<(String, u64)>>,
+}
+
+/// The effective deadline of a release of one MCP server (`regelebenen` 15.1.2, decision of the operator, 27.11.2026):
+/// the smaller value of the catalogue and the company file. No message of the service carries it yet; `Fristen` is the
+/// proposal of the window.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Frist {
+    /// The key of the catalogue (`aufsicht.freigabefrist_ms` or `aufsicht.einloesefrist_ms`).
+    pub schluessel: String,
+    /// The key of the server in the block `mcp`.
+    pub server: String,
+    /// The effective value in milliseconds.
+    pub wert: u64,
+    /// `firmendatei` or `katalog`.
+    pub herkunft: String,
 }
 
 /// Everything of the gaps the window has read so far.
@@ -93,6 +129,10 @@ pub struct Zusatz {
     pub efforts: Vec<(String, Vec<String>)>,
     /// The default effort of the person (L10).
     pub effort_vorgabe: String,
+    /// The state of the protection layers, once the service sent it.
+    pub schutz: Option<Schutz>,
+    /// The effective deadlines for each MCP server, in the order of the message.
+    pub fristen: Vec<Frist>,
 }
 
 impl Zusatz {
@@ -161,6 +201,7 @@ impl Zusatz {
                         herkunft: text(e, "herkunft"),
                         bereich: text(e, "bereich"),
                         aenderbar: e.get("aenderbar").and_then(Value::as_bool).unwrap_or(false),
+                        grund: e.get("grund").and_then(Value::as_str).map(str::to_owned),
                     })
                     .collect();
             }
@@ -196,6 +237,46 @@ impl Zusatz {
                     })
                     .collect();
                 self.ordner = Some((text(n, "pfad"), eintraege));
+            }
+            Some("Schutzstand") => {
+                let datum = |teil: &str, k: &str| {
+                    n.get(teil)
+                        .and_then(|t| t.get(k))
+                        .and_then(Value::as_str)
+                        .map(str::to_owned)
+                };
+                let letzter_start = match n.get("letzter_start") {
+                    None => None,
+                    Some(Value::Null) => Some(None),
+                    Some(s) => s
+                        .get("zeit")
+                        .and_then(Value::as_u64)
+                        .map(|z| Some((z, text(s, "ergebnis")))),
+                };
+                self.schutz = Some(Schutz {
+                    probelauf: datum("einschluss", "probelauf"),
+                    eingerichtet: datum("halter", "eingerichtet"),
+                    letzter_start,
+                    netzziele: n.get("netzziele").and_then(Value::as_array).map(|l| {
+                        l.iter()
+                            .filter_map(|z| Some((text(z, "herkunft"), z.get("anzahl")?.as_u64()?)))
+                            .filter(|(h, _)| h == "firma" || h == "nutzer")
+                            .collect()
+                    }),
+                });
+            }
+            Some("Fristen") => {
+                self.fristen = liste("fristen")
+                    .iter()
+                    .filter_map(|f| {
+                        Some(Frist {
+                            schluessel: text(f, "schluessel"),
+                            server: text(f, "server"),
+                            wert: f.get("wert")?.as_u64()?,
+                            herkunft: text(f, "herkunft"),
+                        })
+                    })
+                    .collect();
             }
             Some("Suchtreffer") => {
                 self.treffer = liste("treffer")

@@ -204,6 +204,7 @@
             {
               "anfrage": "mf-1795179540000-2",
               "server": "brain",
+              "sitzung": "s-1",
               "werkzeug": "brain_senken",
               "vorschau": "Klasse kundendaten nach intern VORSCHAU-5K",
               "vorschau_sha256": "e1525fc2e16cb0d389efade56f15bb3befdfcb196fc9f776b7ed6b6e7d631308",
@@ -223,6 +224,7 @@
             {
               "anfrage": "mf-1795179540000-3",
               "server": "notizen",
+              "sitzung": "s-1",
               "werkzeug": "anlegen",
               "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
               "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",

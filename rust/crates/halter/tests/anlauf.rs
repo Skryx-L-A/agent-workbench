@@ -191,17 +191,17 @@ fn schritt_3_ordner_der_kette() {
         .fold(heim.clone(), |p, e| p.join(e));
     let kette = halter_ordner.join("protokoll");
     // missing: made
-    let (_, k1) = start::ablage_pruefen(&k.passwd, uid()).expect("store");
+    let (_, k1) = start::ablage_pruefen(&k.passwd, &k.gruppen, uid()).expect("store");
     assert_eq!(k1.as_deref(), Some(kette.as_path()));
     let m = std::fs::symlink_metadata(&kette).expect("chain folder");
     assert!(m.is_dir());
     assert_eq!(m.mode() & 0o7777, 0o700);
     // there with 0700: kept
-    let (_, k2) = start::ablage_pruefen(&k.passwd, uid()).expect("store");
+    let (_, k2) = start::ablage_pruefen(&k.passwd, &k.gruppen, uid()).expect("store");
     assert_eq!(k2.as_deref(), Some(kette.as_path()));
     // there with 0750: no chain, the folder stays as it is
     modus(&kette, 0o750);
-    let (_, k3) = start::ablage_pruefen(&k.passwd, uid()).expect("store");
+    let (_, k3) = start::ablage_pruefen(&k.passwd, &k.gruppen, uid()).expect("store");
     assert_eq!(k3, None);
     assert_eq!(
         std::fs::symlink_metadata(&kette).expect("stat").mode() & 0o7777,
@@ -211,12 +211,12 @@ fn schritt_3_ordner_der_kette() {
     std::fs::remove_dir(&kette).expect("rmdir");
     std::fs::write(&kette, b"").expect("file");
     modus(&kette, 0o700);
-    let (_, k4) = start::ablage_pruefen(&k.passwd, uid()).expect("store");
+    let (_, k4) = start::ablage_pruefen(&k.passwd, &k.gruppen, uid()).expect("store");
     assert_eq!(k4, None);
     assert!(std::fs::symlink_metadata(&kette).expect("stat").is_file());
     // no entry of the uid in the file of the accounts
     assert_eq!(
-        start::ablage_pruefen(&k.passwd, uid().wrapping_add(1)).map(|_| ()),
+        start::ablage_pruefen(&k.passwd, &k.gruppen, uid().wrapping_add(1)).map(|_| ()),
         Err(Startfehler::AblageRechte)
     );
 }

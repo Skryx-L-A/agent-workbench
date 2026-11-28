@@ -20,6 +20,8 @@ path = "src/main.rs"
 # clipboard (B38), the default fonts (a monospace font with umlauts and box characters, OF4 point 2), X11 and Wayland.
 # flate2 (already in the graph through rasterauszug, same features): the Deflate of the PNG pictures (OF13).
 # serde_json: the messages of the stream and the file of the user (L8).
+# unicode-width 0.2.3 (MIT OR Apache-2.0, already in the graph through alacritty_terminal of traeger): the columns of a
+# character, with the same table as the grid, so that wide characters, marks and emoji stand in their raster cells.
 # The bold cut (Ubuntu, Ubuntu-font-1.0) is a file of this crate, `schriften/`, with its notice in `NOTICE`.
 [dependencies]
 ansicht = { path = "../ansicht" }
@@ -28,6 +30,7 @@ egui = "=0.37.0"
 flate2 = { version = "1.1.11", default-features = false, features = ["rust_backend"] }
 rasterauszug = { path = "../rasterauszug" }
 serde_json = "1"
+unicode-width = "=0.2.3"
 
 [lints]
 workspace = true

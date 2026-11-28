@@ -1,0 +1,69 @@
+{
+ "name": "setzen-harness-opencode-ausser-grenze",
+ "anforderungen": [
+  "E2",
+  "OF9"
+ ],
+ "beschreibung": "die Firma erlaubt in jeder Klasse nur opencode; der Nutzer wählt pi, dann opencode",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {
+    "harnesses": {
+     "oeffentlich": [
+      "opencode"
+     ],
+     "intern": [
+      "opencode"
+     ],
+     "kundendaten": [
+      "opencode"
+     ]
+    }
+   },
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.harness",
+    "wert": "pi"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.harness",
+    "wert": "opencode"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

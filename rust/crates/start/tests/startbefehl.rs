@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use einstellungen::lesen as lesen_einstellungen;
 use serde_json::Value;
-use start::{copilot_argv, ist_marken_kennung};
+use start::{copilot_argv, effort, ist_marken_kennung, lesen_datei};
 
 fn faelle() -> Vec<(String, Value, Value)> {
     let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../spec/start");
@@ -66,12 +66,34 @@ fn the_argument_list_of_copilot_matches_every_program_case_that_states_it() {
             einst.copilot_ohne_rueckfrage(),
             "<heim>/.copilot/wb-mcp.json",
         );
-        let erwartet_argv: Vec<&str> = erwartet["harness_argv"]
+        let mut erwartet_argv: Vec<&str> = erwartet["harness_argv"]
             .as_array()
             .expect("list")
             .iter()
             .map(|a| a.as_str().expect("text"))
             .collect();
+        // "Lauf starten" adds the effort it passes on right after the model (contract 1, "Effort immer ausdruecklich"):
+        // for copilot always, here the fallback of a start of version 1
+        let datei = lesen_datei(
+            serde_json::to_vec(&lage["start"])
+                .expect("serializes")
+                .as_slice(),
+        )
+        .unwrap_or_else(|f| panic!("{name}: start rejected: {f}"));
+        let nach = erwartet_argv
+            .iter()
+            .position(|a| *a == "--model")
+            .expect("model")
+            + 2;
+        let paar: Vec<&str> = erwartet_argv.drain(nach..nach + 2).collect();
+        assert_eq!(
+            paar,
+            [
+                "--reasoning-effort",
+                effort(&datei, &einst).expect("effort")
+            ],
+            "{name}"
+        );
         assert_eq!(argv, erwartet_argv, "{name}");
         geprueft += 1;
         mit_werkzeugen += usize::from(!einst.copilot_ohne_rueckfrage().is_empty());

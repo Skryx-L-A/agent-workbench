@@ -587,7 +587,7 @@ Alle vier Arten schreibt die Stelle in die Kette der Quelle `stelle`; jede ist F
 | `aufrufer` | `kern`, `hub`, `mensch`, `agent`, `takt` oder `unbekannt` (Vertrag 6, Abschnitt 3) |
 | `ergebnis` | genau `abgelehnt` |
 | `grund` | Code der Ablehnung in Schlüsselform |
-| `vorgang` | `mcp.anfragen`, `mcp.entscheiden`, `mcp.einloesen`, `mcp.offene`, `mcp.stand` oder `ablauf.pruefen` (Vertrag 6, Abschnitt 4). Der Name `sitzung.starten` steht hier nie: Eine abgelehnte Startanfrage heißt `sitzung.abgelehnt` |
+| `vorgang` | `mcp.anfragen`, `mcp.entscheiden`, `mcp.einloesen`, `mcp.offene`, `mcp.stand`, `ablauf.pruefen`, `person.pseudonym` oder `worker.anfordern` (Vertrag 6, Abschnitte 4 und 14; die letzten zwei seit dem Nachtrag vom 27.11.2026). Der Name `sitzung.starten` steht hier nie: Eine abgelehnte Startanfrage heißt `sitzung.abgelehnt` |
 
 - **Geschlossene Form.** Genau die genannten Felder je Art, kein weiteres. Ein Zusatzfeld lehnt der Prüfer ab, auch `vorschau`, `argumente`, ein Feld mit einem Personennamen und ein Feld mit einem Pfad (A12, A104). Ein fehlendes Feld lehnt er ebenso ab. Die Zeile nennt kein Argument, keine Vorschau, keinen Namen und keinen Pfad; die Person steht nur als Pseudonym, ein Argument nur als `digest` (Vertrag 6, Abschnitt 7).
 - **Kopplungen, die der Prüfer prüft.** `ergebnis` folgt aus `aktionsname` bei den drei Arten mit festem Ergebnis. Bei `mcp.schreibaufruf` sind `entscheidend` und `zeit_entscheidung` beide gesetzt oder beide `null`; `eingeloest` und `abgelehnt` tragen einen Entscheidenden, `ohne_freigabe` trägt keinen, und `abgelaufen` darf beides sein (Vertrag 6, Abschnitt 7.1). Bei den Sitzungszeilen ist `grund` genau dann `null`, wenn die Sitzung gestartet ist.

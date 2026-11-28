@@ -173,14 +173,23 @@ pub fn konfig_lesen(
 }
 
 /// Step 3: the home from the file of the accounts and the levels of the store; also the folder of the chain
-/// (`halter/protokoll`, 0700) next to `geheim`.
+/// (`halter/protokoll`, 0700) next to `geheim`. A level above `geheim` may be writable for the private group of the
+/// account after [`ablage::private_gruppe`], read from `passwd` and `gruppen`; if `gruppen` cannot be read, no group
+/// write is allowed.
 ///
 /// # Errors
 /// [`Startfehler::AblageRechte`].
-pub fn ablage_pruefen(passwd: &Path, uid: u32) -> Result<(Ablage, Option<PathBuf>), Startfehler> {
+pub fn ablage_pruefen(
+    passwd: &Path,
+    gruppen: &Path,
+    uid: u32,
+) -> Result<(Ablage, Option<PathBuf>), Startfehler> {
     let inhalt = std::fs::read_to_string(passwd).map_err(|_| Startfehler::AblageRechte)?;
     let heim = ablage::heim_aus_passwd(&inhalt, uid).ok_or(Startfehler::AblageRechte)?;
-    let a = Ablage::neu(&heim, uid);
+    let gruppe = text_lesen(gruppen)
+        .ok()
+        .and_then(|g| ablage::private_gruppe(&inhalt, &g, uid));
+    let a = Ablage::neu(&heim, uid).mit_gruppe(gruppe);
     let geheim = a.oeffnen(true).map_err(|_| Startfehler::AblageRechte)?;
     drop(geheim);
     let halter: PathBuf = ablage::EBENEN[..4]
@@ -308,7 +317,7 @@ pub fn starten(orte: &Orte, uid: u32) -> Result<Bereit, Startfehler> {
         &orte.gruppen,
         &orte.passwd,
     )?;
-    let (ablage, kette) = ablage_pruefen(&orte.passwd, uid)?;
+    let (ablage, kette) = ablage_pruefen(&orte.passwd, &orte.gruppen, uid)?;
     let (hoerer, socket, socket_id, ordner) = endpunkt(&laufzeit_ordner(orte, uid), uid)?;
     Ok(Bereit {
         konfig,

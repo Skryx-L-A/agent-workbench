@@ -58,8 +58,9 @@ pub(crate) const NICHT_ERLAUBT: &str = "art_nicht_erlaubt";
 const NICHT_IM_LAUF: &str = "nicht_im_lauf";
 /// The fixed refusal of every `Freigabe` over `dienst.sock` (DI-E5 point 5).
 const FREIGABE_NUR_LOKAL: &str = "freigabe_nur_lokal";
-/// The fixed refusal of a `Freigabe` on the local way without `lauf.stelle` (DI-E5 point 5, DI-L6 point 5).
-const STELLE_NICHT_ERREICHBAR: &str = "stelle_nicht_erreichbar";
+/// The fixed refusal of a `Freigabe` on the local way without `lauf.stelle` (DI-E5 point 5, DI-L6 point 5). The channel to the
+/// point (`stelle.rs`) gives the same reason when the point cannot be reached, so it takes the name from here.
+pub(crate) const STELLE_NICHT_ERREICHBAR: &str = "stelle_nicht_erreichbar";
 
 /// The way of a connection: the socket of the bridge (`dienst.sock`) or the local way of DI-L11.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

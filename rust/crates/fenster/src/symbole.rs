@@ -22,8 +22,11 @@ pub enum Symbol {
     Ordner,
     /// New session.
     Plus,
-    /// Enlarge a pane.
+    /// Enlarge a pane: two arrows out to the upper left and the lower right corner (today's app,
+    /// `arrow.up.left.and.arrow.down.right`).
     Vergroessern,
+    /// Back from the enlarged pane: two arrows in from those corners (`arrow.down.right.and.arrow.up.left`).
+    Verkleinern,
     /// The application menu (B75).
     Menue,
     /// Close a window.
@@ -36,6 +39,8 @@ pub enum Symbol {
     Chip,
     /// The settings page "Grenzen des Efforts": a gauge.
     Regler,
+    /// The settings page of supervision: an eye.
+    Auge,
 }
 
 /// Paints symbol `s` into `r` with colour `c`.
@@ -93,16 +98,23 @@ pub fn malen(ui: &Ui, s: Symbol, r: Rect, c: Color32) {
             p.line_segment([pos2(m.x - h * 0.7, m.y), pos2(m.x + h * 0.7, m.y)], st);
             p.line_segment([pos2(m.x, m.y - h * 0.7), pos2(m.x, m.y + h * 0.7)], st);
         }
-        Symbol::Vergroessern => {
-            let a = h * 0.75;
-            for (ecke, dx, dy) in [
-                (pos2(m.x - a, m.y - a), 1.0, 1.0),
-                (pos2(m.x + a, m.y - a), -1.0, 1.0),
-                (pos2(m.x - a, m.y + a), 1.0, -1.0),
-                (pos2(m.x + a, m.y + a), -1.0, -1.0),
-            ] {
-                p.line_segment([ecke, ecke + vec2(dx * a * 0.6, 0.0)], st);
-                p.line_segment([ecke, ecke + vec2(0.0, dy * a * 0.6)], st);
+        Symbol::Vergroessern | Symbol::Verkleinern => {
+            // each arrow runs on the diagonal between a corner and a point near the middle; the head sits at the corner
+            // (out) or at the middle (in) and opens towards the other end
+            let a = h * 0.8;
+            let innen = h * 0.3;
+            let kopf = a * 0.55;
+            for v in [-1.0_f32, 1.0] {
+                let ecke = pos2(m.x + v * a, m.y + v * a);
+                let nah = pos2(m.x + v * innen, m.y + v * innen);
+                p.line_segment([ecke, nah], st);
+                let (spitze, w) = if s == Symbol::Vergroessern {
+                    (ecke, -v)
+                } else {
+                    (nah, v)
+                };
+                p.line_segment([spitze, spitze + vec2(w * kopf, 0.0)], st);
+                p.line_segment([spitze, spitze + vec2(0.0, w * kopf)], st);
             }
         }
         Symbol::Menue
@@ -110,7 +122,8 @@ pub fn malen(ui: &Ui, s: Symbol, r: Rect, c: Color32) {
         | Symbol::Kontrast
         | Symbol::Terminal
         | Symbol::Chip
-        | Symbol::Regler => weitere(p, s, m, h, st, c),
+        | Symbol::Regler
+        | Symbol::Auge => weitere(p, s, m, h, st, c),
     }
 }
 
@@ -200,8 +213,26 @@ fn weitere(p: &egui::Painter, s: Symbol, m: Pos2, h: f32, st: Stroke, c: Color32
             p.line_segment([mitte, mitte + Vec2::angled(-0.8) * rr * 0.8], st);
             p.circle_filled(mitte, 1.6, c);
         }
+        Symbol::Auge => auge(p, m, h, st),
         _ => {}
     }
+}
+
+/// An eye: two lids and the pupil.
+fn auge(p: &egui::Painter, m: Pos2, h: f32, st: Stroke) {
+    let lid = |unten: f32| -> Vec<Pos2> {
+        (0..=16)
+            .map(|i| {
+                let t = f32::from(u8::try_from(i).unwrap_or(0)) / 16.0;
+                let x = m.x - h * 0.9 + t * h * 1.8;
+                let y = m.y + unten * h * 0.55 * (std::f32::consts::PI * t).sin();
+                pos2(x, y)
+            })
+            .collect()
+    };
+    p.add(Shape::line(lid(-1.0), st));
+    p.add(Shape::line(lid(1.0), st));
+    p.circle_stroke(m, h * 0.28, st);
 }
 
 /// A round button with symbol `s`, name `name` and side `groesse`; `gewaehlt` paints the chosen ground.

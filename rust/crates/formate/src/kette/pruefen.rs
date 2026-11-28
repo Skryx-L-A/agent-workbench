@@ -491,13 +491,15 @@ const AUFRUFER_STELLE: [&str; 6] = ["kern", "hub", "mensch", "agent", "takt", "u
 
 /// The operations whose refusal is a line `vorgang.abgelehnt` (contract 6, section 4). A refused
 /// `sitzung.starten` is a line `sitzung.abgelehnt`, so its name never stands in this field.
-const VORGAENGE_STELLE: [&str; 6] = [
+const VORGAENGE_STELLE: [&str; 8] = [
     "mcp.anfragen",
     "mcp.entscheiden",
     "mcp.einloesen",
     "mcp.offene",
     "mcp.stand",
     "ablauf.pruefen",
+    "person.pseudonym",
+    "worker.anfordern",
 ];
 
 /// The results of a line `mcp.schreibaufruf` (contract 6, section 7.1).

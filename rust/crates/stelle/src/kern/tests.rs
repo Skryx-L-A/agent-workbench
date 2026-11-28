@@ -1,12 +1,12 @@
-//! The limit of the request counter (contract 6, section 4). No visible case reaches it, so the test sets the counter
-//! of a loaded state directly.
+//! The limits of the request counter (contract 6, section 4) and of the promise counter (section 15.3, stage 11). No
+//! visible case reaches them, so the tests set the counter of a loaded state directly.
 
 use serde_json::{Value, json};
 
-use super::ANFRAGE_MAX;
+use super::{ANFRAGE_MAX, ZUSAGE_FRIST_MS, ZUSAGE_MAX};
 use crate::{
     Antwort, Aufrufer, Ereignis, Ergebnis, Nachweispruefer, Vorgang, Zustand, entscheide, form,
-    laden,
+    laden, worker_regeln_lesen,
 };
 
 const LADEN: i64 = 1_795_179_540_000;
@@ -129,4 +129,43 @@ fn the_last_identifier_keeps_its_form_and_every_later_request_is_refused() {
     );
     assert_eq!(l.antwort.json()["ergebnis"], "lesend");
     assert_eq!(l.zustand.zaehler, ANFRAGE_MAX);
+}
+
+#[test]
+fn the_last_promise_keeps_its_form_and_every_later_request_is_refused() {
+    let mut z = gestartet();
+    z.worker = worker_regeln_lesen(
+        br#"{"fassung":1,"worker":{"hoechstzahl":4,"harness":["claude"],"modelle":["m"],"effort":["low"]}}"#,
+    );
+    z.zusage_zaehler = ZUSAGE_MAX - 1;
+    let anfordern = json!({"sitzung": "s-1", "rolle": "pruefer", "harness": "claude", "modell": "m", "effort": "low",
+                           "laufend": 0, "route": "cloud-beispiel", "kunde": null});
+    let r = schritt(&z, Aufrufer::Kern, "worker.anfordern", anfordern.clone());
+    assert_eq!(
+        r.antwort.json(),
+        json!({"ok": true, "ergebnis": "frei", "sitzung": "s-1", "zusage": format!("zs-{LADEN}-{ZUSAGE_MAX}"),
+               "zusage_bis_ms": T0 + ZUSAGE_FRIST_MS})
+    );
+    assert!(form::zusage(&format!("zs-{LADEN}-{ZUSAGE_MAX}")));
+    assert!(!form::zusage(&format!("zs-{LADEN}-{}", ZUSAGE_MAX + 1)));
+    assert_eq!(r.zustand.zusage_zaehler, ZUSAGE_MAX);
+    assert!(r.zeilen.is_empty(), "frei writes no line");
+
+    let n = schritt(&r.zustand, Aufrufer::Kern, "worker.anfordern", anfordern);
+    assert_eq!(code(&n), Some("stelle.zusagen_erschoepft"));
+    assert_eq!(n.zustand.zusage_zaehler, ZUSAGE_MAX, "the counter stays");
+    assert_eq!(
+        n.zustand.abbild()["zusagen"],
+        r.zustand.abbild()["zusagen"],
+        "no new promise"
+    );
+    let zeilen = n.zeilen_texte(formate::kette::NULL_HASH).expect("lines");
+    assert_eq!(zeilen.len(), 1, "{zeilen:?}");
+    assert!(
+        zeilen[0].contains("\"vorgang\":\"worker.anfordern\"")
+            && zeilen[0].contains("\"grund\":\"stelle.zusagen_erschoepft\"")
+            && zeilen[0].contains("\"anfrage\":null"),
+        "{}",
+        zeilen[0]
+    );
 }

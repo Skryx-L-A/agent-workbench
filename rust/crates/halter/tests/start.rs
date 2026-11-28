@@ -369,6 +369,59 @@ fn schritt_3_ablage_ist_78_und_legt_fehlendes_an() {
     assert_eq!(beenden(kind), 0);
 }
 
+/// The decision of the operator of 28.11.2026 in the program: under umask 002 the levels above `geheim` are 0775 with
+/// the private group of the person; the holder starts. A second member of that group in the file of the groups, or a
+/// second account with it as primary group, gives 78 `halter.ablage_rechte`, as does o+w at a level.
+#[test]
+fn schritt_3_private_gruppe_mit_0775_startet() {
+    let aufbau = |mitglied: &str, zweites_konto: bool, m: u32| {
+        let a = Aufbau::neu(&standard());
+        a.mit_anmeldung();
+        let mut p = a.heim.clone();
+        for e in &halter::ablage::EBENEN[..4] {
+            p = p.join(e);
+            modus(&p, m);
+        }
+        let gid = std::fs::symlink_metadata(a.heim.join(".local"))
+            .expect("stat")
+            .gid();
+        let andere = if zweites_konto {
+            format!(
+                "andere:x:{}:{gid}::/heim/beispiel/andere:/bin/sh\n",
+                uid().wrapping_add(1)
+            )
+        } else {
+            String::new()
+        };
+        let konten = format!(
+            "root:x:0:0:root:/root:/bin/sh\nperson:x:{}:{gid}::{}:/bin/sh\n{andere}",
+            uid(),
+            a.heim.display()
+        );
+        std::fs::write(a.wurzel.join("passwd"), konten).expect("passwd");
+        std::fs::write(
+            a.wurzel.join("group"),
+            format!("root:x:0:\nwb-bruecke:x:{FREMDE_GID}:\nperson:x:{gid}:{mitglied}\n"),
+        )
+        .expect("group");
+        a
+    };
+    let a = aufbau("", false, 0o775);
+    let kind = a.laufend();
+    assert_eq!(beenden(kind), 0);
+    let fehler = (78, "halter.ablage_rechte: Ablage hat falsche Rechte\n");
+    let a = aufbau("andere", false, 0o775);
+    let (code, e) = a.ende(&mut a.befehl());
+    assert_eq!((code, e.as_str()), fehler, "second member");
+    let a = aufbau("", true, 0o775);
+    let (code, e) = a.ende(&mut a.befehl());
+    assert_eq!((code, e.as_str()), fehler, "second account");
+    let a = aufbau("", false, 0o777);
+    let (code, e) = a.ende(&mut a.befehl());
+    assert_eq!((code, e.as_str()), fehler, "o+w");
+    assert!(!a.socket().exists());
+}
+
 #[test]
 fn l2_belegter_endpunkt_ist_74_und_bleibt_gleich() {
     let a = Aufbau::neu(&standard());

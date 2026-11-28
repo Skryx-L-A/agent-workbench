@@ -1,0 +1,455 @@
+{
+  "beschreibung": "Start mit orchestrator: ohne Zusage, unbekannte Zusage, fremder Orchestrator, je ein abweichendes Feld und ein Start der Fassung 1 ohne effort sind stelle.zusage_ungueltig und verbrauchen die Zusage nicht; zusage ohne orchestrator ist stelle.eingabe_ungueltig; eine Zusage mit genau erreichter Frist ist abgelaufen.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "Nachtrag 27.11.2026, Abschnitt 15.2"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]},{\"schluessel\":\"cloud-offen\",\"art\":\"cloud\",\"klasse\":\"oeffentlich\",\"netzziele\":[{\"host\":\"offen.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}},\"effort\":{\"grenzen\":[{\"harness\":\"claude\",\"erlaubt\":[\"low\",\"medium\"]},{\"harness\":\"pi\",\"erlaubt\":[\"low\"]}]}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "worker_regeln": {
+    "text": "{\"fassung\":1,\"worker\":{\"hoechstzahl\":4,\"harness\":[\"claude\",\"pi\"],\"modelle\":[\"claude-sonnet-5-5\",\"claude-sonnet-5.5\",\"qwen3:8b\"],\"effort\":[\"low\",\"medium\"]}}"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600001,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-2\",\"harness\":\"pi\",\"modell\":\"qwen3:8b\",\"route\":\"lokal-beispiel\",\"kunde\":null,\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-2",
+          "route": "lokal-beispiel",
+          "route_art": "lokal"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"pi\",\"kunde\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:00.001Z\"}",
+            "sha256": "e76c1562da72a1ec6a01a358a15471a7abb97f92ac6e6309a82bce0b00332bbf"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600100,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "medium",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "frei",
+          "sitzung": "s-1",
+          "zusage": "zs-1795179540000-1",
+          "zusage_bis_ms": 1795179630100
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600101,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "pi",
+        "modell": "claude-sonnet-5-5",
+        "effort": "medium",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "frei",
+          "sitzung": "s-1",
+          "zusage": "zs-1795179540000-2",
+          "zusage_bis_ms": 1795179630101
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "worker.anfordern",
+      "jetzt_ms": 1795179600102,
+      "eingabe": {
+        "sitzung": "s-1",
+        "rolle": "pruefer",
+        "harness": "claude",
+        "modell": "claude-sonnet-5-5",
+        "effort": "medium",
+        "laufend": 0,
+        "route": "cloud-beispiel",
+        "kunde": "k-beispiel"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "frei",
+          "sitzung": "s-1",
+          "zusage": "zs-1795179540000-3",
+          "zusage_bis_ms": 1795179630102
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600200,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"e76c1562da72a1ec6a01a358a15471a7abb97f92ac6e6309a82bce0b00332bbf\",\"zeit\":\"2026-11-20T13:00:00.200Z\"}",
+            "sha256": "9e32e67e05d059d0decda32e60873555560ccae9ece8a06312caae8c1af033f0"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600201,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-9"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"9e32e67e05d059d0decda32e60873555560ccae9ece8a06312caae8c1af033f0\",\"zeit\":\"2026-11-20T13:00:00.201Z\"}",
+            "sha256": "9c73ff4332b846e3bd76518651d8a48aa2d4604acba8fcbb1230d14a265b92ff"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600202,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-2",
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"9c73ff4332b846e3bd76518651d8a48aa2d4604acba8fcbb1230d14a265b92ff\",\"zeit\":\"2026-11-20T13:00:00.202Z\"}",
+            "sha256": "8dd5eeb3ad15a542cad01517702386bf67fd14222a7a078e365a6bf5cc2ec39a"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600203,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-2"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"8dd5eeb3ad15a542cad01517702386bf67fd14222a7a078e365a6bf5cc2ec39a\",\"zeit\":\"2026-11-20T13:00:00.203Z\"}",
+            "sha256": "2c172a2d42a3cac25ea3a548ca36d6d34651e81c58f553ac2df759879e8e8a46"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600204,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5.5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"2c172a2d42a3cac25ea3a548ca36d6d34651e81c58f553ac2df759879e8e8a46\",\"zeit\":\"2026-11-20T13:00:00.204Z\"}",
+            "sha256": "5e07bd44e410a5cf0d8ea422bf2c842e2f072a9a6c8b5059f722bbe4ad8ab8d0"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600205,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"low\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"5e07bd44e410a5cf0d8ea422bf2c842e2f072a9a6c8b5059f722bbe4ad8ab8d0\",\"zeit\":\"2026-11-20T13:00:00.205Z\"}",
+            "sha256": "0dc3a905f29fe015a11df151b6a8b39a1ae5bdc1229d8660b77347933c4dea6a"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600206,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-offen\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-offen\",\"sitzung\":\"s-3\",\"vorher\":\"0dc3a905f29fe015a11df151b6a8b39a1ae5bdc1229d8660b77347933c4dea6a\",\"zeit\":\"2026-11-20T13:00:00.206Z\"}",
+            "sha256": "c68b4fd687f99b0dc55c3ac0fb4e6a3eeccae72225e149c66dfa59a47db86177"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600207,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":null,\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"c68b4fd687f99b0dc55c3ac0fb4e6a3eeccae72225e149c66dfa59a47db86177\",\"zeit\":\"2026-11-20T13:00:00.207Z\"}",
+            "sha256": "bf96d3f8bd5c91c73e1790575af5a23e13a74430629103223461936e6370902d"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600208,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"bf96d3f8bd5c91c73e1790575af5a23e13a74430629103223461936e6370902d\",\"zeit\":\"2026-11-20T13:00:00.208Z\"}",
+            "sha256": "49c33bf2029e29d71b8b40f1fa45b42d692ff78760e79793e679462cb271ed1b"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600209,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"harness\":null,\"kunde\":null,\"route\":null,\"sitzung\":null,\"vorher\":\"49c33bf2029e29d71b8b40f1fa45b42d692ff78760e79793e679462cb271ed1b\",\"zeit\":\"2026-11-20T13:00:00.209Z\"}",
+            "sha256": "169dadb225ded6db021c8d4cd8b70e21223da698270eddce8e500fa1c476bbd5"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179630099,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-3\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-3",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-3\",\"vorher\":\"169dadb225ded6db021c8d4cd8b70e21223da698270eddce8e500fa1c476bbd5\",\"zeit\":\"2026-11-20T13:00:30.099Z\"}",
+            "sha256": "0f9dd47c0216e6e7da37bf105871c5f17f82d3ab7256524056f54edb409c892d"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179630102,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":2,\"sitzung\":\"s-5\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\",\"effort\":\"medium\",\"name\":null,\"fortsetzung_von\":null}"
+        },
+        "orchestrator": "s-1",
+        "zusage": "zs-1795179540000-3"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zusage_ungueltig",
+          "grund": "Zusage fehlt oder passt nicht"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zusage_ungueltig\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-5\",\"vorher\":\"0f9dd47c0216e6e7da37bf105871c5f17f82d3ab7256524056f54edb409c892d\",\"zeit\":\"2026-11-20T13:00:30.102Z\"}",
+            "sha256": "c817ce1a6f2a6b1f8515a4d473ae0f8c07b863e9734bde1664b0d0dfba04d801"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1",
+      "s-2",
+      "s-3"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "zeilen": 14,
+    "letzte": "c817ce1a6f2a6b1f8515a4d473ae0f8c07b863e9734bde1664b0d0dfba04d801"
+  }
+}

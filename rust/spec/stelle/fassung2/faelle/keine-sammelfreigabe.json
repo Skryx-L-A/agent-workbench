@@ -203,6 +203,7 @@
             {
               "anfrage": "mf-1795179540000-1",
               "server": "tickets",
+              "sitzung": "s-1",
               "werkzeug": "update",
               "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
               "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",
@@ -222,6 +223,7 @@
             {
               "anfrage": "mf-1795179540000-2",
               "server": "tickets",
+              "sitzung": "s-1",
               "werkzeug": "update",
               "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
               "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",

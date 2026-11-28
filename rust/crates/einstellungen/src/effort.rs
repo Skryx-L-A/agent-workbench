@@ -11,7 +11,7 @@ use crate::typen::Einstellungen;
 use crate::{Fehler, ist_kennung};
 
 const BLOCK: [&str; 1] = ["grenzen"];
-const GRENZE: [&str; 4] = ["harness", "klasse", "modell", "erlaubt"];
+const GRENZE: [&str; 5] = ["harness", "klasse", "modell", "erlaubt", "vorgabe"];
 const GRENZEN_MAX: usize = 64;
 const ERLAUBT_MAX: usize = 7;
 
@@ -43,6 +43,7 @@ pub struct EffortGrenze {
     pub(crate) klasse: Option<String>,
     pub(crate) modell: Option<String>,
     pub(crate) erlaubt: Vec<String>,
+    pub(crate) vorgabe: Option<String>,
 }
 
 impl EffortGrenze {
@@ -68,6 +69,13 @@ impl EffortGrenze {
     #[must_use]
     pub fn erlaubt(&self) -> &[String] {
         &self.erlaubt
+    }
+
+    /// The default effort of the limit (decision of the operator, 28 November 2026): the effort "Lauf starten" passes on
+    /// for a start without one; `None` when the limit has none.
+    #[must_use]
+    pub fn vorgabe(&self) -> Option<&str> {
+        self.vorgabe.as_deref()
     }
 
     fn passt(&self, harness: &str, klasse: &str, modell: &str) -> bool {
@@ -111,6 +119,19 @@ impl Einstellungen {
                     .all(|grenze| grenze.erlaubt.iter().any(|e| e == wert))
             })
             .collect()
+    }
+
+    /// The default effort of the admins for `harness` on the route `route` with the model `modell` (contract 2,
+    /// "Vorgabe eines Starts"): the `vorgabe` of the first matching limit that has one, in the order of the file. `None`
+    /// when no matching limit has one, the block is absent or the route is unknown. The value is a value of the harness,
+    /// but it need not be allowed: the check of the start (contract 1, stage 18) decides that.
+    #[must_use]
+    pub fn effort_vorgabe(&self, harness: &str, route: &str, modell: &str) -> Option<&str> {
+        let route = self.route(route)?;
+        self.effort
+            .iter()
+            .filter(|grenze| grenze.passt(harness, route.klasse(), modell))
+            .find_map(EffortGrenze::vorgabe)
     }
 }
 
@@ -160,6 +181,7 @@ fn grenze(felder: &[(String, Wert)], befund: &mut Befund) -> Option<EffortGrenze
     };
     let klasse = wahl_text(felder, "klasse", befund).ok()?;
     let modell = wahl_text(felder, "modell", befund).ok()?;
+    let vorgabe = wahl_text(felder, "vorgabe", befund).ok()?;
     let Wert::Liste(elemente) = erlaubt? else {
         befund.melde(Fehler::TypFalsch);
         return None;
@@ -183,7 +205,11 @@ fn grenze(felder: &[(String, Wert)], befund: &mut Befund) -> Option<EffortGrenze
     match effort_werte(harness) {
         None => befund.melde(Fehler::EffortHarness),
         Some(erlaubt) => {
-            if werte.iter().any(|wert| !erlaubt.contains(&wert.as_str())) {
+            if werte
+                .iter()
+                .chain(vorgabe.iter())
+                .any(|wert| !erlaubt.contains(&wert.as_str()))
+            {
                 befund.melde(Fehler::EffortWert);
             }
         }
@@ -193,6 +219,7 @@ fn grenze(felder: &[(String, Wert)], befund: &mut Befund) -> Option<EffortGrenze
         klasse,
         modell,
         erlaubt: werte,
+        vorgabe,
     })
 }
 

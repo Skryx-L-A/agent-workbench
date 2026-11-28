@@ -1,0 +1,28 @@
+{
+ "exec": "copilot",
+ "harness_argv": [
+  "copilot",
+  "--model",
+  "claude-sonnet-5.5",
+  "--reasoning-effort",
+  "low",
+  "--disable-builtin-mcps",
+  "--additional-mcp-config",
+  "@<heim>/.copilot/wb-mcp.json",
+  "--session-id",
+  "<harness-kennung>"
+ ],
+ "stderr": "",
+ "suche_gestartet": true,
+ "gespraeche_danach": {
+  "s-2": {
+   "fassung": 1,
+   "harness": "copilot",
+   "arbeitsordner": "/heim/beispiel/projekt",
+   "route": "cloud-beispiel",
+   "kunde": "k-beispiel",
+   "kennung": "<harness-kennung>"
+  }
+ },
+ "zustandsordner_beim_start": "leer"
+}

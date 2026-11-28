@@ -4,6 +4,8 @@
   "copilot",
   "--model",
   "auto",
+  "--reasoning-effort",
+  "none",
   "--auto-tier",
   "efficiency",
   "--disable-builtin-mcps",

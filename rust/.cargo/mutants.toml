@@ -23,6 +23,17 @@ exclude_re = [
   # out; the macOS function runs in the tests on the Mac (the case of the own client and the case without a uid).
   '^crates/peerkanal/src/lib.rs:(96:16|317:12|344:12): delete ! in ',
   '^crates/peerkanal/src/unix.rs:(63|78):5: replace messen ',
+  # stelle (27.11.2026): `schluessel_h1` for systems without Unix (`src/lib.rs`, the body on line 44) is never compiled by
+  # the Linux gate. The Unix function of the same name (line 37) stays in the run.
+  '^crates/stelle/src/lib.rs:44:5: replace schluessel_h1 ',
+  # stelle (27.11.2026): `main` of `werkbank-stelle` for systems without Unix (`src/bin/werkbank-stelle.rs`, line 24) is
+  # never compiled by the Linux gate; the Unix `main` stays in the run (`tests/programm.rs`).
+  '^crates/stelle/src/bin/werkbank-stelle.rs:24:5: replace main ',
+  # stelle (27.11.2026): `huelle::vorgabe::lesen` opens the real `/` (line 74). In the user namespace of the gate `/` and
+  # `/var` belong to the overflow account, so no default below them passes, and the case of a read from `/` cannot run
+  # there; the mutant "always `None`" would survive. The walk itself (`lesen_ab`) and the parts of the path (`teile`) stay
+  # in the run with their cases below a folder of the own user; the other mutants of `lesen` stay too.
+  '^crates/stelle/src/huelle/vorgabe.rs:74:5: replace lesen -> Option<Vec<u8>> with None$',
 ]
 # For the same reason the modules `src/sys/windows.rs` are left out: they stand behind `cfg(windows)` and are never compiled
 # under Linux (decision of 25.11.2026). Their mutants run on the Windows test machine, before every delivery under Windows

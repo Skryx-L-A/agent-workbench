@@ -3,7 +3,8 @@
 //! `XDG_STATE_HOME` never count.
 //!
 //! Every level is opened relative to the one before with `O_NOFOLLOW`; each must be a folder of the own account that
-//! group and others cannot write, and `geheim` must be exactly 0700. A missing level is made with 0700. A file is read
+//! others cannot write, and `geheim` must be exactly 0700. A level above `geheim` may be writable for its group only if
+//! that group is the private group of the account ([`private_gruppe`], decision of the operator, 28.11.2026). A missing level is made with 0700. A file is read
 //! anew at every use (`O_NOFOLLOW`, regular, own account, 0600): the value and exactly one LF, every byte of the value
 //! in `\x21` to `\x7e`. Names with a dot at the start (temporary files of `werkbank-anmelden`) are never a secret.
 
@@ -32,6 +33,7 @@ pub struct Rechte;
 pub struct Ablage {
     heim: PathBuf,
     konto: u32,
+    gruppe: Option<u32>,
 }
 
 // Flags are joined with `union`: `|` and `^` give the same value for disjoint flags, so that mutant could never fail.
@@ -54,6 +56,92 @@ pub fn heim_aus_passwd(inhalt: &str, uid: u32) -> Option<PathBuf> {
     })
 }
 
+/// A number field of `/etc/passwd` or `/etc/group`: only ASCII digits, as `u32`.
+fn zahl(feld: &str) -> Option<u32> {
+    (!feld.is_empty() && feld.bytes().all(|c| c.is_ascii_digit()))
+        .then(|| feld.parse().ok())
+        .flatten()
+}
+
+/// The private group of the account `uid` (decision of the operator, 28.11.2026), or `None`. Ubuntu gives an account
+/// with a group of its own the umask 002, so `~/.local` is often 0775; the group write is harmless only if nobody else
+/// is in that group. All three must hold: (a) the gid is the primary group (field 4) of the one entry of `uid` in
+/// `passwd`; (b) `group` has exactly one line with that gid, and it names no member but the account; (c) no other entry
+/// of `passwd` has that gid as primary group. Strict: any line in the form of NIS (`+` or `-` at the start), a broken
+/// line of `passwd` that names the account, its uid or the gid, a broken line of `group` with the gid or the name of the
+/// group, and a second entry of the account give `None`.
+#[must_use]
+pub fn private_gruppe(passwd: &str, group: &str, uid: u32) -> Option<u32> {
+    let konten: Vec<Vec<&str>> = zeilen(passwd).collect();
+    let mut eigene = konten
+        .iter()
+        .filter(|f| konto_zeile(f).is_some_and(|(u, _)| u == uid));
+    let (Some(eigen), None) = (eigene.next(), eigene.next()) else {
+        return None;
+    };
+    let name = eigen[0];
+    let (_, gid) = konto_zeile(eigen)?;
+    let (u, g) = (uid.to_string(), gid.to_string());
+    // (c), and every other line that names the account, its uid or the gid must be readable
+    let fremd = konten
+        .iter()
+        .filter(|f| !std::ptr::eq(*f, eigen))
+        .any(|f| match konto_zeile(f) {
+            Some((_, h)) => f[0] == name || h == gid,
+            None => {
+                nis(f)
+                    || f[0] == name
+                    || f.get(2) == Some(&u.as_str())
+                    || f.get(3) == Some(&g.as_str())
+            }
+        });
+    if fremd {
+        return None;
+    }
+    // (b): exactly one line with the gid, no other member; a broken line with the gid or the name of the group refuses
+    let gruppen: Vec<Vec<&str>> = zeilen(group).collect();
+    let mut treffer = gruppen.iter().filter(|f| gruppen_zeile(f) == Some(gid));
+    let (Some(eigene_gruppe), None) = (treffer.next(), treffer.next()) else {
+        return None;
+    };
+    let kaputt = gruppen.iter().any(|f| {
+        gruppen_zeile(f).is_none()
+            && (nis(f) || f[0] == eigene_gruppe[0] || f.get(2) == Some(&g.as_str()))
+    });
+    let mitglied = eigene_gruppe[3]
+        .split(',')
+        .any(|m| !m.is_empty() && m != name);
+    (!kaputt && !mitglied).then_some(gid)
+}
+
+/// The non-empty lines of `/etc/passwd` or `/etc/group`, split at `:`.
+fn zeilen(text: &str) -> impl Iterator<Item = Vec<&str>> {
+    text.split('\n')
+        .filter(|z| !z.is_empty())
+        .map(|z| z.split(':').collect())
+}
+
+/// A line in the form of NIS (`+` or `-` at the start): it can bring in any account or member, so it always refuses.
+fn nis(f: &[&str]) -> bool {
+    f[0].starts_with(['+', '-'])
+}
+
+/// uid and gid of a line of `/etc/passwd` in its form (seven fields, both numbers, not NIS), else `None`.
+fn konto_zeile(f: &[&str]) -> Option<(u32, u32)> {
+    if f.len() != 7 || nis(f) {
+        return None;
+    }
+    Some((zahl(f[2])?, zahl(f[3])?))
+}
+
+/// The gid of a line of `/etc/group` in its form (four fields, a number, not NIS), else `None`.
+fn gruppen_zeile(f: &[&str]) -> Option<u32> {
+    if f.len() != 4 || nis(f) {
+        return None;
+    }
+    zahl(f[2])
+}
+
 impl Ablage {
     /// The store below `heim` for the account `konto`.
     #[must_use]
@@ -61,7 +149,16 @@ impl Ablage {
         Ablage {
             heim: heim.to_path_buf(),
             konto,
+            gruppe: None,
         }
+    }
+
+    /// The same store, where a level above `geheim` may be writable for the group `gruppe` (the private group of the
+    /// account after [`private_gruppe`]); `None` allows no group write.
+    #[must_use]
+    pub fn mit_gruppe(mut self, gruppe: Option<u32>) -> Self {
+        self.gruppe = gruppe;
+        self
     }
 
     fn ebene_ok(&self, fd: &OwnedFd, letzte: bool) -> bool {
@@ -69,9 +166,12 @@ impl Ablage {
             return false;
         };
         let modus = st.st_mode & 0o7777;
+        // `geheim` must be 0700 anyway, so the private group only ever helps a level above it
+        let gruppe_ok = modus & 0o020 == 0 || self.gruppe == Some(st.st_gid);
         FileType::from_raw_mode(st.st_mode) == FileType::Directory
             && st.st_uid == self.konto
-            && modus & 0o022 == 0
+            && modus & 0o002 == 0
+            && gruppe_ok
             && (!letzte || modus == 0o700)
     }
 
@@ -209,6 +309,115 @@ mod tests {
         for m in [0o644, 0o400, 0o700, 0o4600, 0o1600, 0o000] {
             assert!(!datei_regel(0o100_000 | m, 1000, 1000), "{m:o}");
         }
+    }
+
+    const P: &str = "root:x:0:0:root:/root:/bin/sh\nperson:x:1000:1000::/heim/beispiel/person:/bin/bash\n\
+                     dienst:x:999:999::/:/usr/sbin/nologin\n";
+    const G: &str = "root:x:0:\nperson:x:1000:\nsudo:x:27:person,andere\ndienst:x:999:\n";
+
+    /// The decision of the operator of 28.11.2026: a private group of the account is found; each of (a), (b), (c) and
+    /// each strict reading alone refuses (every case changes one line of the good pair).
+    #[test]
+    fn private_gruppe_nur_wenn_alle_drei_gelten() {
+        assert_eq!(private_gruppe(P, G, 1000), Some(1000));
+        // the account itself as member, also twice, and an empty member between commas
+        assert_eq!(
+            private_gruppe(
+                P,
+                &G.replace("person:x:1000:", "person:x:1000:person,,person"),
+                1000
+            ),
+            Some(1000)
+        );
+        // the gid of another account or of nobody
+        assert_eq!(private_gruppe(P, G, 999), Some(999));
+        assert_eq!(private_gruppe(P, G, 7), None);
+        let falsch: [(&str, String, String); 16] = [
+            (
+                "(b) second member",
+                P.to_owned(),
+                G.replace("person:x:1000:", "person:x:1000:andere"),
+            ),
+            (
+                "(b) member after the own",
+                P.to_owned(),
+                G.replace("person:x:1000:", "person:x:1000:person,andere"),
+            ),
+            (
+                "(b) no line with the gid",
+                P.to_owned(),
+                G.replace("person:x:1000:\n", ""),
+            ),
+            (
+                "(b) two lines with the gid",
+                P.to_owned(),
+                format!("{G}zweite:x:1000:\n"),
+            ),
+            (
+                "(b) broken line with the gid",
+                P.to_owned(),
+                format!("{G}kaputt:x:1000\n"),
+            ),
+            (
+                "(b) broken line with the name",
+                P.to_owned(),
+                format!("{G}person:x\n"),
+            ),
+            ("(b) NIS in group", P.to_owned(), format!("{G}+:::\n")),
+            (
+                "(b) gid no number",
+                P.to_owned(),
+                G.replace("person:x:1000:", "person:x:1000a:"),
+            ),
+            (
+                "(b) gid with a sign",
+                P.to_owned(),
+                G.replace("person:x:1000:", "person:x:+1000:"),
+            ),
+            (
+                "(c) second account with the gid",
+                format!("{P}andere:x:1001:1000::/heim/beispiel/a:/bin/sh\n"),
+                G.to_owned(),
+            ),
+            (
+                "(a) two entries of the uid",
+                format!("{P}zwei:x:1000:1000::/heim/beispiel/z:/bin/sh\n"),
+                G.to_owned(),
+            ),
+            (
+                "second entry with the name",
+                format!("{P}person:x:1002:1002::/heim/beispiel/z:/bin/sh\n"),
+                G.to_owned(),
+            ),
+            (
+                "broken line with the gid",
+                format!("{P}kaputt:x:1003:1000\n"),
+                G.to_owned(),
+            ),
+            (
+                "broken line with the uid",
+                format!("{P}kaputt:x:1000\n"),
+                G.to_owned(),
+            ),
+            (
+                "broken line with the name",
+                format!("{P}person:x:1\n"),
+                G.to_owned(),
+            ),
+            ("NIS in passwd", format!("{P}+::::::\n"), G.to_owned()),
+        ];
+        for (grund, p, g) in &falsch {
+            assert_eq!(private_gruppe(p, g, 1000), None, "{grund}");
+        }
+        // a broken line that names none of them does not count
+        assert_eq!(
+            private_gruppe(&format!("{P}kaputt:x:5\n"), &format!("{G}kaputt:x\n"), 1000),
+            Some(1000)
+        );
+        // the own entry broken: no account, no group
+        let p = P.replace("person:x:1000:1000:", "person:x:1000:10x0:");
+        assert_eq!(private_gruppe(&p, G, 1000), None);
+        assert_eq!(private_gruppe("", G, 1000), None);
     }
 
     #[test]

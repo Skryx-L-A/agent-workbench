@@ -63,11 +63,18 @@ fn laden_fall(fall: &Value, laden_ms: i64) -> Result<Zustand, stelle::Code> {
     let text = fall["einstellungen"]["text"]
         .as_str()
         .expect("settings text");
+    let regeln = fall["worker_regeln"]["text"]
+        .as_str()
+        .and_then(|t| stelle::worker_regeln_lesen(t.as_bytes()));
+    if fall.get("worker_regeln").is_some() {
+        assert!(regeln.is_some(), "the rules of a case are valid");
+    }
     laden(
         text.as_bytes(),
         laden_ms,
         Box::new(PrueferH1::neu(schluessel(fall))),
     )
+    .map(|z| z.mit_worker_regeln(regeln))
 }
 
 struct Zahl {
@@ -189,11 +196,11 @@ fn alle_sichtbaren_faelle() {
         zahl.faelle += 1;
     }
     // The cases as `bau-faelle.mjs` builds them (version 1 of the contract): no case may go missing.
-    assert_eq!(zahl.faelle, 40, "cases");
+    assert_eq!(zahl.faelle, 51, "cases");
     assert_eq!(zahl.ladefehler, 6, "cases with a failed load");
-    assert_eq!(zahl.neustarts, 1, "restarts");
-    assert_eq!(zahl.schritte, 172, "steps");
-    assert_eq!(zahl.zeilen, 116, "lines");
+    assert_eq!(zahl.neustarts, 2, "restarts");
+    assert_eq!(zahl.schritte, 255, "steps");
+    assert_eq!(zahl.zeilen, 182, "lines");
 }
 
 #[test]

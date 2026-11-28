@@ -1,0 +1,61 @@
+{
+ "name": "sicht-gruppenname",
+ "anforderungen": [
+  "A26",
+  "A27"
+ ],
+ "beschreibung": "der Stand trägt Anzeigenamen: sicht nennt als Herkunft weiter den Schlüssel der Gruppe, setzen auf die Gruppe nimmt den Wert wie ohne Namen",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {
+    "g-eins": {
+     "terminal.schriftgroesse": 15
+    }
+   },
+   "nutzer": {}
+  },
+  "gruppennamen": {
+   "g-eins": "Gruppe Entwicklung",
+   "g-zwei": "Vertrieb"
+  }
+ },
+ "schritte": [
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "nutzer",
+    "ebene": "gruppe g-eins",
+    "schluessel": "aussehen.thema",
+    "wert": "hell"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

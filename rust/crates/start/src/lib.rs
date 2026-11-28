@@ -2,7 +2,8 @@
 //! service, and checks a start against the settings file.
 //!
 //! [`lesen_anfrage`] and [`lesen_datei`] check the form and the stages 1 to 13 (with 4a, 9a, 11a, 11b and 13a of
-//! version 2). [`pruefen`] adds the stages 14 to 18 against the settings file. Version 2 carries `effort` and `name`, the
+//! version 2). [`pruefen`] adds the stages 14 to 18 against the settings file; [`effort`] gives the effort "Lauf starten" passes
+//! on, the one stage 18 checks. Version 2 carries `effort` and `name`, the
 //! start file also `fortsetzung_von` ([`Startanfrage::mit_fortsetzung`]). [`copilot_argv`] builds the start command of `copilot`, [`ist_marken_kennung`] tests the key of a folder mark. [`schreiben`] writes the start file that the program
 //! `Lauf starten` reads. The crate reads bytes and never touches the file system.
 
@@ -18,6 +19,6 @@ pub use einstellungen::Werkzeug;
 pub use fehler::Fehler;
 pub use form::{Marker, Startanfrage, Startdatei, Startform};
 pub use lesen::{lesen_anfrage, lesen_datei};
-pub use pruefen::pruefen;
+pub use pruefen::{COPILOT_RUECKFALL, effort, pruefen};
 pub use schreiben::schreiben;
 pub use startbefehl::{MODELL_AUTO, copilot_argv, ist_marken_kennung};

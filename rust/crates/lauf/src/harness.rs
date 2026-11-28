@@ -121,6 +121,28 @@ pub fn argv(
     a
 }
 
+/// The excerpt of the argv of the harness for a log line: the name of the harness, every option name (`--x`, of
+/// `--x=<wert>` only `--x`), and only the values of `--model` and of the effort option of the harness. Every other value
+/// (paths, keys of a session, a prompt) is left out, so the line never carries a path with a user name. The model and the
+/// effort come from the checked start file and settings (forms of contract 1 and 2).
+#[must_use]
+pub fn argv_auszug(harness: &str, argv: &[String]) -> String {
+    let mut teile = vec![harness.to_owned()];
+    let mut wert_folgt = false;
+    for a in argv.iter().skip(1) {
+        if wert_folgt {
+            teile.push(a.clone());
+            wert_folgt = false;
+        } else if let Some(name) = a.strip_prefix("--") {
+            let name = name.split('=').next().unwrap_or_default();
+            teile.push(format!("--{name}"));
+            wert_folgt = !a.contains('=')
+                && (a == "--model" || (effort_im_argv(harness) && a == effort_option(harness)));
+        }
+    }
+    teile.join(" ")
+}
+
 /// The provider file of `pi`: the guest point of the model path and the one model of the route.
 #[must_use]
 pub fn pi_anbieter(modell: &str) -> String {

@@ -5,9 +5,9 @@
 erster datei crates/dienst/src/kindprogramm.rs
 
 # dienst, `programm`: the branch `--kind` (comparison and mask of the exit code) stands behind the feature.
-erster re crates/dienst/src/lib.rs:103:39: replace == with != in programm
+erster re crates/dienst/src/lib.rs:112:39: replace == with != in programm
 
-erster re crates/dienst/src/lib.rs:108:42: replace & with [|^] in programm
+erster re crates/dienst/src/lib.rs:117:42: replace & with [|^] in programm
 
 # meldung, `modus_setzen`, and rechte, `socket_modus_setzen`: `|` -> `^` of separate `OFlags` bits gives the same flags.
 gleichwertig re crates/dienst/src/meldung.rs:61:26: replace [|] with [|^] in modus_setzen
@@ -40,10 +40,10 @@ gleichwertig re crates/dienst/src/meldung.rs:251:63: replace == with != in Meldu
 
 # dienst, `entfernte_wegnehmen`: its only call stands at the end of the round, where `arbeit` is always empty, and with
 # an empty `entfernt` the rest takes nothing away; `||` -> `&&` gives the same result.
-gleichwertig re crates/dienst/src/dienst.rs:937:36: replace [|][|] with && in Dienst::entfernte_wegnehmen
+gleichwertig re crates/dienst/src/dienst.rs:953:36: replace [|][|] with && in Dienst::entfernte_wegnehmen
 
 # dienst, `starten`: `rahmen_waehlen(n, ...)` is only checked for `None`, which does not depend on `n`.
-gleichwertig re crates/dienst/src/dienst.rs:1664:43: replace [+] with [*] in Dienst::starten
+gleichwertig re crates/dienst/src/dienst.rs:1851:43: replace [+] with [*] in Dienst::starten
 
 # dienst, `sys/macos.rs` (local way, DI-L11 point 5): `sandkasten` and the hook `einschluss` of macOS are compiled only under macOS, so no
 # test under Linux can fail for their mutants. Caught on the Mac by hand mutants on 27.11.2026, 9 of 9 (the three returns of

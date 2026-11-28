@@ -281,6 +281,7 @@ impl Firmenvorgabe {
             klassen,
             admins,
             gruppen,
+            gruppennamen: Vec::new(),
             werte,
         })
     }

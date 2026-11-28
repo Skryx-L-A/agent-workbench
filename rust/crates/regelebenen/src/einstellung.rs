@@ -82,6 +82,9 @@ pub struct Stand {
     pub admins: Vec<String>,
     /// The groups of the company file with their members (pseudonyms), in the order of the file.
     pub gruppen: Vec<(String, Vec<String>)>,
+    /// The display names of the groups (key of the group, name), from `gruppennamen` of the company file (3.1); empty without
+    /// names. `setzen` and `sicht` do not read them (15.3).
+    pub gruppennamen: Vec<(String, String)>,
     /// The values per place.
     pub werte: Werte,
 }
@@ -101,20 +104,34 @@ fn plaetze(w: &Value) -> Option<BTreeMap<String, Map<String, Value>>> {
 }
 
 impl Stand {
-    /// The state from its JSON form in 15.3 (`klassen`, `admins`, `gruppen`, `werte` with `firma`, `gruppen` and
-    /// `nutzer`). `None` if a part has another type. The values themselves are not checked here.
+    /// The state from its JSON form in 15.3 (`klassen`, `admins`, `gruppen`, the optional `gruppennamen`, `werte` with
+    /// `firma`, `gruppen` and `nutzer`). `None` if a part has another type, or if `gruppennamen` is not valid after 3.1
+    /// ([`katalog::gruppennamen_gut`]: a name without a group, a name twice). The values themselves are not checked here.
     #[must_use]
     pub fn aus_wert(w: &Value) -> Option<Stand> {
         let werte = w.get("werte")?;
+        let gruppen: Vec<(String, Vec<String>)> = w
+            .get("gruppen")?
+            .as_object()?
+            .iter()
+            .map(|(g, m)| Some((g.clone(), texte(m)?)))
+            .collect::<Option<_>>()?;
+        let gruppennamen: Vec<(String, String)> = match w.get("gruppennamen") {
+            None => Vec::new(),
+            Some(n) => n
+                .as_object()?
+                .iter()
+                .map(|(g, v)| Some((g.clone(), v.as_str()?.to_owned())))
+                .collect::<Option<_>>()?,
+        };
+        if !katalog::gruppennamen_gut(&gruppennamen, &gruppen) {
+            return None;
+        }
         Some(Stand {
             klassen: texte(w.get("klassen")?)?,
             admins: texte(w.get("admins")?)?,
-            gruppen: w
-                .get("gruppen")?
-                .as_object()?
-                .iter()
-                .map(|(g, m)| Some((g.clone(), texte(m)?)))
-                .collect::<Option<_>>()?,
+            gruppen,
+            gruppennamen,
             werte: Werte {
                 firma: werte.get("firma")?.as_object()?.clone(),
                 gruppen: plaetze(werte.get("gruppen")?)?,
@@ -136,6 +153,32 @@ impl Stand {
             .iter()
             .find(|(_, m)| m.iter().any(|x| x == wer))
             .map(|(g, _)| g.as_str())
+    }
+
+    /// The display name of the group `g`, `None` without one (3.1, `gruppennamen`).
+    #[must_use]
+    pub fn gruppenname(&self, g: &str) -> Option<&str> {
+        self.gruppennamen
+            .iter()
+            .find(|(k, _)| k == g)
+            .map(|(_, n)| n.as_str())
+    }
+
+    /// The names for the message `Einstellungen` (15.10, proposal): for an admin every group with a name, for another viewer only
+    /// the group in which `wer` stands (if it has a name). A group without a name is not in the list; the view then shows the key.
+    #[must_use]
+    pub fn gruppennamen_fuer(&self, wer: &str) -> Vec<(&str, &str)> {
+        if self.ist_admin(wer) {
+            return self
+                .gruppennamen
+                .iter()
+                .map(|(g, n)| (g.as_str(), n.as_str()))
+                .collect();
+        }
+        self.gruppe_des(wer)
+            .and_then(|g| self.gruppenname(g).map(|n| (g, n)))
+            .into_iter()
+            .collect()
     }
 
     fn hat_gruppe(&self, g: &str) -> bool {
@@ -652,6 +695,70 @@ mod tests {
             "werte": {"firma": firma, "gruppen": {"g-eins": gruppe}, "nutzer": {U: nutzer}}
         }))
         .expect("state")
+    }
+
+    fn stand_mit_namen(namen: &Value) -> Option<Stand> {
+        Stand::aus_wert(&json!({
+            "klassen": ["oeffentlich", "intern"], "admins": [A],
+            "gruppen": {"g-eins": [U], "g-zwei": ["ps_00000000000000000000000000000c02"], "g-drei": []},
+            "gruppennamen": namen,
+            "werte": {"firma": {}, "gruppen": {"g-eins": {"terminal.schriftgroesse": 15}}, "nutzer": {}}
+        }))
+    }
+
+    #[test]
+    fn gruppennamen_im_stand() {
+        let namen = json!({"g-eins": "Gruppe Entwicklung", "g-zwei": "Vertrieb"});
+        let s = stand_mit_namen(&namen).expect("state");
+        assert_eq!(s.gruppenname("g-eins"), Some("Gruppe Entwicklung"));
+        assert_eq!(s.gruppenname("g-drei"), None);
+        // the origin stays the key of the group, the name changes nothing
+        assert_eq!(
+            wert_von(&s, U, "terminal.schriftgroesse"),
+            (json!(15), "gruppe g-eins".to_owned())
+        );
+        // a viewer in a group sees only its own name; a group without a name has none; an admin sees every name
+        assert_eq!(
+            s.gruppennamen_fuer(U),
+            vec![("g-eins", "Gruppe Entwicklung")]
+        );
+        assert_eq!(
+            s.gruppennamen_fuer("ps_00000000000000000000000000000c02"),
+            vec![("g-zwei", "Vertrieb")]
+        );
+        assert_eq!(
+            s.gruppennamen_fuer(A),
+            vec![("g-eins", "Gruppe Entwicklung"), ("g-zwei", "Vertrieb")]
+        );
+        assert_eq!(
+            s.gruppennamen_fuer("ps_00000000000000000000000000000c03"),
+            Vec::<(&str, &str)>::new()
+        );
+        // without names the key is missing in the state and the list is empty
+        let ohne = stand(json!({}), json!({}), json!({}));
+        assert!(ohne.gruppennamen.is_empty() && ohne.gruppennamen_fuer(U).is_empty());
+        // `setzen` on the group takes the key, names or not
+        let mut t = stand_mit_namen(&namen).expect("state");
+        assert!(
+            setzen(
+                &mut t,
+                A,
+                &json!("nutzer"),
+                &json!("gruppe g-eins"),
+                &json!("aussehen.thema"),
+                &json!("hell")
+            )
+            .angenommen()
+        );
+        // a name without a group, a name twice and a name of another type are no state
+        for schlecht in [
+            json!({"g-vier": "Es gibt sie nicht"}),
+            json!({"g-eins": "Vertrieb", "g-zwei": "Vertrieb"}),
+            json!({"g-eins": 5}),
+            json!(["g-eins"]),
+        ] {
+            assert!(stand_mit_namen(&schlecht).is_none(), "{schlecht}");
+        }
     }
 
     fn wert_von(s: &Stand, wer: &str, schluessel: &str) -> (Value, String) {

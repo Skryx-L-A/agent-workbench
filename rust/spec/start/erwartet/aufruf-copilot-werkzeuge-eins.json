@@ -4,6 +4,8 @@
   "copilot",
   "--model",
   "claude-sonnet-5.5",
+  "--reasoning-effort",
+  "none",
   "--disable-builtin-mcps",
   "--additional-mcp-config",
   "@<heim>/.copilot/wb-mcp.json",

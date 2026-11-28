@@ -1,0 +1,111 @@
+{
+ "name": "setzen-harness-opencode",
+ "anforderungen": [
+  "OF9",
+  "E2"
+ ],
+ "beschreibung": "opencode ist ein Harness des Katalogs: Die Firma setzt für opencode alle sieben Effort-Werte, der Nutzer wählt opencode und den Effort none; off (Wert von pi) und ultra sind für opencode ungültig",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "effort.grenzen",
+    "wert": [
+     {
+      "harness": "opencode",
+      "erlaubt": [
+       "none",
+       "minimal",
+       "low",
+       "medium",
+       "high",
+       "xhigh",
+       "max"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.harness",
+    "wert": "opencode"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.effort",
+    "wert": "none"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "effort.grenzen",
+    "wert": [
+     {
+      "harness": "opencode",
+      "erlaubt": [
+       "off"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "effort.grenzen",
+    "wert": [
+     {
+      "harness": "opencode",
+      "erlaubt": [
+       "ultra"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}
