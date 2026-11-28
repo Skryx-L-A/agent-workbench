@@ -1,3 +1,26 @@
 {
- "gueltig": true
+ "gueltig": true,
+ "efforts": [
+  {
+   "harness": "copilot",
+   "route": "copilot",
+   "modell": "gpt-6-luna",
+   "erlaubt": [
+    "none",
+    "low"
+   ]
+  },
+  {
+   "harness": "copilot",
+   "route": "copilot",
+   "modell": "auto",
+   "erlaubt": []
+  },
+  {
+   "harness": "pi",
+   "route": "lokal",
+   "modell": "qwen3:8b",
+   "erlaubt": []
+  }
+ ]
 }

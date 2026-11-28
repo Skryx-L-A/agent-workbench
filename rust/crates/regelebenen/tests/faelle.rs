@@ -1,7 +1,7 @@
 //! The outside test against the cases of the contract (`rust/spec/regelebenen/`).
 //!
-//! - `faelle-setzen/` with `erwartet-setzen/` (15.8): every step `setzen` and `sicht`, compared as a whole with the
-//!   expectation, and every code of 15.4 in at least one case.
+//! - `faelle-setzen/` with `erwartet-setzen/` (15.8): every step `setzen`, `sicht` and `fristen` (15.1.2), compared as a
+//!   whole with the expectation, and every code of 15.4 in at least one case.
 //! - `faelle-schreiben/` with `erwartet-schreiben/` (15.12.5), the parts of the library: H3 and H4 of the state of each
 //!   case against the code of its first step; per step `schreiben` the stage 2 (`setzen` on a copy of the state that
 //!   the service loaded) and its line; per step `nachricht` the view. The mapping of accounts to pseudonyms and the
@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 
 use regelebenen::katalog::LESEKLASSEN;
 use regelebenen::vorgabe::{self, Angabe, Art, Lage, Vorgabefehler};
-use regelebenen::{Code, Stand, Werte, setzen, sicht};
+use regelebenen::{Code, Stand, Werte, frist, setzen, sicht};
 use serde_json::{Value, json};
 
 const HELFER_UID: u32 = 990;
@@ -49,6 +49,7 @@ fn faelle_setzen() {
     let alle = faelle("faelle-setzen", "erwartet-setzen");
     assert!(alle.len() >= 35, "{} cases", alle.len());
     let mut gesehen: BTreeSet<String> = BTreeSet::new();
+    let mut fristen_gesehen = 0;
     for (name, fall, soll) in &alle {
         let mut stand = Stand::aus_wert(&fall["stand"]).expect("state");
         let schritte = fall["schritte"].as_array().expect("steps");
@@ -69,6 +70,9 @@ fn faelle_setzen() {
                     gesehen.insert(c.text().to_owned());
                 }
                 p.als_wert()
+            } else if let Some(a) = s.get("fristen") {
+                fristen_gesehen += 1;
+                fristen(&stand, a)
             } else {
                 let wer = s["sicht"]["wer"].as_str().expect("wer");
                 json!({"einstellungen": sicht(&stand, wer).als_wert()})
@@ -78,6 +82,26 @@ fn faelle_setzen() {
     }
     let alle_codes: BTreeSet<String> = Code::ALLE.iter().map(|c| c.text().to_owned()).collect();
     assert_eq!(gesehen, alle_codes, "every code in at least one case");
+    assert!(fristen_gesehen >= 4, "{fristen_gesehen} steps fristen");
+}
+
+/// A step `fristen` (15.1.2): the effective value of the key in the view of `wer` is the value of the catalogue; the
+/// servers come from the case in their order.
+fn fristen(stand: &Stand, a: &Value) -> Value {
+    let schluessel = a["schluessel"].as_str().expect("key");
+    let katalog = sicht(stand, a["wer"].as_str().expect("wer"))
+        .eintrag(schluessel)
+        .expect("key of the catalogue")
+        .wert
+        .as_i64()
+        .expect("whole number");
+    let server: Vec<(&str, Option<i64>)> = a["server"]
+        .as_array()
+        .expect("servers")
+        .iter()
+        .map(|x| (x["server"].as_str().expect("server"), x["wert"].as_i64()))
+        .collect();
+    json!({"fristen": frist::wirksam(katalog, &server).iter().map(frist::Wirksam::als_wert).collect::<Vec<_>>()})
 }
 
 fn art(t: &Value) -> Art {

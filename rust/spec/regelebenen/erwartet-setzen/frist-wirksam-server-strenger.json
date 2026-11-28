@@ -1,0 +1,22 @@
+{
+ "schritte": [
+  {
+   "fristen": [
+    {
+     "server": "x",
+     "wert": 30000,
+     "herkunft": "firmendatei"
+    }
+   ]
+  },
+  {
+   "fristen": [
+    {
+     "server": "x",
+     "wert": 30000,
+     "herkunft": "firmendatei"
+    }
+   ]
+  }
+ ]
+}

@@ -2719,5 +2719,54 @@ class Vorgabe(unittest.TestCase):
         self.assertIn("systemctl stop werkbank-vorgabe.socket werkbank-vorgabe.service", pre)
 
 
+class ErststartEffort(unittest.TestCase):
+    """Decision of the operator, 28.11.2026: the first-start profile the package ships allows for copilot with gpt-6-luna on its
+    route exactly the efforts none and low, without a default. Checked with the reference of contract 1 (start, stage 18) against
+    the profile and against the expectation of the case gueltig-erststart (written by bau-faelle.py of contract 2)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        pfad = os.path.join(RUST, "spec", "start", "bau-faelle.py")
+        spec = importlib.util.spec_from_file_location("start_faelle", pfad)
+        cls.start = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.start)
+        einst = os.path.join(RUST, "spec", "einstellungen")
+        with open(os.path.join(einst, "erststart.json"), encoding="utf-8") as d:
+            cls.profil = json.load(d)
+        with open(os.path.join(einst, "erwartet", "gueltig-erststart.json"), encoding="utf-8") as d:
+            cls.erwartet = json.load(d)
+        cls.liste = lesen(os.path.join(HIER, PLATTFORM, "lieferumfang.txt"))
+
+    def anfrage(self, effort, profil=None):
+        start = {"fassung": 2, "harness": "copilot", "modell": "gpt-6-luna", "route": "copilot", "kunde": None,
+                 "arbeitsordner": "/srv/beispiel/projekt", "effort": effort, "name": None}
+        return self.start.code_f2(start, self.profil if profil is None else profil, form=self.start.A)
+
+    def test_the_package_ships_the_profile_of_contract_2(self):
+        self.assertIn("daten usr/share/werkbank/probelauf/erststart.json datei:spec/einstellungen/erststart.json\n", self.liste)
+
+    def test_none_and_low_pass_medium_and_the_rest_end_with_the_effort_limit(self):
+        self.assertIsNone(self.anfrage("none"))
+        self.assertIsNone(self.anfrage("low"))
+        self.assertIsNone(self.anfrage(None), "a start without an effort stays valid (no option)")
+        for wert in ("minimal", "medium", "high", "xhigh", "max"):
+            with self.subTest(wert=wert):
+                self.assertEqual(self.anfrage(wert), "start.effort_grenze")
+
+    def test_the_reference_agrees_with_the_expectation_of_the_case(self):
+        efforts = self.erwartet["efforts"]
+        self.assertIn({"harness": "copilot", "route": "copilot", "modell": "gpt-6-luna", "erlaubt": ["none", "low"]}, efforts)
+        for e in efforts:
+            with self.subTest(eintrag=e):
+                self.assertEqual(self.start.erlaubte_efforts(self.profil, e["harness"], e["route"], e["modell"]), e["erlaubt"])
+
+    def test_counter_check_without_the_block_none_ends_with_the_effort_limit(self):
+        ohne = json.loads(json.dumps(self.profil))
+        ohne.pop("effort", None)
+        self.assertEqual(self.anfrage("none", ohne), "start.effort_grenze")
+        self.assertIsNone(self.anfrage(None, ohne))
+
+
 if __name__ == "__main__":
     unittest.main()

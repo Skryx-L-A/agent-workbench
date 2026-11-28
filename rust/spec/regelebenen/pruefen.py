@@ -61,6 +61,32 @@ def nur_pseudonyme(liste):
                                            or (isinstance(x.get("wer"), str) and PSEUDONYM.match(x["wer"])) for x in liste)
 
 
+def frist_gueltig(w):
+    return isinstance(w, int) and not isinstance(w, bool) and 1 <= w <= 86400000
+
+
+def fristen_pruefen(wo, a, e):
+    """Schritt fristen (Abschnitt 15.1.2): je Server in derselben Reihenfolge Wert und Herkunft. Die Herkunft firmendatei trägt
+    genau den Wert des Servers; die Herkunft katalog steht nur, wo der Server keinen Wert hat oder einen größeren."""
+    f = []
+    if set(a) != {"wer", "schluessel", "server"} or not PSEUDONYM.match(str(a["wer"])) \
+            or a["schluessel"] not in ("aufsicht.freigabefrist_ms", "aufsicht.einloesefrist_ms") \
+            or not isinstance(a["server"], list) \
+            or any(set(x) != {"server", "wert"} or not isinstance(x["server"], str)
+                   or (x["wert"] is not None and not frist_gueltig(x["wert"])) for x in a["server"]):
+        return [f"{wo}: fristen hat nicht genau wer, schluessel und server mit server und wert"]
+    liste = e.get("fristen") if set(e) == {"fristen"} else None
+    if not isinstance(liste, list) or len(liste) != len(a["server"]):
+        return [f"{wo}: Ergebnis von fristen hat nicht je Server einen Eintrag"]
+    for x, r in zip(a["server"], liste):
+        if set(r) != {"server", "wert", "herkunft"} or r["server"] != x["server"] or not frist_gueltig(r["wert"]) \
+                or r["herkunft"] not in ("firmendatei", "katalog") \
+                or (r["herkunft"] == "firmendatei" and r["wert"] != x["wert"]) \
+                or (r["herkunft"] == "katalog" and x["wert"] is not None and x["wert"] <= r["wert"]):
+            f.append(f"{wo}: wirksame Frist von {x['server']} widerspricht Abschnitt 15.1.2")
+    return f
+
+
 def pruefen_setzen(fehler):
     faelle = {p.name for p in (HIER / "faelle-setzen").glob("*.json")}
     erwartet = {p.name for p in (HIER / "erwartet-setzen").glob("*.json")}
@@ -87,8 +113,11 @@ def pruefen_setzen(fehler):
             continue
         for i, (s, e) in enumerate(zip(fall["schritte"], erw["schritte"])):
             wo = f"setzen {name} Schritt {i}"
-            if len(s) != 1 or next(iter(s)) not in ("setzen", "sicht"):
-                fehler.append(f"{wo}: Schritt hat nicht genau setzen oder sicht")
+            if len(s) != 1 or next(iter(s)) not in ("setzen", "sicht", "fristen"):
+                fehler.append(f"{wo}: Schritt hat nicht genau setzen, sicht oder fristen")
+                continue
+            if "fristen" in s:
+                fehler += fristen_pruefen(wo, s["fristen"], e)
                 continue
             if "sicht" in s:
                 for k, v in e["einstellungen"].items():

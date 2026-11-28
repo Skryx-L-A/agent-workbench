@@ -1,0 +1,108 @@
+{
+ "name": "frist-wirksam-je-server",
+ "anforderungen": [
+  "A26",
+  "A27"
+ ],
+ "beschreibung": "je Server der kleinere Wert: strenger als der Katalog gilt der Server, gleich gilt der Server, lockerer oder ohne eigenen Wert gilt der Katalog; ein Admin senkt den Katalog unter den Server, dann gilt der Katalog; zurückgenommen gilt die Vorgabe",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "fristen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "schluessel": "aufsicht.einloesefrist_ms",
+    "server": [
+     {
+      "server": "tickets",
+      "wert": 60000
+     },
+     {
+      "server": "wiki",
+      "wert": null
+     },
+     {
+      "server": "ablage",
+      "wert": 3600000
+     },
+     {
+      "server": "kalender",
+      "wert": 300000
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "aufsicht.einloesefrist_ms",
+    "wert": 30000
+   }
+  },
+  {
+   "fristen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "schluessel": "aufsicht.einloesefrist_ms",
+    "server": [
+     {
+      "server": "tickets",
+      "wert": 60000
+     },
+     {
+      "server": "wiki",
+      "wert": null
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "aufsicht.einloesefrist_ms",
+    "wert": null
+   }
+  },
+  {
+   "fristen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "schluessel": "aufsicht.freigabefrist_ms",
+    "server": [
+     {
+      "server": "tickets",
+      "wert": 90000
+     },
+     {
+      "server": "wiki",
+      "wert": 1
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -187,12 +187,19 @@ die Arbeitskopie der Einstellungen, aus der „Lauf starten“ Route und Modell 
 Nachtrag Erststart und Abschnitt „halter.json“). Die Vorführdatei bleibt unverändert. Der Läufer setzt nichts ein.
 
 Das Profil ist die eigene Datei `erststart.json` neben `vorfuehrung.json`, ein Datensatz der Fassung 2 ohne neues Feld. Sie
-entsteht in `bau-faelle.py` (`ERSTSTARTDATEI`) aus der Vorführdatei und ändert genau zwei Stellen an der Route `copilot`:
+entsteht in `bau-faelle.py` (`ERSTSTARTDATEI`) aus der Vorführdatei und ändert genau zwei Stellen an der Route `copilot` und
+fügt den Block `effort` hinzu:
 
 | Stelle | Vorführdatei | Erststart-Profil |
 |---|---|---|
 | `pfade` am Ziel `api.individual.githubcopilot.com` | die sieben Pfade des Nachtrags N1 | nur `GET /models` und `POST /chat/completions` |
 | `modell` der Route | fehlt (der Harness wählt, im Start `auto`) | `gpt-6-luna` |
+| Block `effort` | fehlt (kein Effort wählbar) | eine Grenze: `copilot`, Klasse `internal`, Modell `gpt-6-luna`, erlaubt `none` und `low` |
+
+Herkunft des Blocks `effort` (Entscheid des Betreibers, 28.11.2026): Ohne Option sendet die Copilot CLI 1.0.88 mit
+`gpt-6-luna` das Feld `reasoning_effort` mit `medium`; mit `--reasoning-effort none` fehlt das Feld (gemessen am 27.11.2026
+ohne Konto, über den Halter). Der Block hat keine Vorgabe: Ein Start ohne `effort` bleibt gültig, und „Lauf starten“ setzt dann
+keine Option. Ein Start mit `effort` `none` oder `low` geht durch; jeder andere Wert endet mit `start.effort_grenze` (Vertrag 1).
 
 Herkunft des Modellnamens: Die Copilot CLI 1.0.88 wählte mit `--model auto --auto-tier efficiency` das Modell `gpt-6-luna`
 und verbrauchte eine Chat-Einheit, kein Premium-Modell (gemessen am 20.11.2026, Vertrag 1, `rust/spec/start/README.md`,
@@ -204,8 +211,9 @@ den zwei genauen Pfaden, `api.githubcopilot.com`, Telemetrie, `exp`), Klassen, K
 Vorführdatei.
 
 Fall: `gueltig-erststart` (gültig). `pruefen.py` prüft zusätzlich (`erststart_pruefen`): Schema, genau die zwei Pfade am
-Modell-Host, jeder der fünf übrigen Pfade geht nicht durch, `modell` ist ein Text und nicht `auto`, und außer diesen zwei
-Stellen gleicht die Datei `vorfuehrung.json`. Gegenprobe gemessen: Mit `modell: auto`, einem zusätzlichen `POST /auto` und
+Modell-Host, jeder der fünf übrigen Pfade geht nicht durch, `modell` ist ein Text und nicht `auto`, der Block `effort` ist genau
+der oben genannte, und außer diesen drei Stellen gleicht die Datei `vorfuehrung.json`. Die Erwartung des Falls nennt unter
+`efforts` für `copilot` mit `gpt-6-luna` an der Route `copilot` genau `none` und `low`, für `auto` und für `pi` keinen Wert. Gegenprobe gemessen: Mit `modell: auto`, einem zusätzlichen `POST /auto` und
 einer geänderten Kundenfreigabe meldet `pruefen.py` 4 Fehler. Dass jeder der fünf Pfade im Halter `halter.pfad_verboten` mit
 Kettenzeile ergibt, prüfen die Halter-Fälle `s15-erststart-*` und der Test
 `tests/dienst.rs` `erststart_sperrt_die_fuenf_pfade_mit_kettenzeile` im Crate `halter`.

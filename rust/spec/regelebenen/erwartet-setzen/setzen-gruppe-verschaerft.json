@@ -175,6 +175,18 @@
      "herkunft": "firma",
      "aenderbar": false,
      "grund": "nur_admin"
+    },
+    "aufsicht.freigabefrist_ms": {
+     "wert": 60000,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "aufsicht.einloesefrist_ms": {
+     "wert": 300000,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
     }
    }
   },
@@ -283,6 +295,18 @@
     },
     "leseklassen": {
      "wert": [],
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "aufsicht.freigabefrist_ms": {
+     "wert": 60000,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "aufsicht.einloesefrist_ms": {
+     "wert": 300000,
      "herkunft": "firma",
      "aenderbar": false,
      "grund": "nur_admin"

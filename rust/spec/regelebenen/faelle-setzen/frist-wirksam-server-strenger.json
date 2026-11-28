@@ -1,0 +1,60 @@
+{
+ "name": "frist-wirksam-server-strenger",
+ "anforderungen": [
+  "A26",
+  "A27"
+ ],
+ "beschreibung": "der Katalog sagt 120 s, die Firmendatei sagt für den Server x 30 s; wirksam sind 30 s mit Herkunft Firmendatei, Server x",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {
+    "aufsicht.freigabefrist_ms": 120000
+   },
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "fristen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "schluessel": "aufsicht.freigabefrist_ms",
+    "server": [
+     {
+      "server": "x",
+      "wert": 30000
+     }
+    ]
+   }
+  },
+  {
+   "fristen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "schluessel": "aufsicht.freigabefrist_ms",
+    "server": [
+     {
+      "server": "x",
+      "wert": 30000
+     }
+    ]
+   }
+  }
+ ]
+}

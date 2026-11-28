@@ -1,0 +1,66 @@
+{
+ "name": "frist-einloesefrist-ms-nutzer-abgelehnt",
+ "anforderungen": [
+  "A26",
+  "A27"
+ ],
+ "beschreibung": "ein Nutzer setzt aufsicht.einloesefrist_ms auf der Firmenebene (nicht befugt) und auf seiner Ebene (Ebene gesperrt); die Vorgabe bleibt",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "aufsicht.einloesefrist_ms",
+    "wert": 120000
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "aufsicht.einloesefrist_ms",
+    "wert": 120000
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "aufsicht.einloesefrist_ms",
+    "wert": 120000
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

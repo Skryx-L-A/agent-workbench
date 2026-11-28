@@ -7,9 +7,11 @@
 //!   and parents from the data of `fstat` (stage H3), [`vorgabe::Firmenvorgabe::stand`] builds the [`Stand`] with the
 //!   mapping of accounts to pseudonyms that the caller owns (15.2, DI-L11).
 //! - [`setzen`] and [`sicht`] (15.4 to 15.6 and 15.11) over the catalogue [`katalog`] (15.1).
+//! - [`frist::wirksam`]: the effective deadline of a release for each MCP server (15.1.2).
 //! - [`json::streng_lesen`]: the strict reader that refuses a duplicate key.
 
 pub mod einstellung;
+pub mod frist;
 pub mod json;
 pub mod katalog;
 pub mod vorgabe;

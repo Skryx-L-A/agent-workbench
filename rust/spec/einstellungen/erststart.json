@@ -159,5 +159,18 @@
     "such-mcp"
    ]
   }
+ },
+ "effort": {
+  "grenzen": [
+   {
+    "harness": "copilot",
+    "klasse": "internal",
+    "modell": "gpt-6-luna",
+    "erlaubt": [
+     "none",
+     "low"
+    ]
+   }
+  ]
  }
 }

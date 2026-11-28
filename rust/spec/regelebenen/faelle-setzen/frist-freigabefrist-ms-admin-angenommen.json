@@ -1,0 +1,94 @@
+{
+ "name": "frist-freigabefrist-ms-admin-angenommen",
+ "anforderungen": [
+  "A26",
+  "A27"
+ ],
+ "beschreibung": "ein Admin setzt aufsicht.freigabefrist_ms für die Firma auf 24 h, die obere Grenze; 0 und mehr als 24 h sind ungültig, eine Gruppe darf die Frist nicht tragen; der Nutzer sieht den Wert mit Herkunft firma und darf ihn nicht ändern",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "aufsicht.freigabefrist_ms",
+    "wert": 86400000
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000b01"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "aufsicht.freigabefrist_ms",
+    "wert": 0
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "aufsicht.freigabefrist_ms",
+    "wert": 86400001
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "aufsicht.freigabefrist_ms",
+    "wert": 1
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "aufsicht.freigabefrist_ms",
+    "wert": null
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

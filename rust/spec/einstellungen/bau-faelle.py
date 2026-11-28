@@ -109,6 +109,12 @@ ERSTSTARTDATEI["routen"][0]["modell"] = ERSTSTART_MODELL
 for _z in ERSTSTARTDATEI["routen"][0]["netzziele"]:
     if _z["host"] in MODELL_HOSTS:
         _z["pfade"] = copy.deepcopy(ERSTSTART_PFADE)
+# Block effort des Erststart-Profils (Entscheid des Betreibers, 28.11.2026): für copilot an der Route des Profils (Klasse
+# internal) mit gpt-6-luna genau none und low, ohne Vorgabe. Ein Start ohne effort bleibt ohne Option; mit none lässt die
+# Copilot CLI 1.0.88 das Feld reasoning_effort weg (gemessen 27.11.2026, ohne Option sendet sie medium).
+ERSTSTART_EFFORT = {"grenzen": [{"harness": "copilot", "klasse": "internal", "modell": ERSTSTART_MODELL,
+                                 "erlaubt": ["none", "low"]}]}
+ERSTSTARTDATEI["effort"] = copy.deepcopy(ERSTSTART_EFFORT)
 
 
 def text(obj):
@@ -626,8 +632,6 @@ fall("gueltig-harness-und-mcp", "harness und mcp zugleich: gültig",
      f2(lambda o: o.update(harness=cop(["such-mcp"]), mcp=MCP)))
 fall("gueltig-vorfuehrung-mit-werkzeugen",
      "Vorführdatei mit harness.copilot: shell, write und such-mcp ohne Rückfrage", VORFUEHRDATEI_MIT_WERKZEUGEN)
-fall("gueltig-erststart",
-     "Erststart-Profil: am Modell-Host nur GET /models und POST /chat/completions, Modell fest gpt-6-luna", ERSTSTARTDATEI)
 fall("harness-in-fassung-1", "Block harness in einer Datei der Fassung 1", harness(cop(["shell"]), fassung=1),
      "einst.schluessel_unbekannt")
 fall("harness-harness-unbekannt", "harness.claude: nur copilot hat in Fassung 2 einen Eintrag",
@@ -843,6 +847,12 @@ fall_effort("gueltig-effort", "Grenzen für copilot allgemein, für copilot mit 
             (("copilot", "cloud-beispiel", "auto"), ["low", "medium", "high"]),
             (("pi", "lokal-beispiel", "qwen3:8b"), ["off", "low"]),
             (("claude", "cloud-beispiel", "claude-sonnet-5-5"), [])])
+fall_effort("gueltig-erststart",
+             "Erststart-Profil: am Modell-Host nur GET /models und POST /chat/completions, Modell fest gpt-6-luna, "
+             "Effort für copilot mit gpt-6-luna nur none und low", ERSTSTARTDATEI, None,
+             [(("copilot", "copilot", "gpt-6-luna"), ["none", "low"]),
+              (("copilot", "copilot", "auto"), []),
+              (("pi", "lokal", "qwen3:8b"), [])])
 fall_effort("gueltig-effort-leer", "leere Liste: gültig, kein Harness bekommt einen Effort", eff([]), None,
              [(("copilot", "cloud-beispiel", "auto"), [])])
 fall_effort("gueltig-ohne-effort", "Fassung 2 ohne Block: gültig, kein Effort wählbar (fail closed)", f2(), None,

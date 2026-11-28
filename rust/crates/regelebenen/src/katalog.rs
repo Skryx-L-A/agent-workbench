@@ -170,6 +170,8 @@ pub const LESEKLASSEN_MAX: usize = 4096;
 pub const KLASSENLISTE_MAX: usize = 16;
 /// Most limits of the effort (15.1).
 pub const GRENZEN_MAX: usize = 64;
+/// Longest deadline of a release in milliseconds, 24 h (15.1.2, as contract 2).
+pub const FRIST_MAX: i64 = 86_400_000;
 
 const ALLE: &[Platz] = &[Platz::Firma, Platz::Gruppe, Platz::Nutzer];
 const NUR_FIRMA: &[Platz] = &[Platz::Firma];
@@ -193,7 +195,7 @@ const fn e(
 }
 
 /// The catalogue of the pilot, in the order of the table of 15.1.
-pub const KATALOG: [Eintrag; 17] = [
+pub const KATALOG: [Eintrag; 19] = [
     e(
         "aussehen.thema",
         Bereich::Nutzer,
@@ -328,6 +330,22 @@ pub const KATALOG: [Eintrag; 17] = [
         NUR_FIRMA,
         Typ::Leseklassen,
         Vorgabe::Liste,
+        Richtung::NurFirma,
+    ), // the deadlines of a release that the point reads from contract 2, block `mcp` (15.1.2)
+    e(
+        "aufsicht.freigabefrist_ms",
+        Bereich::Admin,
+        NUR_FIRMA,
+        Typ::Ganzzahl(1, FRIST_MAX),
+        Vorgabe::Zahl(60_000),
+        Richtung::NurFirma,
+    ),
+    e(
+        "aufsicht.einloesefrist_ms",
+        Bereich::Admin,
+        NUR_FIRMA,
+        Typ::Ganzzahl(1, FRIST_MAX),
+        Vorgabe::Zahl(300_000),
         Richtung::NurFirma,
     ),
 ];
@@ -553,7 +571,7 @@ mod tests {
     #[test]
     fn katalog_wie_15_1() {
         let namen: Vec<&str> = KATALOG.iter().map(|e| e.schluessel).collect();
-        assert_eq!(namen.len(), 17);
+        assert_eq!(namen.len(), 19);
         assert!(eintrag("admins").is_none());
         assert_eq!(Bereich::Nutzer.text(), "nutzer");
         assert_eq!(Bereich::Admin.text(), "admin");
@@ -635,6 +653,34 @@ mod tests {
         assert!(gueltig("modelle", &json!({"intern": siebzehn[..16]})));
         assert!(!gueltig("modelle", &json!({"intern": siebzehn})));
         assert!(!gueltig("modelle", &json!({"intern": ["a b"]})));
+    }
+
+    #[test]
+    fn fristen() {
+        for (k, vorgabe) in [
+            ("aufsicht.freigabefrist_ms", 60_000),
+            ("aufsicht.einloesefrist_ms", 300_000),
+        ] {
+            let x = eintrag(k).expect("key");
+            assert_eq!(x.bereich, Bereich::Admin, "{k}");
+            assert_eq!(x.richtung, Richtung::NurFirma, "{k}");
+            assert!(x.erlaubt_auf(Platz::Firma), "{k}");
+            assert!(!x.erlaubt_auf(Platz::Gruppe), "{k}");
+            assert!(!x.erlaubt_auf(Platz::Nutzer), "{k}");
+            assert_eq!(x.vorgabe.wert(), json!(vorgabe), "{k}");
+            assert!(gueltig(k, &json!(1)), "{k}");
+            assert!(gueltig(k, &json!(86_400_000)), "{k}");
+            for w in [
+                json!(0),
+                json!(86_400_001),
+                json!(-1),
+                json!(60_000.0),
+                json!("60000"),
+                json!(null),
+            ] {
+                assert!(!gueltig(k, &w), "{k} {w}");
+            }
+        }
     }
 
     #[test]

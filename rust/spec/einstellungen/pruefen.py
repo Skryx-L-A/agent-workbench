@@ -152,14 +152,16 @@ def vorfuehrung_pruefen(pruefer, fehler):
 # Erststart-Profil (Entscheid der Leitung, 25.11.2026): am Modell-Host genau diese zwei Pfade, die fünf übrigen gemessenen
 # Pfade gesperrt, das Modell fest gewählt.
 ERSTSTART_FREI = [("GET", "/models"), ("POST", "/chat/completions")]
+# Block effort des Erststart-Profils (Entscheid des Betreibers, 28.11.2026): copilot mit gpt-6-luna an der Route copilot nur none und low
+ERSTSTART_EFFORT = {"grenzen": [{"harness": "copilot", "klasse": "internal", "modell": "gpt-6-luna", "erlaubt": ["none", "low"]}]}
 ERSTSTART_GESPERRT = [("GET", "/responses"), ("POST", "/auto"), ("POST", "/models/session"),
                       ("POST", "/models/session/intent"), ("POST", "/agents/sessions")]
 
 
 def erststart_pruefen(pruefer, fehler):
     """erststart.json besteht das Schema, lässt am Modell-Host genau GET /models und POST /chat/completions zu, sperrt die
-    fünf übrigen gemessenen Pfade, legt an der Route copilot ein festes Modell fest (nicht auto) und gleicht sonst der
-    Vorführdatei."""
+    fünf übrigen gemessenen Pfade, legt an der Route copilot ein festes Modell fest (nicht auto), trägt genau den Block effort
+    ERSTSTART_EFFORT und gleicht sonst der Vorführdatei."""
     obj = json.loads((HIER / "erststart.json").read_text(encoding="utf-8"))
     vor = json.loads((HIER / "vorfuehrung.json").read_text(encoding="utf-8"))
     if pruefer is not None and not pruefer.is_valid(obj):
@@ -184,10 +186,13 @@ def erststart_pruefen(pruefer, fehler):
     m = route.get("modell")
     if not isinstance(m, str) or m == "auto":
         fehler.append(f"erststart.json: Route copilot ohne festes Modell ({m!r})")
+    if obj.get("effort") != ERSTSTART_EFFORT:
+        fehler.append(f"erststart.json: Block effort {obj.get('effort')!r}, erwartet genau {ERSTSTART_EFFORT!r}")
     # sonst wie die Vorführdatei: dieselben Ziele außer den Pfaden am Modell-Host, keine weitere Änderung
     gleich = json.loads(json.dumps(obj))
     r = next(r for r in gleich["routen"] if r["schluessel"] == "copilot")
     del r["modell"]
+    gleich.pop("effort", None)
     for z in r["netzziele"]:
         if z["host"] in MODELL_HOSTS:
             z["pfade"] = next(y for x in vor["routen"] if x["schluessel"] == "copilot"

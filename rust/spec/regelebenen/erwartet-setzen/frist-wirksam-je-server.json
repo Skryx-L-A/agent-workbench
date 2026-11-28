@@ -1,0 +1,90 @@
+{
+ "schritte": [
+  {
+   "fristen": [
+    {
+     "server": "tickets",
+     "wert": 60000,
+     "herkunft": "firmendatei"
+    },
+    {
+     "server": "wiki",
+     "wert": 300000,
+     "herkunft": "katalog"
+    },
+    {
+     "server": "ablage",
+     "wert": 300000,
+     "herkunft": "katalog"
+    },
+    {
+     "server": "kalender",
+     "wert": 300000,
+     "herkunft": "firmendatei"
+    }
+   ]
+  },
+  {
+   "angenommen": true,
+   "code": null,
+   "zeile": {
+    "aktionsname": "regel.geaendert",
+    "alt": null,
+    "antrag": null,
+    "code": null,
+    "ebene": "firma",
+    "ergebnis": "geaendert",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "9e37b747603ae2839a9581bee341ecbeab1b48e09682430c488e19bc1266901e",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "fristen": [
+    {
+     "server": "tickets",
+     "wert": 30000,
+     "herkunft": "katalog"
+    },
+    {
+     "server": "wiki",
+     "wert": 30000,
+     "herkunft": "katalog"
+    }
+   ]
+  },
+  {
+   "angenommen": true,
+   "code": null,
+   "zeile": {
+    "aktionsname": "regel.geaendert",
+    "alt": "9e37b747603ae2839a9581bee341ecbeab1b48e09682430c488e19bc1266901e",
+    "antrag": null,
+    "code": null,
+    "ebene": "firma",
+    "ergebnis": "geaendert",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "24a80e2a1e3c9b87d04d708a8fda537f89a05533b8a66a4bef5639b62fa01e70",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "fristen": [
+    {
+     "server": "tickets",
+     "wert": 60000,
+     "herkunft": "katalog"
+    },
+    {
+     "server": "wiki",
+     "wert": 1,
+     "herkunft": "firmendatei"
+    }
+   ]
+  }
+ ]
+}

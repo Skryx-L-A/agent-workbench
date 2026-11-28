@@ -787,7 +787,14 @@ KATALOG = {
     # Leseklasse je Person oder Gruppe (Projektentscheid, 27.11.2026). Die Wirkung (P2, P4) rechnet nur datentor.
     "leseklassen": {"bereich": "admin", "ebenen": ("firma",), "typ": ("leseklassen",),
                     "vorgabe": [], "richtung": "nur_firma"},
+    # Fristen der Freigabe, die die Stelle heute aus Vertrag 2 (Block mcp) auswertet (Entscheid des Betreibers, 27.11.2026;
+    # README Abschnitt 15.1.2). Grenzen und Vorgaben wie Vertrag 2; die Einloesefrist darf ein Admin bis 24 h erhoehen.
+    "aufsicht.freigabefrist_ms": {"bereich": "admin", "ebenen": ("firma",), "typ": ("ganzzahl", 1, 86400000),
+                                  "vorgabe": 60000, "richtung": "nur_firma"},
+    "aufsicht.einloesefrist_ms": {"bereich": "admin", "ebenen": ("firma",), "typ": ("ganzzahl", 1, 86400000),
+                                  "vorgabe": 300000, "richtung": "nur_firma"},
 }
+FRISTEN = [s for s in KATALOG if s.startswith("aufsicht.")]
 OPTIONEN = [s for s in KATALOG if s.startswith("optionen.")]
 LESE_MAX = 4096
 PSEUDONYM = re.compile(r"^ps_[0-9a-f]{32}$")
@@ -1032,12 +1039,30 @@ def sicht(stand, wer):
     return {"einstellungen": aus}
 
 
+def wirksame_fristen(katalog, server):
+    """Wirksame Frist je MCP-Server (README Abschnitt 15.1.2, Entscheid des Betreibers, 27.11.2026): der kleinere Wert aus
+    Katalog und Firmendatei; kürzer ist strenger. Ein Server ohne eigenen Wert (None) bekommt den Katalogwert. Bei gleichem
+    Wert gilt der Wert des Servers (herkunft firmendatei): Der Katalog lockert ihn nicht und verschärft ihn nicht."""
+    aus = []
+    for s in server:
+        eigen = s["wert"]
+        if eigen is not None and eigen <= katalog:
+            aus.append({"server": s["server"], "wert": eigen, "herkunft": "firmendatei"})
+        else:
+            aus.append({"server": s["server"], "wert": katalog, "herkunft": "katalog"})
+    return aus
+
+
 def ausfuehren_setzen(fall):
     stand = copy.deepcopy(fall["stand"])
     erg = []
     for s in fall["schritte"]:
         if "sicht" in s:
             erg.append(sicht(stand, s["sicht"]["wer"]))
+        elif "fristen" in s:
+            a = s["fristen"]
+            katalog = sicht(stand, a["wer"])["einstellungen"][a["schluessel"]]["wert"]
+            erg.append({"fristen": wirksame_fristen(katalog, a["server"])})
         else:
             a = s["setzen"]
             erg.append(setzen(stand, a["wer"], a["bereich"], a["ebene"], a["schluessel"], a["wert"]))
@@ -1061,6 +1086,15 @@ def S(wer, bereich, ebene, schluessel, wert):
 
 def SI(wer):
     return {"sicht": {"wer": wer}}
+
+
+def FR(wer, schluessel, *server):
+    return {"fristen": {"wer": wer, "schluessel": schluessel,
+                        "server": [{"server": n, "wert": w} for n, w in server]}}
+
+
+def frist_von(server, teil):
+    return lambda e: next(x[teil] for x in e["fristen"] if x["server"] == server)
 
 
 def feld(schluessel, teil):
@@ -1223,6 +1257,60 @@ for _o in OPTIONEN:
             (2, feld(_o, "aenderbar"), True), (2, feld(_o, "grund"), None)]
            + ([(3, angenommen, True), (4, feld(_o, "wert"), False), (4, feld(_o, "herkunft"), "nutzer")] if _nutzer
               else [(3, code, "ebenen.ebene_gesperrt")]))
+
+# Fristen der Freigabe (Entscheid des Betreibers, 27.11.2026; README Abschnitt 15.1.2): je Frist ein Fall „Nutzer setzt:
+# abgelehnt“ und ein Fall „Admin setzt: angenommen“ mit den Grenzen 1 und 86400000 (24 h).
+for _f in FRISTEN:
+    _kurz = _f.split(".", 1)[1].replace("_", "-")
+    _vorgabe = KATALOG[_f]["vorgabe"]
+    fall_s(f"frist-{_kurz}-nutzer-abgelehnt", ["A26", "A27"],
+           f"ein Nutzer setzt {_f} auf der Firmenebene (nicht befugt) und auf seiner Ebene (Ebene gesperrt); die Vorgabe bleibt",
+           stand_lauf(),
+           [S(U, "admin", "firma", _f, 120000), S(U, "admin", "nutzer", _f, 120000), S(U, "nutzer", "nutzer", _f, 120000), SI(U)],
+           [(0, code, "ebenen.nicht_befugt"), (1, code, "ebenen.ebene_gesperrt"), (2, code, "ebenen.bereich_falsch"),
+            (3, feld(_f, "wert"), _vorgabe), (3, feld(_f, "herkunft"), "firma"),
+            (3, feld(_f, "aenderbar"), False), (3, feld(_f, "grund"), "nur_admin")])
+    fall_s(f"frist-{_kurz}-admin-angenommen", ["A26", "A27"],
+           f"ein Admin setzt {_f} für die Firma auf 24 h, die obere Grenze; 0 und mehr als 24 h sind ungültig, eine Gruppe "
+           "darf die Frist nicht tragen; der Nutzer sieht den Wert mit Herkunft firma und darf ihn nicht ändern",
+           stand_lauf(),
+           [S(ADM, "admin", "firma", _f, 86400000), SI(U), SI(ADM), S(ADM, "admin", "firma", _f, 0),
+            S(ADM, "admin", "firma", _f, 86400001), S(ADM, "admin", "gruppe g-eins", _f, 1), S(ADM, "admin", "firma", _f, None),
+            SI(U)],
+           [(0, angenommen, True), (1, feld(_f, "wert"), 86400000), (1, feld(_f, "herkunft"), "firma"),
+            (1, feld(_f, "aenderbar"), False), (1, feld(_f, "grund"), "nur_admin"),
+            (2, feld(_f, "aenderbar"), True), (2, feld(_f, "grund"), None),
+            (3, code, "ebenen.wert_ungueltig"), (4, code, "ebenen.wert_ungueltig"), (5, code, "ebenen.ebene_gesperrt"),
+            (6, angenommen, True), (7, feld(_f, "wert"), _vorgabe)])
+
+# Wirksame Frist je MCP-Server (Entscheid des Betreibers, 27.11.2026; README Abschnitt 15.1.2): der kleinere Wert aus Katalog
+# und Firmendatei. Der erste Fall ist genau der Fall des Entscheids: Katalog 120 s, Server x 30 s, wirksam 30 s mit Herkunft Server x.
+_F, _E = "aufsicht.freigabefrist_ms", "aufsicht.einloesefrist_ms"
+fall_s("frist-wirksam-server-strenger", ["A26", "A27"],
+       "der Katalog sagt 120 s, die Firmendatei sagt für den Server x 30 s; wirksam sind 30 s mit Herkunft Firmendatei, Server x",
+       stand_lauf(firma={_F: 120000}),
+       [FR(U, _F, ("x", 30000)), FR(ADM, _F, ("x", 30000))],
+       [(0, frist_von("x", "wert"), 30000), (0, frist_von("x", "herkunft"), "firmendatei"),
+        (1, frist_von("x", "wert"), 30000), (1, frist_von("x", "herkunft"), "firmendatei")])
+fall_s("frist-wirksam-je-server", ["A26", "A27"],
+       "je Server der kleinere Wert: strenger als der Katalog gilt der Server, gleich gilt der Server, lockerer oder ohne eigenen Wert "
+       "gilt der Katalog; ein Admin senkt den Katalog unter den Server, dann gilt der Katalog; zurückgenommen gilt die Vorgabe",
+       stand_lauf(),
+       [FR(U, _E, ("tickets", 60000), ("wiki", None), ("ablage", 3600000), ("kalender", 300000)),
+        S(ADM, "admin", "firma", _E, 30000),
+        FR(U, _E, ("tickets", 60000), ("wiki", None)),
+        S(ADM, "admin", "firma", _E, None),
+        FR(U, _F, ("tickets", 90000), ("wiki", 1))],
+       [(0, frist_von("tickets", "wert"), 60000), (0, frist_von("tickets", "herkunft"), "firmendatei"),
+        (0, frist_von("wiki", "wert"), 300000), (0, frist_von("wiki", "herkunft"), "katalog"),
+        (0, frist_von("ablage", "wert"), 300000), (0, frist_von("ablage", "herkunft"), "katalog"),
+        (0, frist_von("kalender", "wert"), 300000), (0, frist_von("kalender", "herkunft"), "firmendatei"),
+        (1, angenommen, True),
+        (2, frist_von("tickets", "wert"), 30000), (2, frist_von("tickets", "herkunft"), "katalog"),
+        (2, frist_von("wiki", "wert"), 30000), (2, frist_von("wiki", "herkunft"), "katalog"),
+        (3, angenommen, True),
+        (4, frist_von("tickets", "wert"), 60000), (4, frist_von("tickets", "herkunft"), "katalog"),
+        (4, frist_von("wiki", "wert"), 1), (4, frist_von("wiki", "herkunft"), "firmendatei")])
 
 _H = "optionen.herstellerzugang"
 fall_s("option-herstellerzugang-fest", ["A11", "A30", "A31"],

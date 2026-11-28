@@ -464,6 +464,10 @@ der Ort der Dateien je Betriebssystem (OPEN 1) wird mit seinem Lader zum Außent
     Admins und eine leere `leseklassen`. `setzen` lehnt jede Änderung eines Admins mit dem festen Code `ebenen.nicht_befugt` ab. Die
     Regeln der Firma gelten weiter. Für das Schreiben ist das fail closed. Eine vorhandene, aber ungültige Datei bleibt ein
     Ladefehler. Regel: Abschnitt 15.12.4, „Fehlende Firmenvorgabe“; Fall `faelle-setzen/ohne-firmenvorgabe-keine-admins.json`.
+31. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Fristen der Freigabe im Lader.** Je MCP-Server gilt der kleinere Wert aus
+    Katalog und Firmendatei; ein globaler Wert lockert eine strengere Vorgabe eines Servers nie. Regel, Herkunft und Fälle: Abschnitt
+    15.1.2, „Wirksame Frist je MCP-Server“. Den Lader, der den wirksamen Wert in `mcp.<server>` schreibt, baut dieser Vertrag nicht.
+    alt: „Offen ist, ob ein eigener Wert eines Servers in der Firmendatei vor dem Katalogwert gilt.“
 
 ## 15. Fassung 2: Einstellungen im Lauf (Nachtrag 26.11.2026)
 
@@ -505,6 +509,8 @@ der Schlüssel stehen darf. Aussehen und Effort sind Wahlen, keine Optionen (OF9
 | `optionen.copilot_eingeschraenktes_token` | admin | firma | Wahrheitswert | `false` („aus“) | nur_firma | A30; Team-Issue #56, Punkt 2 |
 | `optionen.herstellerzugang` | admin | keine | Wahrheitswert | `false` („aus“), fest | fest | A11, A30; Team-Issue #12 |
 | `leseklassen` | admin | firma | Liste von Einträgen `{"ebene", "wer", "klasse"}`, höchstens 4096 (Abschnitt 15.11) | `[]` (niemand liest) | nur_firma | A05, A34; Projektentscheid, 27.11.2026 |
+| `aufsicht.freigabefrist_ms` | admin | firma | Ganzzahl 1 bis 86 400 000 (Millisekunden) | `60000` | nur_firma | Entscheid des Betreibers, 27.11.2026 (Abschnitt 15.1.2) |
+| `aufsicht.einloesefrist_ms` | admin | firma | Ganzzahl 1 bis 86 400 000 (Millisekunden) | `300000` | nur_firma | Entscheidung vom 23.11.2026; Entscheid des Betreibers, 27.11.2026 (Abschnitt 15.1.2) |
 
 - Die Klassen in `harnesses` und `modelle` sind die `klassen` der Firmengrundregel. Eine andere Klasse ist `ebenen.wert_ungueltig`.
 - Einen Schlüssel für Admins, Rollen, Gruppen oder Routen gibt es im Katalog nicht. Ein solcher Schlüssel ist
@@ -535,6 +541,48 @@ Rechner oder die Anmeldung, nicht für eine Person. Eine Gruppe oder ein Nutzer 
   Wert, den ein Stand trotzdem trägt, wirkt nicht (Feldart `fest`, Abschnitt 5.2).
 - Die Fälle stehen in `faelle-setzen/option-<name>-nutzer-abgelehnt.json` und `option-<name>-admin-angenommen.json`, für den
   Herstellerzugang in `option-herstellerzugang-fest.json`.
+
+#### 15.1.2 Aufsicht und Meldungen (Entscheid des Betreibers, 27.11.2026)
+
+Auf die Seite „Aufsicht und Meldungen“ kommt nur, was der Pilot heute auswertet (OF8). Das sind die beiden Fristen einer Freigabe, die
+die Stelle aus Vertrag 2 liest (`rust/crates/stelle/src/einstellungen.rs:21` und `:23`, Prüfung in `rust/crates/stelle/src/kern.rs:303`).
+Einen Schalter, der eine Prüfung vor der Ausführung abschaltet, gibt es im Katalog nicht. Darum fehlen ein Schlüssel für den Guard und
+einer für `mcp.<server>.freigabe` (Freigabe je schreibendem Aufruf). Die Rückfrage bei Copilot-Werkzeugen bleibt die Option
+`optionen.copilot_ohne_rueckfrage`.
+
+| Schlüssel | Bedeutung | Feld, auf das der Lader abbildet |
+|---|---|---|
+| `aufsicht.freigabefrist_ms` | längste Frist für die Entscheidung eines Menschen über eine Freigabe | Vertrag 2 `mcp.<server>.frist_ms` für jeden Server des Blocks `mcp`, wirksam der kleinere Wert (unten) |
+| `aufsicht.einloesefrist_ms` | Frist zum Einlösen nach der Erteilung; Vorgabe 5 min, ein Admin darf bis 24 h erhöhen (Entscheidung vom 23.11.2026) | Vertrag 2 `mcp.<server>.einloesefrist_ms` für jeden Server des Blocks `mcp`, wirksam der kleinere Wert (unten) |
+
+- Beide Fristen gelten für den Rechner, nicht für eine Person. Darum stehen sie nur auf der Firmenebene (`nur_firma`), wie
+  `optionen.lokale_ca`. Eine kürzere Frist einer Gruppe wäre keine Lockerung, hätte aber keinen eigenen Platz in Vertrag 2 (hergeleitet).
+- Grenzen und Vorgaben sind die von Vertrag 2 (`rust/spec/einstellungen/README.md`, Block `mcp`). Ein Wert außerhalb ist
+  `ebenen.wert_ungueltig`.
+- Die Fälle stehen in `faelle-setzen/frist-<name>-nutzer-abgelehnt.json` und `frist-<name>-admin-angenommen.json`.
+
+**Wirksame Frist je MCP-Server (Entscheid des Betreibers, 27.11.2026; schließt OPEN 31).**
+
+- **Regel:** Für jeden Server des Blocks `mcp` der Firmendatei (Abschnitt 3.1, `einstellung.mcp`) gilt je Frist der kleinere Wert aus
+  dem Katalog und dem eigenen Wert des Servers. Kürzer heißt bei beiden Fristen strenger. Ein globaler Wert kann eine strengere Vorgabe
+  für einen einzelnen Server nie lockern; er darf sie aber verschärfen.
+- **Katalogwert** ist der wirksame Wert des Schlüssels nach Abschnitt 15.5 (`sicht`): der Wert der Firmenebene oder die Vorgabe.
+- **Eigener Wert** ist `mcp.<server>.frist_ms` bzw. `mcp.<server>.einloesefrist_ms`, wie er in der Firmendatei steht. Fehlt das Feld,
+  hat der Server keinen eigenen Wert, und es gilt der Katalogwert. Die Vorgabe von Vertrag 2 für ein fehlendes Feld zählt hier nicht als
+  eigener Wert. Sonst könnte ein Admin die Frist eines Servers ohne Feld über den Katalog nie über die Vorgabe heben (hergeleitet).
+- **Herkunft:** `firmendatei`, wenn der eigene Wert kleiner oder gleich dem Katalogwert ist; sonst `katalog`. Bei gleichem Wert gilt
+  `firmendatei`: Der Wert des Servers ist genauso streng und genauer zugeordnet. Die Seite zeigt je Server den wirksamen Wert mit der
+  Herkunft „Firmendatei, Server <server>“ oder „Katalog“.
+- **Fall des Entscheids:** Katalog 120 s, Server `x` 30 s: wirksam 30 s mit Herkunft Firmendatei, Server `x`
+  (`faelle-setzen/frist-wirksam-server-strenger.json`). Die Gegenprobe (Katalog gilt immer, oder der Server gilt immer) ist rot.
+- **Bibliothek:** `regelebenen::frist::wirksam(katalog, server)` ist eine reine Funktion. Eingabe: der Katalogwert und die Liste der
+  Server mit ihrem eigenen Wert (`None`: kein eigener Wert) in der Reihenfolge der Firmendatei. Ergebnis: je Server in derselben
+  Reihenfolge `{"server", "wert", "herkunft"}`.
+- **Wer sie aufruft:** der Lader, der die Einstellungsdatei für die Stelle schreibt, und der Dienst für die Anzeige. Die Stelle liest
+  weiter nur `mcp.<server>.frist_ms` und `einloesefrist_ms` aus Vertrag 2 (`rust/crates/stelle/src/einstellungen.rs:21` und `:23`); der
+  Lader schreibt dort den wirksamen Wert. Den Lader und die Nachricht an die Ansicht baut dieser Vertrag nicht.
+- Die Seite zeigt dazu nur lesend den wirksamen Stand der Schutzschichten: Einschluss an, Halter an, Zahl der freigegebenen Netzziele
+  mit Herkunft. Das ist Auskunft, kein Schlüssel dieses Katalogs.
 
 ### 15.2 Wer Admin ist (E1; Projektentscheid, 26.11.2026)
 
@@ -697,7 +745,10 @@ nutzt dieselben Regeln für H3 und H4.
               {"sicht": {"wer": "ps_…"}}]}
 ```
 
-Ergebnis je Schritt: `{"angenommen", "code", "zeile"}` für `setzen`, `{"einstellungen": {…}}` für `sicht`. `bau-faelle.py` rechnet
+Ergebnis je Schritt: `{"angenommen", "code", "zeile"}` für `setzen`, `{"einstellungen": {…}}` für `sicht`. Ein Schritt
+`{"fristen": {"wer", "schluessel", "server": [{"server", "wert"}…]}}` (Abschnitt 15.1.2) nimmt als Katalogwert den Wert von `schluessel`
+in der Sicht von `wer` und ergibt `{"fristen": [{"server", "wert", "herkunft"}…]}` (`wert` `null`: kein eigener Wert). Die Fälle dazu
+heißen `frist-wirksam-*`. `bau-faelle.py` rechnet
 jede Erwartung mit der Referenz (`setzen`, `sicht`) und prüft sie gegen ausgeschriebene Kernwerte. `pruefen.py` prüft Paarung, Codes,
 die Form der Zeile und der Sicht, dass `admins` nur Pseudonyme nennt und dass es je Code mindestens einen Fall gibt. Die beiden Fälle
 aus OF9 heißen `of9-nutzer-lockert` und `of9-nichtadmin-schreibt-adminwert`. Die Admins stehen nur in `stand.admins` (eine Quelle,
