@@ -89,6 +89,11 @@ Die Referenz ist ein einfädiges Python-Programm; ein Bau darf Fäden benutzen, 
 6. **Kein TCP-Hörer, kein UDP, kein Netz-Socket irgendeiner Art.** Der Prüfclient zählt die Netz-Sockets des Dienstes mit `lsof -nP -a -p <pid> -i` und erwartet 0.
 7. Nach SIGTERM oder SIGINT: die Socket-Datei ist weg, das Kind ist beendet, Exitcode 0. Bei einem Absturz bleibt die Datei stehen; der nächste Start lehnt sie nach Punkt 4 ab und der Betreiber räumt sie auf.
 8. Der Dienst prüft das Gegenüber eines Betrügers nicht (keine Peer-Prüfung). Wer den Ordner betreten darf, darf sprechen.
+9. **Admin-Urteil nur im eigenen Prozess** (Nachtrag 28.11.2026). Der Dienst läuft als der Nutzer, und Prüfmodus und Startdatei stehen in dessen Hand. Darum gilt sein Urteil, wer Admin ist und welche Firmenvorgabe gilt, nur in seinem eigenen Prozess (Anzeige, `setzen`). Keine Stelle außerhalb des Kontos traut ihm:
+   - Der Schreibhelfer `werkbank-vorgabe` misst die Gegenseite am Socket selbst (H1, `rust/crates/vorgabe-helfer/src/bedienen.rs`, `partner::messen`), lehnt einen Prozess in der Einheit eines Laufs ab (H2), liest die Firmenvorgabe selbst aus der Datei mit Eigner `werkbank-vorgabe` (H3, H4) und prüft die gemessene uid gegen deren `admins` (H5, `rust/crates/vorgabe-helfer/src/helfer.rs`, `ablauf`), bevor er das erste Byte der Anfrage liest. Was der Dienst über Admins denkt, liest er nie.
+   - Die Stelle liest die Regeln der Admins für Worker selbst aus der Datei von root, nur über Deskriptoren (`rust/crates/stelle/src/huelle/vorgabe.rs`), nie aus einer Nachricht des Dienstes.
+   - Der Halter kennt keine Admins.
+   - Ein Dienst im Prüfmodus oder mit einer veränderten Startdatei ändert deshalb weder die Firmenvorgabe noch eine Regel der Stelle. Grenze: Ist der Nutzer selbst Admin, darf jeder seiner Prozesse außerhalb jedes Einschlusses über den Helfer schreiben; Agenten der Werkbank laufen darum nur im Einschluss (DI-L11 Punkt 5).
 
 ## 5. Protokoll über den Socket (DI3 bis DI5)
 
