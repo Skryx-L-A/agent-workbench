@@ -180,7 +180,7 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
 
 1. **Rollen und Namen** (gemessen im Barrierebaum von Chromium, `Accessibility.getFullAXTree`):
    - Sitzungsliste: Rolle `list` mit Namen `Sitzungen`, je Sitzung ein `listitem` mit einem `button`, dessen Name die Kennung und den Zustand nennt
-     (`läuft` oder `beendet, Code <n>`).
+     (`läuft` oder `beendet · Code <n>`).
    - (26.11.) Fenster „Sitzungen“: Rolle `dialog` mit Namen `Sitzungen`, modal. Darin die Liste aller bekannten Sitzungen (Rolle `listbox`, Name
      `Bekannte Sitzungen`) und das Startformular: Rolle `form` mit Namen `Sitzung starten`. `Name` (ab L10) und `Arbeitsordner` sind `textbox`, `Harness`,
      `Modell`, `Effort` (ab L10), `Route` und `Kunde` sind Auswahlfelder (Rolle `combobox`); der Knopf heißt `Starten`. Der Knopf „+“ heißt `Neue Sitzung`.
@@ -388,7 +388,7 @@ Liste in `attrappe/seite.js` ist, dass die Attrappe beide Sätze grün besteht u
 
 Am Mac mit VoiceOver (Safari und Chrome), am Handy mit TalkBack (Chrome, Android) und VoiceOver (Safari, iOS). Je Punkt: gehört, gesehen, Abweichung.
 1. Laden mit einer laufenden Sitzung: VoiceOver nennt „Terminal <id>“ und die Beschreibung mit F6. Der Fokusrahmen ist sichtbar.
-2. Sitzungsliste mit dem Rotor (Mac) oder Wischen (Handy): „Sitzungen, Liste, 2 Objekte“; jeder Knopf nennt Kennung und „läuft“ oder „beendet, Code …“.
+2. Sitzungsliste mit dem Rotor (Mac) oder Wischen (Handy): „Sitzungen, Liste, 2 Objekte“; jeder Knopf nennt Kennung und „läuft“ oder „beendet · Code …“.
 3. Startformular (26.11.: im Fenster „Sitzungen“ hinter „+“): Das Fenster wird als Dialog „Sitzungen“ angesagt, jedes Feld mit seiner Beschriftung; „Starten“ ist ein Knopf; Escape schließt es, und der Fokus steht wieder auf „+“.
 4. Im Terminal tippen: Umlaute, `^` plus `e`, `´` plus `e`, AltGr/Wahltaste `@ € { } [ ] \ ~ |` kommen im Programm richtig an; VoiceOver liest das Echo
    nicht doppelt vor.
@@ -510,5 +510,5 @@ kommen vier Fälle dazu, die Mutanten stehen in Abschnitt 6.
 | `se9_ereignisse_ordner` | Liste mit `OrdnerLesen` und `InhaltSuchen`, Sitzung mit `ordner`: der Reiter Ordner steht und schickt `OrdnerLesen` mit leerem `pfad` | OF8 |
 | `se9_ereignisse_fehlen` | ohne Liste (Satz B) oder mit `fassung: 2` (Satz A): kein Bedienweg von L3, kein Reiter Ordner, keine Knöpfe am Antrag | OF8 |
 
-Die Rückfrage beim Löschen sagt: „Die Sitzung verschwindet aus der Liste. Ihr Gespräch wird mit entfernt. Arbeitsordner und Protokoll bleiben
+Die Rückfrage beim Löschen sagt: „Die Sitzung verschwindet aus der Liste. Dein Gespräch wird mit gelöscht. Arbeitsordner und Protokoll bleiben
 erhalten.“ (Vertrag `dienst` DI-E4).

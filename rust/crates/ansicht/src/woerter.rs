@@ -344,7 +344,7 @@ pub mod aussehen {
     );
     /// Name today `feld.terminalFontSize.name`.
     pub const SCHRIFTGROESSE: super::Zeile = (
-        "aussehen.schriftgroesse",
+        "terminal.schriftgroesse",
         super::SCHRIFTGROESSE,
         "Größe in Punkten, gilt sofort in jedem Terminal.",
     );

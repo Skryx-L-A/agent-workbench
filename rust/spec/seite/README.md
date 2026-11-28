@@ -30,6 +30,7 @@ Nicht aufgenommen, weil keine Regel sie trägt: A28, A37, A59, A90, A103, A105, 
 - **Sichtbare Fälle:** `rust/spec/seite/faelle/` (44 Dateien). Vorher lagen sie nur im Vertragspaket; im Repo gab es sie nicht.
 - **Läufer:** `laeufer/se_lauf.mjs` liegt nicht im Repo, sondern im Vertragspaket (außerhalb des Repos). Ebenso die Attrappe der Seite,
   der Fallbau, die Gegenprobe und der verdeckte Satz.
+- **Kanonisches Werkzeug des Vertrags:** Fallbau, verdeckter Satz, Attrappe, Läufer und Gegenprobe liegen außerhalb des Repos. Es dient der Abnahme, die Tore nutzen es nicht.
 - **Gegenstand:** `rust/crates/ansicht/src/oberflaeche.rs` (Komponenten, `data-bw`), `rust/crates/ansicht/src/kern.rs` (Regeln ohne DOM),
   `rust/ansicht/ansicht.css` (Maße und Farben), `rust/ansicht/ausgabe/` (ausgelieferte Dateien).
 - Die alte Seite `rust/seite/` wird nicht mehr ausgeliefert. Ihr README nennt den Läufer noch mit `rust/seite/ausgabe`.
