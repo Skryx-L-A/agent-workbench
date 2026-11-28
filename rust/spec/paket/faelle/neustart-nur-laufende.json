@@ -1,0 +1,36 @@
+{
+ "beschreibung": "nur laufende Einheiten starten neu; ein Nutzer ohne laufende Einheit bekommt keinen Aufruf (`try-restart`, nie `start`)",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {},
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ],
+  [
+   "1001",
+   "anna"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000",
+  "1001"
+ ],
+ "aktiv": {
+  "wb": [],
+  "anna": [
+   "werkbank-kern.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": null
+}

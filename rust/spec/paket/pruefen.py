@@ -33,7 +33,7 @@ SCHEMA_BLIND = {
     "manifest-pfad-form-punkt-punkt", "manifest-pfad-form-punkt-ende", "manifest-pfad-form-reserviert",
     "manifest-pfad-form-manifest", "manifest-pfad-form-manifest-linux", "manifest-pfad-form-manifest-macos", "manifest-pfad-form-gross",
 }
-FORMEN = {"manifest", "liste", "stueckliste", "steuerdatei", "entfernen", "remove", "einrichten", "profil", "bauwerkzeuge", "statisch", "laufkonfig", "dienstkonfig", "kerneinheit", "systemnutzer", "umzug", "pruefung"}
+FORMEN = {"manifest", "liste", "stueckliste", "steuerdatei", "entfernen", "remove", "einrichten", "profil", "bauwerkzeuge", "statisch", "laufkonfig", "dienstkonfig", "kerneinheit", "systemnutzer", "umzug", "pruefung", "neustart", "sammeln"}
 
 
 def manifest_bytes(fall):
@@ -89,6 +89,17 @@ def main():
                 fehler.append(f"{name}: Zeile über 200 Byte oder nicht ASCII")
             if erw["rc"] not in (0, 1, 20, 64, 70):
                 fehler.append(f"{name}: rc {erw['rc']} steht nicht in der Tabelle")
+            continue
+        if form == "neustart":
+            ref = referenz.neustart_ablauf(fall)
+            if ref != erw:
+                fehler.append(f"{name}: erwartet {erw}, Referenz {ref}")
+            if any(not z.isascii() or len(z.encode()) > 200 for z in erw["ausgabe"]):
+                fehler.append(f"{name}: Zeile über 200 Byte oder nicht ASCII")
+            continue
+        if form == "sammeln":
+            if referenz.sammeln_zustand(fall) != erw["zustand"]:
+                fehler.append(f"{name}: erwartet {erw['zustand']}, Referenz {referenz.sammeln_zustand(fall)}")
             continue
         if form == "laufkonfig":
             if referenz.laufkonfig(fall) != erw["datei"]:

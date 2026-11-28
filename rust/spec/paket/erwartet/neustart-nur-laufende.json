@@ -1,0 +1,9 @@
+{
+ "aufrufe": [
+  "anna try-restart werkbank-kern.service"
+ ],
+ "ausgabe": [
+  "werkbank: Neustart der Dienste von anna: werkbank-kern.service; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen"
+ ],
+ "rc": 0
+}

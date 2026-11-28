@@ -1,0 +1,32 @@
+{
+ "beschreibung": "das Programm der Einheit fehlt: nicht_pruefbar",
+ "form": "sammeln",
+ "teil": "neustart",
+ "root": true,
+ "einheiten": [
+  {
+   "name": "werkbank-kern.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": true,
+   "exe": "gleich",
+   "start": "nach"
+  },
+  {
+   "name": "werkbank-bruecke.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": true,
+   "exe": "gleich",
+   "start": "nach"
+  },
+  {
+   "name": "wb-halter.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": false,
+   "exe": "gleich",
+   "start": "nach"
+  }
+ ]
+}

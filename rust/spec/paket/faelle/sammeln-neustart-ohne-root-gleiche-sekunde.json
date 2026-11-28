@@ -1,0 +1,32 @@
+{
+ "beschreibung": "ohne root: Start in derselben Sekunde wie die ctime: ok (nur eine frühere Sekunde ist alt)",
+ "form": "sammeln",
+ "teil": "neustart",
+ "root": false,
+ "einheiten": [
+  {
+   "name": "werkbank-kern.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": true,
+   "exe": "gleich",
+   "start": "nach"
+  },
+  {
+   "name": "werkbank-bruecke.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": true,
+   "exe": "gleich",
+   "start": "nach"
+  },
+  {
+   "name": "wb-halter.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": true,
+   "exe": "gleich",
+   "start": "gleich"
+  }
+ ]
+}

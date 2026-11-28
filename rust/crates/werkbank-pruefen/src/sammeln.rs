@@ -2,7 +2,7 @@
 //!
 //! Every check has a time limit of [`FRIST`]; a check that could not be done reports `nicht_pruefbar` (fail closed, never
 //! a quiet green). The only commands that start are `systemctl` (read), `journalctl` (read, only the lines of
-//! `wb-halter.service` of the user since the boot), `dpkg-query` (read), `id` (read) and `setpriv`
+//! `wb-halter.service` of the user in its latest run), `dpkg-query` (read), `id` (read) and `setpriv`
 //! with `bwrap` as an unprivileged user (the two probes of the profile; they change nothing). The key file is never read:
 //! only its kind, owner, mode and size.
 //!
@@ -38,6 +38,60 @@ pub fn halter_kette_aus(journal: &str) -> &'static str {
         OK
     }
 }
+/// The value of `schluessel` in the answer of `systemctl show` (lines `key=value`); `None` when the line is missing.
+#[must_use]
+pub fn wert<'a>(zeigen: &'a str, schluessel: &str) -> Option<&'a str> {
+    zeigen
+        .lines()
+        .find_map(|z| z.strip_prefix(schluessel).and_then(|r| r.strip_prefix('=')))
+}
+
+/// The state of a unit after the answer of `systemctl show` (`None`: the command failed).
+#[must_use]
+pub fn dienst_aus(zeigen: Option<&str>) -> &'static str {
+    let Some(z) = zeigen else {
+        return "nicht_pruefbar";
+    };
+    match (
+        wert(z, "LoadState").unwrap_or(""),
+        wert(z, "ActiveState").unwrap_or(""),
+    ) {
+        ("not-found", _) => "fehlt",
+        (_, "active") => OK,
+        (_, "failed") => "fehlgeschlagen",
+        ("loaded" | "masked" | "error", _) => "inaktiv",
+        _ => "nicht_pruefbar",
+    }
+}
+
+/// `true` for the id of a run of a unit as systemd writes it: 32 lowercase hex digits.
+#[must_use]
+pub fn aufruf_kennung(id: &str) -> bool {
+    id.len() == 32
+        && id
+            .bytes()
+            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+}
+
+/// The state "restart needed" of all units from the state of each (see `Umgebung::veraltet`): `noetig` when one runs an older
+/// program, else `nicht_pruefbar` when one cannot be told, else `ok`.
+#[must_use]
+pub fn neustart_aus(einheiten: &[Result<Option<bool>, ()>]) -> &'static str {
+    if einheiten.contains(&Ok(Some(true))) {
+        "noetig"
+    } else if einheiten.iter().any(Result::is_err) {
+        "nicht_pruefbar"
+    } else {
+        OK
+    }
+}
+
+/// The program of each unit of [`DIENSTE`], relative to the root (the `ExecStart` of the unit files of the package).
+pub const PROGRAMME: [&str; 3] = [
+    "usr/lib/werkbank/werkbank-kern",
+    "usr/lib/werkbank/werkbank-bruecke",
+    "usr/lib/werkbank/werkbank-halter",
+];
 use crate::manifest::{self, Manifest, PROFIL_A, PROFIL_B, STARTER};
 use crate::ohne_doppel;
 use crate::programmordner;
@@ -371,11 +425,11 @@ impl Umgebung<'_> {
         Some((nummer("-u")?, nummer("-g")?))
     }
 
-    fn dienst(&self, einheit: &str) -> &'static str {
-        let Some(nutzer) = self.nutzer.as_deref() else {
-            return "nicht_pruefbar";
-        };
-        // As root the user manager of the user is asked by name; a user without root asks its own manager.
+    /// The answer of `systemctl show` for `einheit`: load and active state, main process, start of the main process (seconds since
+    /// the epoch, `--timestamp=unix`) and the id of the latest run. As root the user manager of the user is asked by name; a user without
+    /// root asks its own manager. `None` without a user or when the command fails.
+    fn zeigen(&self, einheit: &str) -> Option<String> {
+        let nutzer = self.nutzer.as_deref()?;
         let ziel = format!("--machine={nutzer}@");
         let mut args = vec!["--user"];
         if self.root {
@@ -384,50 +438,80 @@ impl Umgebung<'_> {
         args.extend([
             "show",
             "--no-pager",
+            "--timestamp=unix",
             "-p",
             "LoadState",
             "-p",
             "ActiveState",
+            "-p",
+            "MainPID",
+            "-p",
+            "ExecMainStartTimestamp",
+            "-p",
+            "InvocationID",
             "--",
             einheit,
         ]);
-        let a = self.system.befehl("systemctl", &args, FRIST);
-        let Some(a) = a.filter(|a| a.rc == Some(0)) else {
-            return "nicht_pruefbar";
-        };
-        let wert = |k: &str| {
-            a.stdout
-                .lines()
-                .find_map(|z| z.strip_prefix(k).and_then(|r| r.strip_prefix('=')))
-                .unwrap_or("")
-        };
-        match (wert("LoadState"), wert("ActiveState")) {
-            ("not-found", _) => "fehlt",
-            (_, "active") => OK,
-            (_, "failed") => "fehlgeschlagen",
-            ("loaded" | "masked" | "error", _) => "inaktiv",
-            _ => "nicht_pruefbar",
+        let a = self.system.befehl("systemctl", &args, FRIST)?;
+        (a.rc == Some(0)).then_some(a.stdout)
+    }
+
+    /// State "restart needed" of one unit (decision of the operator, 28.11.2026): `None` when no main process runs, `Some(true)` for a
+    /// process of an older program, `Some(false)` for one of the program file, `Err(())` when it cannot be told. As root the link
+    /// `/proc/<MainPID>/exe` decides (it ends with ` (deleted)`, or device and inode differ from the file); without root the start
+    /// of the main process against the ctime of the file (a start in an earlier second is an older program).
+    fn veraltet(&self, zeigen: &str, programm: &str) -> Result<Option<bool>, ()> {
+        if wert(zeigen, "ActiveState") != Some("active") {
+            return Ok(None);
+        }
+        let pid = wert(zeigen, "MainPID")
+            .and_then(|p| p.parse::<u32>().ok())
+            .ok_or(())?;
+        if pid == 0 {
+            return Ok(None);
+        }
+        let datei = fs::metadata(self.pfad(programm)).map_err(|_| ())?;
+        if self.root {
+            let exe = self.pfad(&format!("proc/{pid}/exe"));
+            let ziel = fs::read_link(&exe).map_err(|_| ())?;
+            if ziel.to_string_lossy().ends_with(" (deleted)") {
+                return Ok(Some(true));
+            }
+            let laeuft = fs::metadata(&exe).map_err(|_| ())?;
+            Ok(Some(
+                (laeuft.dev(), laeuft.ino()) != (datei.dev(), datei.ino()),
+            ))
+        } else {
+            let start = wert(zeigen, "ExecMainStartTimestamp")
+                .and_then(|s| s.strip_prefix('@'))
+                .and_then(|s| s.parse::<i64>().ok())
+                .ok_or(())?;
+            Ok(Some(start < datei.ctime()))
         }
     }
 
-    /// The chain of the holder after its journal since the boot: the user unit `wb-halter.service` of the uid only, the
-    /// message text only (`-o cat`), read with `journalctl` (decision of the operator, 28.11.2026). No uid or a failed
-    /// read gives `nicht_pruefbar`.
-    fn halter_kette(&self, uid: Option<u32>) -> &'static str {
-        let Some(uid) = uid else {
+    /// State of the chain of the holder after the journal of its latest run (decision of the operator, 28.11.2026): the user unit
+    /// `wb-halter.service` of the uid and the `InvocationID` of `zeigen` only, the message text only (`-o cat`), read with
+    /// `journalctl`. No uid, no id of 32 hex digits or a failed read gives `nicht_pruefbar`; there is no read of the whole boot.
+    fn halter_kette(&self, uid: Option<u32>, zeigen: Option<&str>) -> &'static str {
+        let (Some(uid), Some(id)) = (uid, zeigen.and_then(|z| wert(z, "InvocationID"))) else {
             return "nicht_pruefbar";
         };
+        if !aufruf_kennung(id) {
+            return "nicht_pruefbar";
+        }
         let nutzer = format!("_UID={uid}");
+        let lauf = format!("_SYSTEMD_INVOCATION_ID={id}");
         let args = [
             "--no-pager",
             "-q",
-            "-b",
             "-o",
             "cat",
             "-n",
             JOURNAL_ZEILEN,
             "_SYSTEMD_USER_UNIT=wb-halter.service",
             nutzer.as_str(),
+            lauf.as_str(),
         ];
         match self.system.befehl("journalctl", &args, FRIST) {
             Some(a) if a.rc == Some(0) => halter_kette_aus(&a.stdout),
@@ -1177,15 +1261,23 @@ impl Umgebung<'_> {
         let (programmordner, harness) = self.programmordner_und_harness();
         let (rollengruppe, rollenprogramm) = self.rolle();
         let copilot = self.copilot(uid);
+        let zeigen: Vec<Option<String>> = DIENSTE.iter().map(|n| self.zeigen(n)).collect();
+        let neustart: Vec<Result<Option<bool>, ()>> = zeigen
+            .iter()
+            .zip(PROGRAMME)
+            .map(|(z, p)| z.as_deref().map_or(Err(()), |z| self.veraltet(z, p)))
+            .collect();
         Lage {
             konten: self.konten(),
             dienste: DIENSTE
                 .iter()
-                .map(|n| ((*n).to_owned(), self.dienst(n).to_owned()))
+                .zip(&zeigen)
+                .map(|(n, z)| ((*n).to_owned(), dienst_aus(z.as_deref()).to_owned()))
                 .collect(),
             rollengruppe: rollengruppe.to_owned(),
             rollenprogramm: rollenprogramm.to_owned(),
-            halter_kette: self.halter_kette(uid).to_owned(),
+            halter_kette: self.halter_kette(uid, zeigen[2].as_deref()).to_owned(),
+            neustart: neustart_aus(&neustart).to_owned(),
             apparmor: apparmor.0.to_owned(),
             system_bwrap: if apparmor.1 { "ubuntu" } else { "gesperrt" }.to_owned(),
             einstellungen: self.einstellungen(),

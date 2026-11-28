@@ -1,0 +1,9 @@
+{
+ "beschreibung": "der jüngste Aufruf ist der gescheiterte (78): rechte",
+ "form": "sammeln",
+ "teil": "kette",
+ "invocation": "0000000000000000000000000000000a",
+ "journal": {
+  "0000000000000000000000000000000a": "halter.kette_rechte: Kette nicht schreibbar\n"
+ }
+}

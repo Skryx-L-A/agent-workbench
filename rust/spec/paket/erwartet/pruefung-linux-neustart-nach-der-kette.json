@@ -1,0 +1,10 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.halter_kette_fehler: Der Halter konnte Zeilen seiner Kette nicht schreiben (halter.kette_fehler im Journal); Ablehnungen fehlen in der Kette.",
+  "pruef.neustart_noetig: Ein Dienst der Werkbank laeuft noch mit dem Programm von vor dem Upgrade; Neustart noetig.",
+  "pruef.apparmor_nicht_geladen: Das AppArmor-Profil ist nicht geladen.",
+  "pruef.rot: 3 Befunde."
+ ]
+}

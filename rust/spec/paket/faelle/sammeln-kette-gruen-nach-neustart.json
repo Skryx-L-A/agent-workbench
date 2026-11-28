@@ -1,0 +1,10 @@
+{
+ "beschreibung": "Gegenprobe: der frühere Aufruf endete mit halter.kette_rechte, der jüngste läuft ohne: ok ohne neuen Boot",
+ "form": "sammeln",
+ "teil": "kette",
+ "invocation": "ffffffffffffffffffffffffffffffff",
+ "journal": {
+  "0000000000000000000000000000000a": "halter.kette_rechte: Kette nicht schreibbar\n",
+  "ffffffffffffffffffffffffffffffff": "halter.antwortform: {}\n"
+ }
+}

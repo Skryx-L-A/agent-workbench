@@ -1,0 +1,68 @@
+{
+ "beschreibung": "Gegenfall: Namen, die die Prüfung nicht bestehen (Großbuchstabe, nicht in passwd, uid weicht ab, uid keine Zahl), werden übersprungen und mit der uid genannt",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {},
+ "loginctl": [
+  [
+   "1002",
+   "Anna"
+  ],
+  [
+   "1003",
+   "geist"
+  ],
+  [
+   "1004",
+   "berta"
+  ],
+  [
+   "x1",
+   "carl"
+  ],
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "Anna": 1002,
+  "berta": 1005,
+  "carl": 1006
+ },
+ "manager": [
+  "1000",
+  "1002",
+  "1003",
+  "1004"
+ ],
+ "aktiv": {
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ],
+  "Anna": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ],
+  "geist": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ],
+  "berta": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": null
+}

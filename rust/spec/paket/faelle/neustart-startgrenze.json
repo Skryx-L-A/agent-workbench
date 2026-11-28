@@ -1,0 +1,36 @@
+{
+ "beschreibung": "die Startgrenze des Halters ist erreicht: postinst nennt die Einheit, endet aber mit 0",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {},
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000"
+ ],
+ "aktiv": {
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ]
+ },
+ "scheitert": {
+  "wb": [
+   "wb-halter.service"
+  ]
+ },
+ "notiz": null
+}

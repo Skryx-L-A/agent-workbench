@@ -313,26 +313,30 @@ fn the_deadlines_per_server_are_one_table_with_the_origin_of_each_value() {
     }
 }
 
-/// Decision of the operator, 28.11.2026: up to four values a segmented choice, from five values a drop-down, for every
-/// choice of the window. Measured at the boundary on the page of supervision (deadline to redeem: four values; deadline
-/// of a decision: the four fixed ones and the effective 120 s, five), on the look (theme three, font size six) and on the
+/// (segments, drop-downs) with the element id `kennung`.
+fn form(bild: &Bild, kennung: &str) -> (usize, usize) {
+    let n: Vec<&Node> = bild
+        .baum
+        .values()
+        .filter(|n| n.author_id() == Some(kennung))
+        .collect();
+    (
+        n.iter()
+            .filter(|n| n.role() == Role::Button && n.toggled().is_some())
+            .count(),
+        n.iter().filter(|n| n.role() == Role::ComboBox).count(),
+    )
+}
+
+/// Decision of the operator, 28.11.2026: in the settings up to four values are a segmented choice, from five values a
+/// drop-down. Measured at the boundary on the page of supervision, on the look (theme three, font size six) and on the
 /// page of a session (the programs and models the limit of the admins allows).
+///
+/// Changed with the decision of the operator, 28.11.2026, on the scope of the rule: the deadline of a decision was a
+/// drop-down of five values, the four fixed ones and the effective 120 s. An effective value outside the fixed ones is
+/// no choice any more but shows beside it (see the test of the deadlines below), so both deadlines are four segments.
 #[test]
 fn up_to_four_values_are_segments_and_five_or_more_a_drop_down() {
-    // (segments, drop-downs) with the key of the row
-    let form = |bild: &Bild, schluessel: &str| -> (usize, usize) {
-        let n: Vec<&Node> = bild
-            .baum
-            .values()
-            .filter(|n| n.author_id() == Some(schluessel))
-            .collect();
-        (
-            n.iter()
-                .filter(|n| n.role() == Role::Button && n.toggled().is_some())
-                .count(),
-            n.iter().filter(|n| n.role() == Role::ComboBox).count(),
-        )
-    };
     let aufsicht = seite("einstellungen-aufsicht-admin");
     assert_eq!(
         form(&aufsicht, "aufsicht.einloesefrist_ms"),
@@ -341,8 +345,8 @@ fn up_to_four_values_are_segments_and_five_or_more_a_drop_down() {
     );
     assert_eq!(
         form(&aufsicht, "aufsicht.freigabefrist_ms"),
-        (0, 1),
-        "fünf Werte"
+        (4, 0),
+        "vier feste Werte, der wirksame Wert 120 s steht daneben"
     );
     let aussehen = seite("einstellungen-aussehen-nutzer");
     assert_eq!(form(&aussehen, "aussehen.thema"), (3, 0), "drei Werte");
@@ -362,6 +366,117 @@ fn up_to_four_values_are_segments_and_five_or_more_a_drop_down() {
         (2, 0),
         "zwei Modelle in der Grenze"
     );
+}
+
+/// Decision of the operator, 28.11.2026: the rule of segments holds only in the settings. The start form of the window
+/// "Sessions" keeps a drop-down for each of its five choices, like the contract `seite` (SE7: the choices are fields of
+/// the role `combobox`), even though each has at most three values.
+#[test]
+fn the_start_form_of_the_window_sessions_has_five_drop_downs() {
+    use ansicht::woerter as w;
+    let bild = Bild::neu(Some(&Szene::SitzungenLeer), false, false);
+    for (kennung, name) in [
+        ("harness-wahl", w::PROGRAMM),
+        ("modell-wahl", "Modell"),
+        ("effort-wahl", w::DENKSTUFE),
+        ("route-wahl", "Route"),
+        ("kunde-wahl", "Kunde"),
+    ] {
+        assert_eq!(form(&bild, kennung), (0, 1), "{kennung}: kein Ausklapper");
+        let feld = bild
+            .baum
+            .values()
+            .find(|n| n.author_id() == Some(kennung) && n.role() == Role::ComboBox)
+            .expect("Ausklapper");
+        assert_eq!(feld.label(), Some(name), "{kennung}");
+    }
+}
+
+/// Decision of the operator, 28.11.2026: both deadlines of a release are a segmented choice of their four fixed values
+/// (`ansicht::woerter::werte`). The mock-up sets the deadline of a decision to 120 s, which is none of them: no segment
+/// is marked, and the effective value „2 min“ stands visibly beside the segments with its origin „Firma“ after it, as text
+/// and not as a control. The deadline to redeem is 5 min, a fixed value, marked and with no extra text. For a person and
+/// for an admin.
+#[test]
+fn the_deadlines_of_a_release_are_four_segments_and_an_effective_value_outside_stands_beside() {
+    for name in [
+        "einstellungen-aufsicht-nutzer",
+        "einstellungen-aufsicht-admin",
+    ] {
+        let bild = seite(name);
+        for (schluessel, soll, gewaehlt, daneben) in [
+            (
+                "aufsicht.freigabefrist_ms",
+                ["30 s", "1 min", "5 min", "15 min"],
+                None,
+                Some("2 min"),
+            ),
+            (
+                "aufsicht.einloesefrist_ms",
+                ["1 min", "5 min", "1 h", "24 h"],
+                Some("5 min"),
+                None,
+            ),
+        ] {
+            // left edge, text, marked, top and bottom of each segment
+            let mut segmente: Vec<(f64, &str, bool, f64, f64)> = bild
+                .baum
+                .values()
+                .filter(|n| n.author_id() == Some(schluessel))
+                .inspect(|n| assert_ne!(n.role(), Role::ComboBox, "{name}: {schluessel}"))
+                .filter(|n| n.role() == Role::Button && n.toggled().is_some())
+                .map(|n| {
+                    let b = n.bounds().expect("Lage");
+                    (
+                        b.x0,
+                        n.label().unwrap_or_default(),
+                        n.toggled() == Some(Toggled::True),
+                        b.y0,
+                        b.y1,
+                    )
+                })
+                .collect();
+            segmente.sort_by(|a, b| a.0.total_cmp(&b.0));
+            let texte: Vec<&str> = segmente.iter().map(|s| s.1).collect();
+            assert_eq!(texte, soll, "{name}: {schluessel}");
+            let markiert: Vec<&str> = segmente.iter().filter(|s| s.2).map(|s| s.1).collect();
+            assert_eq!(
+                markiert,
+                gewaehlt.into_iter().collect::<Vec<_>>(),
+                "{name}: {schluessel}"
+            );
+            // the texts in the row left of the first segment, from left to right
+            let (_, _, _, oben, unten) = segmente[0];
+            let erstes = segmente[0].0;
+            let mut links: Vec<(f64, &str)> = bild
+                .baum
+                .values()
+                .filter(|n| n.role() == Role::Label)
+                .filter_map(|n| {
+                    let b = n.bounds()?;
+                    let mitte = b.y0.midpoint(b.y1);
+                    (b.x1 <= erstes + 0.5 && mitte > oben && mitte < unten)
+                        // egui gives the text of a label as its value
+                        .then(|| (b.x0, n.value().unwrap_or_default()))
+                })
+                .collect();
+            links.sort_by(|a, b| a.0.total_cmp(&b.0));
+            let links: Vec<&str> = links.into_iter().map(|(_, t)| t).collect();
+            let rechts = links.len().saturating_sub(2);
+            match daneben {
+                Some(wert) => assert_eq!(
+                    links[rechts..],
+                    [wert, "Firma"],
+                    "{name}: {schluessel}: {links:?}"
+                ),
+                None => assert_eq!(
+                    links.last().copied(),
+                    Some("Firma"),
+                    "{name}: {schluessel}: {links:?}"
+                ),
+            }
+        }
+    }
 }
 
 /// Decision of the operator, 28.11.2026: the thinking level of a session offers „Vorgabe des Programms“ first, then the

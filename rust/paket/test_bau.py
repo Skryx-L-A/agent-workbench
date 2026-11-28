@@ -1054,26 +1054,30 @@ class DienstJson(unittest.TestCase):
         self.assertIn('EINHEITEN="werkbank-kern.service werkbank-bruecke.service wb-halter.service"', lesen(os.path.join(HIER, PLATTFORM, "postinst")))
         self.assertIn("for e in wb-halter.service werkbank-bruecke.service werkbank-kern.service; do", lesen(os.path.join(HIER, PLATTFORM, "prerm")))
 
-    def test_reconfigure_leaves_the_units_running_and_upgrade_starts_them_again(self):
+    def test_reconfigure_leaves_the_units_running_and_upgrade_restarts_them_with_try_restart(self):
         prerm = lesen(os.path.join(HIER, PLATTFORM, "prerm"))
         postinst = lesen(os.path.join(HIER, PLATTFORM, "postinst"))
         # dpkg-reconfigure runs `prerm upgrade` with DEBCONF_RECONFIGURE=1 (measured): it must stop nothing
         weiche = 'if [ "$1" = upgrade ] && [ "${DEBCONF_RECONFIGURE:-}" = 1 ]; then\n    exit 0\nfi'
         self.assertIn(weiche, prerm)
         self.assertLess(prerm.index(weiche), prerm.index("stop \"$e\""))
-        self.assertIn("/run/werkbank-paket-neustart", prerm)
-        self.assertIn('[ "$1" = upgrade ] && systemctl --user --machine="$nutzer@" is-active --quiet "$e"', prerm)
-        # the note is written before the unit is stopped, postinst starts the noted units after step 4 and before step 5
+        # decision of the operator, 28.11.2026: prerm stops on remove and deconfigure only and writes no note; postinst restarts
+        self.assertIn('if [ "$1" != upgrade ] && command -v systemctl', prerm)
+        self.assertNotIn("/run/werkbank-paket-neustart", prerm)
+        self.assertNotIn("${SUDO_USER", "\n".join(z for z in prerm.split("\n") if not z.lstrip().startswith("#")))
         self.assertIn("# Step 4b:", postinst)
         self.assertLess(postinst.index("# Step 4a:"), postinst.index("# Step 4b:"))
         self.assertLess(postinst.index("# Step 4b:"), postinst.index("# Step 5:"))
-        self.assertIn('systemctl --user --machine="$nutzer@" start "$e"', postinst)
-        self.assertIn('*" $nutzer "*" $e "* | *" $nutzer $e "*) ;;', postinst)  # only the user of step 1 and the fixed units count
-        self.assertIn('rm -f "$NEUSTART"', postinst)
+        block = _block("postinst", "neustart")
+        self.assertIn('systemctl --user --machine="$n@" "$art" $liste', block)
+        self.assertIn("art=try-restart", block)
+        self.assertIn('rm -f "$NEUSTART"', block)
         # postinst itself never stops a unit of the core service or the bridge
         for zeile in postinst.split("\n"):
             if " stop " in zeile and not zeile.lstrip().startswith("#"):
                 self.assertIn("modellweg", zeile)
+        # the list of the users is the same block in both scripts
+        self.assertEqual(_block("prerm", "nutzerliste"), _block("postinst", "nutzerliste"))
 
     def test_postinst_removes_the_unit_of_the_earlier_package(self):
         text = lesen(os.path.join(HIER, PLATTFORM, "postinst"))
@@ -2384,6 +2388,124 @@ class OhneAttrappen(unittest.TestCase):
         # a stand-in program as the last block of the file is checked too
         letzter = '[package]\nname = "x"\n\n[[bin]]\nname = "x-attrappe"\npath = "src/bin/attrappe.rs"\n'
         self.assertEqual(len(merkmale_in_cargo_toml(letzter)), 1)
+
+
+
+class Neustart(unittest.TestCase):
+    """Decision of the operator, 28.11.2026 (contract "Upgrade und laufende Dienste"): every case `neustart-*` of the contract runs
+    against the real scripts. prerm runs as a whole, postinst as the blocks `nutzerliste` and `neustart` (step 4b). `loginctl`, `getent`,
+    `systemctl` and `logger` are stubs over a folder: the active units are files, every `systemctl --user` call with an action is logged as
+    `<user> <action> <units>`. The expectation is the one of the case file (written by bau-faelle.py)."""
+
+    STUB = r"""
+loginctl() { [ -f "$T/loginctl" ] || return 1; cat "$T/loginctl"; }
+getent() { [ "$1" = passwd ] || return 2; z=$(awk -F: -v n="$2" '$1==n' "$T/passwd"); [ -n "$z" ] || return 2; printf '%s\n' "$z"; }
+logger() { :; }
+systemctl() {
+    if [ "$1" = is-active ]; then
+        u=${3#user@}; u=${u%.service}
+        grep -qx -- "$u" "$T/manager"
+        return
+    fi
+    [ "$1" = --user ] || return 0
+    n=${2#--machine=}; n=${n%@}; a=$3; shift 3
+    case "$a" in
+        is-active) [ -e "$T/aktiv/$n.$2" ]; return ;;
+    esac
+    printf '%s %s %s\n' "$n" "$a" "$*" >> "$T/aufrufe"
+    rc=0
+    for e in "$@"; do
+        case "$a" in
+            stop) rm -f "$T/aktiv/$n.$e" ;;
+            start | restart | try-restart)
+                if [ "$a" = try-restart ] && [ ! -e "$T/aktiv/$n.$e" ]; then continue; fi
+                if [ -e "$T/scheitert/$n.$e" ]; then rm -f "$T/aktiv/$n.$e"; rc=1; else : > "$T/aktiv/$n.$e"; fi ;;
+        esac
+    done
+    return $rc
+}
+"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.faelle = os.path.join(RUST, "spec", "paket", "faelle")
+        cls.erwartet = os.path.join(RUST, "spec", "paket", "erwartet")
+        cls.namen = sorted(n for n in os.listdir(cls.faelle) if n.startswith("neustart-"))
+
+    def lauf(self, fall, prerm=None, postinst=None):
+        with tempfile.TemporaryDirectory(prefix="wb-neustart-") as t:
+            for o in ("aktiv", "scheitert", "einheiten"):
+                os.mkdir(os.path.join(t, o))
+            for e in ("werkbank-kern.service", "werkbank-bruecke.service", "wb-halter.service"):
+                open(os.path.join(t, "einheiten", e), "w").close()
+            if fall["loginctl"] is not None:
+                with open(os.path.join(t, "loginctl"), "w") as d:
+                    d.write("".join(f" {u} {n} no active\n" for u, n in fall["loginctl"]))
+            with open(os.path.join(t, "passwd"), "w") as d:
+                d.write("".join(f"{n}:x:{u}:{u}::/srv/beispiel/{n}:/bin/sh\n" for n, u in fall["passwd"].items()))
+            with open(os.path.join(t, "manager"), "w") as d:
+                d.write("".join(u + "\n" for u in fall["manager"]))
+            for art in ("aktiv", "scheitert"):
+                for n, liste in fall[art].items():
+                    for e in liste:
+                        open(os.path.join(t, art, f"{n}.{e}"), "w").close()
+            notiz = os.path.join(t, "notiz")
+            if fall["notiz"] is not None:
+                with open(notiz, "w") as d:
+                    d.write(fall["notiz"] + "\n")
+            ersetzen = (("/usr/lib/systemd/user", os.path.join(t, "einheiten")), ("/run/werkbank-paket-neustart", notiz),
+                        ("/usr/bin/werkbank-pruefen", os.path.join(t, "fehlt")),
+                        ("/etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss", os.path.join(t, "fehlt")))
+            if fall["skript"] == "prerm":
+                text = prerm if prerm is not None else lesen(os.path.join(HIER, PLATTFORM, "prerm"))
+                text = text.split("\n", 1)[1]
+            else:
+                text = postinst if postinst is not None else lesen(os.path.join(HIER, PLATTFORM, "postinst"))
+                text = ('log() { logger -t werkbank-installation "$1"; return 0; }\n'
+                        'EINHEITEN="werkbank-kern.service werkbank-bruecke.service wb-halter.service"\n'
+                        + text[text.index("# --- nutzerliste begin"):text.index("# --- neustart end")])
+            for alt, neu in ersetzen:
+                text = text.replace(alt, neu)
+            umgebung = {k: v for k, v in os.environ.items() if k not in ("SUDO_USER", "DEBCONF_RECONFIGURE")}
+            umgebung.update(fall["umgebung"])
+            umgebung["T"] = t
+            kopf = "set -- " + " ".join(shlex.quote(a) for a in fall["argumente"]) + "\n"
+            r = subprocess.run(["sh", "-c", self.STUB + kopf + text], capture_output=True, text=True, check=False, env=umgebung)
+            aufrufe = lesen(os.path.join(t, "aufrufe")).splitlines() if os.path.exists(os.path.join(t, "aufrufe")) else []
+            return {"aufrufe": aufrufe, "ausgabe": (r.stdout + r.stderr).splitlines(), "rc": r.returncode}
+
+    def test_every_case_of_the_contract(self):
+        self.assertGreaterEqual(len(self.namen), 15)
+        for n in self.namen:
+            with open(os.path.join(self.faelle, n), encoding="utf-8") as d:
+                fall = json.load(d)
+            with open(os.path.join(self.erwartet, n), encoding="utf-8") as d:
+                erw = json.load(d)
+            with self.subTest(fall=n):
+                self.assertEqual(self.lauf(fall), erw)
+
+    def test_a_list_of_sudo_user_only_turns_the_cases_red(self):
+        """Counter test: the scripts with the user from SUDO_USER only (as before the decision) miss the cases without sudo and with
+        several users."""
+        nur_sudo = ('nutzer_liste() {\n    NL_GUT="" NL_AUS=""\n    case "${SUDO_USER:-}" in "" | root) ;; *[!a-z0-9_-]*) ;; [a-z_]*) NL_GUT=$SUDO_USER ;; esac\n'
+                    "    return 0\n}\n")
+        rot = set()
+        for skript in ("prerm", "postinst"):
+            text = lesen(os.path.join(HIER, PLATTFORM, skript))
+            a, e = text.index("# --- nutzerliste begin"), text.index("# --- nutzerliste end")
+            text = text[:a] + "# --- nutzerliste begin\n" + nur_sudo + text[e:]
+            for n in self.namen:
+                with open(os.path.join(self.faelle, n), encoding="utf-8") as d:
+                    fall = json.load(d)
+                if fall["skript"] != skript:
+                    continue
+                with open(os.path.join(self.erwartet, n), encoding="utf-8") as d:
+                    erw = json.load(d)
+                if self.lauf(fall, **{skript: text}) != erw:
+                    rot.add(n[:-5])
+        for n in ("neustart-upgrade-ohne-sudo", "neustart-zwei-nutzer", "neustart-name-ungueltig", "neustart-remove-alle-nutzer",
+                  "neustart-remove-ohne-sudo"):
+            self.assertIn(n, rot)
 
 
 def _block(skript, name):

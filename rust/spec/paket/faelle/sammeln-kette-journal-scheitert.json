@@ -1,0 +1,8 @@
+{
+ "beschreibung": "journalctl scheitert: nicht_pruefbar",
+ "form": "sammeln",
+ "teil": "kette",
+ "invocation": "ffffffffffffffffffffffffffffffff",
+ "journal": {},
+ "journal_rc": 1
+}

@@ -1,0 +1,34 @@
+{
+ "beschreibung": "Upgrade: `prerm` hält keine Benutzereinheit an (alt: die von SUDO_USER, mit Notiz)",
+ "form": "neustart",
+ "skript": "prerm",
+ "argumente": [
+  "upgrade",
+  "0.1.0"
+ ],
+ "umgebung": {
+  "SUDO_USER": "wb"
+ },
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000"
+ ],
+ "aktiv": {
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": null
+}

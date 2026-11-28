@@ -1,0 +1,30 @@
+{
+ "beschreibung": "loginctl nennt einen Nutzer, sein Nutzer-Manager läuft nicht: kein Aufruf, keine Zeile",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {},
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [],
+ "aktiv": {
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": null
+}

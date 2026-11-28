@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.neustart_noetig: Ein Dienst der Werkbank laeuft noch mit dem Programm von vor dem Upgrade; Neustart noetig.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

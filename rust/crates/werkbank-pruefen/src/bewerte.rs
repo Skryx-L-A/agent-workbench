@@ -5,8 +5,8 @@
 
 use crate::lage::{
     ABGELEHNT_SATZ, APPARMOR, Abweichung, COPILOT, COPILOT_ALTER_ORT, DIENST, DIENSTE,
-    HALTER_KETTE, HARNESS_HINWEIS, Lage, MANIFEST, NUTZERORDNER, OK, PROGRAMMORDNER, ROLLENGRUPPE,
-    ROLLENPROGRAMM, SCHLUESSEL, VAULT,
+    HALTER_KETTE, HARNESS_HINWEIS, Lage, MANIFEST, NEUSTART, NUTZERORDNER, OK, PROGRAMMORDNER,
+    ROLLENGRUPPE, ROLLENPROGRAMM, SCHLUESSEL, VAULT,
 };
 
 /// The stream a result goes to.
@@ -167,6 +167,8 @@ pub fn befunde(lage: &Lage) -> Vec<String> {
     b.extend(satz(ROLLENPROGRAMM, &lage.rollenprogramm));
     // the chain of the holder (decision of the operator, 28.11.2026), still part of the check of the units
     b.extend(satz(HALTER_KETTE, &lage.halter_kette));
+    // restart needed (decision of the operator, 28.11.2026), after the chain, still part of the check of the units
+    b.extend(satz(NEUSTART, &lage.neustart));
     b.extend(satz(APPARMOR, &lage.apparmor));
     match lage.einstellungen.zustand.as_str() {
         "fehlt" => b.push(

@@ -1,0 +1,32 @@
+{
+ "beschreibung": "Upgrade ohne SUDO_USER (root-Shell, systemd-run, unattended-upgrades): die drei laufenden Einheiten starten neu, ein Aufruf",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {},
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000"
+ ],
+ "aktiv": {
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": null
+}

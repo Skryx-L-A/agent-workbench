@@ -1,0 +1,10 @@
+{
+ "aufrufe": [
+  "wb try-restart werkbank-kern.service werkbank-bruecke.service wb-halter.service"
+ ],
+ "ausgabe": [
+  "werkbank: Neustart der Dienste von wb: werkbank-kern.service werkbank-bruecke.service wb-halter.service; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen",
+  "werkbank: Einheit wb-halter.service von wb laeuft nach dem Neustart nicht (Startgrenze oder Fehler); systemctl --user status wb-halter.service"
+ ],
+ "rc": 0
+}

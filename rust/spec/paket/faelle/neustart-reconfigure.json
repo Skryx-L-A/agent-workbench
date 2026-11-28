@@ -1,0 +1,34 @@
+{
+ "beschreibung": "dpkg-reconfigure (DEBCONF_RECONFIGURE=1) ersetzt keine Datei: kein Neustart",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {
+  "DEBCONF_RECONFIGURE": "1"
+ },
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000"
+ ],
+ "aktiv": {
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": null
+}

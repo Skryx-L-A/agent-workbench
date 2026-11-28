@@ -1,0 +1,13 @@
+{
+ "aufrufe": [
+  "wb try-restart werkbank-kern.service werkbank-bruecke.service wb-halter.service"
+ ],
+ "ausgabe": [
+  "werkbank: Nutzer mit uid 1002 uebersprungen, der Name ist nicht gueltig; seine Dienste starten nicht neu",
+  "werkbank: Nutzer mit uid 1003 uebersprungen, der Name ist nicht gueltig; seine Dienste starten nicht neu",
+  "werkbank: Nutzer mit uid 1004 uebersprungen, der Name ist nicht gueltig; seine Dienste starten nicht neu",
+  "werkbank: ein Nutzer uebersprungen, seine uid ist keine Zahl; seine Dienste starten nicht neu",
+  "werkbank: Neustart der Dienste von wb: werkbank-kern.service werkbank-bruecke.service wb-halter.service; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen"
+ ],
+ "rc": 0
+}

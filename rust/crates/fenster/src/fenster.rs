@@ -707,18 +707,31 @@ fn frist_text(ms: u64) -> String {
     }
 }
 
-/// The choices of a deadline of a release (`regelebenen` 15.1.2), with the effective value when it is none of them.
-fn frist_wahlen(feste: &[u64], wert: &Value) -> Vec<(String, String)> {
-    let mut l: Vec<u64> = feste.to_vec();
-    if let Some(w) = wert.as_u64()
-        && !l.contains(&w)
-    {
-        l.push(w);
-        l.sort_unstable();
-    }
-    l.into_iter()
-        .map(|m| (m.to_string(), frist_text(m)))
+/// The choices of a deadline of a release (`regelebenen` 15.1.2): only the fixed values, a segmented choice of four. An
+/// effective value outside them is no choice; the row of the settings shows it beside the segments (decision of the
+/// operator, 28.11.2026).
+fn frist_wahlen(feste: &[u64]) -> Vec<(String, String)> {
+    feste
+        .iter()
+        .map(|m| (m.to_string(), frist_text(*m)))
         .collect()
+}
+
+/// The effective value of a row as text beside its segments, when it is none of the choices; `None` when it is one of
+/// them, empty or no segmented choice. A deadline shows in its unit („2 min“), every other value as it is.
+fn wert_daneben(schluessel: &str, wert: &Value, wahlen: &[(String, String)]) -> Option<String> {
+    let w = wert_text(wert);
+    if w.is_empty()
+        || wahlen.is_empty()
+        || wahlform(wahlen.len()) != Wahlform::Segmente
+        || wahlen.iter().any(|(x, _)| *x == w)
+    {
+        return None;
+    }
+    Some(match (schluessel, wert.as_u64()) {
+        ("aufsicht.freigabefrist_ms" | "aufsicht.einloesefrist_ms", Some(ms)) => frist_text(ms),
+        _ => wert_anzeige(wert),
+    })
 }
 
 /// The choices of `sitzung.harness` (the catalog of the view core, `regelebenen` 15.1) and `sitzung.modell`, bound to the
@@ -742,8 +755,8 @@ fn sitzung_wahlen(schluessel: &str, zusatz: &Zusatz) -> Vec<(String, String)> {
         .collect()
 }
 
-/// The largest number of values a segmented choice shows; a choice of more values is a drop-down. One rule for both
-/// views (decision of the operator, 28.11.2026).
+/// The largest number of values a segmented choice of the settings shows; a choice of more values is a drop-down. The
+/// rule holds only in the settings (decision of the operator, 28.11.2026).
 pub const SEGMENTE_HOECHSTENS: usize = 4;
 
 /// The form of a choice.
@@ -755,8 +768,9 @@ pub enum Wahlform {
     Ausklapper,
 }
 
-/// The form of a choice of `anzahl` values: up to [`SEGMENTE_HOECHSTENS`] segments, from one more a drop-down. Every
-/// choice of the window takes its form from here.
+/// The form of a choice of `anzahl` values in the settings: up to [`SEGMENTE_HOECHSTENS`] segments, from one more a
+/// drop-down. The rule holds only in the settings (decision of the operator, 28.11.2026); the start form of the window
+/// "Sitzungen" keeps a drop-down for every choice, like the contract `seite`.
 #[must_use]
 pub fn wahlform(anzahl: usize) -> Wahlform {
     if anzahl <= SEGMENTE_HOECHSTENS {
@@ -769,12 +783,14 @@ pub fn wahlform(anzahl: usize) -> Wahlform {
 /// The width of a drop-down in a row of the settings.
 const AUSKLAPPER_BREITE: f32 = 150.0;
 
-/// A choice in the form of [`wahlform`]: segments on a sunken ground, or a drop-down of `breite` points. `kennung` is the
-/// element id of every control of the choice, `name` its name; `wahlen` are value and text, `gewaehlt` the chosen
-/// value (none is marked when it is no choice). Returns the value clicked and the ids of the controls.
+/// A choice in the form `form`: segments on a sunken ground, or a drop-down of `breite` points. `kennung` is the element
+/// id of every control of the choice, `name` its name; `wahlen` are value and text, `gewaehlt` the chosen value (none
+/// is marked when it is no choice). Returns the value clicked and the ids of the controls.
+#[allow(clippy::too_many_arguments)]
 fn wahl_malen(
     ui: &mut Ui,
     r: &Rollen,
+    form: Wahlform,
     kennung: &str,
     name: &str,
     wahlen: &[(String, String)],
@@ -783,7 +799,7 @@ fn wahl_malen(
 ) -> (Option<String>, Vec<Id>) {
     let mut neu = None;
     let mut ids = Vec::new();
-    match wahlform(wahlen.len()) {
+    match form {
         Wahlform::Segmente => {
             ui.scope_builder(UiBuilder::new().id_salt(("segmente", kennung)), |ui| {
                 Frame::new()
@@ -3718,14 +3734,23 @@ impl Fenster {
                         feld: &ansicht::start::Wahlfeld,
                         kennung: &str|
              -> (Option<String>, Vec<Id>) {
-                // segments or a drop-down by the number of entries, like every choice of the window
+                // always a drop-down like the contract `seite`: the rule of `wahlform` holds only in the settings
                 let wahlen: Vec<(String, String)> = feld
                     .eintraege
                     .iter()
                     .map(|e| (e.wert.clone(), e.text.clone()))
                     .collect();
                 formzeile(ui, r, name, erste, |ui, breite| {
-                    wahl_malen(ui, r, kennung, name, &wahlen, &feld.wert, breite)
+                    wahl_malen(
+                        ui,
+                        r,
+                        Wahlform::Ausklapper,
+                        kennung,
+                        name,
+                        &wahlen,
+                        &feld.wert,
+                        breite,
+                    )
                 })
             };
             // B69: model and effort at the start; the base form is the model, the effort comes with L10
@@ -3781,6 +3806,7 @@ impl Fenster {
                             wahl_malen(
                                 ui,
                                 r,
+                                Wahlform::Ausklapper,
                                 "effort-wahl",
                                 T_DENKSTUFE,
                                 &wahlen,
@@ -4309,6 +4335,7 @@ impl Fenster {
                 let (neu, _) = wahl_malen(
                     ui,
                     r,
+                    wahlform(z.wahlen.len()),
                     z.schluessel,
                     z.name,
                     &z.wahlen,
@@ -4343,6 +4370,12 @@ impl Fenster {
                             .color(r.gedaempft),
                     );
                 });
+        }
+        // an effective value outside the segments is no fifth segment: it stands before its origin, as text, and no
+        // segment is marked (decision of the operator, 28.11.2026)
+        if let Some(t) = wert_daneben(z.schluessel, &wert, &z.wahlen) {
+            rechts.add_space(MASSE.abstand);
+            rechts.label(RichText::new(t).fett());
         }
         let links_ende = rechts.min_rect().left() - MASSE.innen;
         let x = sym.right() + MASSE.innen + 2.0;
@@ -4516,20 +4549,12 @@ impl Fenster {
                                 .and_then(|e| e.wert.as_str()),
                         ),
                         // the fixed choices of the shared words; 24 h is the limit of contract 2 (15.1.2)
-                        "aufsicht.freigabefrist_ms" => frist_wahlen(
-                            &ansicht::woerter::werte::FREIGABEFRIST_WAHLEN,
-                            &self
-                                .zusatz
-                                .einstellung(zeile.0)
-                                .map_or(Value::Null, |e| e.wert.clone()),
-                        ),
-                        "aufsicht.einloesefrist_ms" => frist_wahlen(
-                            &ansicht::woerter::werte::EINLOESEFRIST_WAHLEN,
-                            &self
-                                .zusatz
-                                .einstellung(zeile.0)
-                                .map_or(Value::Null, |e| e.wert.clone()),
-                        ),
+                        "aufsicht.freigabefrist_ms" => {
+                            frist_wahlen(&ansicht::woerter::werte::FREIGABEFRIST_WAHLEN)
+                        }
+                        "aufsicht.einloesefrist_ms" => {
+                            frist_wahlen(&ansicht::woerter::werte::EINLOESEFRIST_WAHLEN)
+                        }
                         _ => Vec::new(),
                     };
                     z(zeile, wahlen)
@@ -5144,6 +5169,39 @@ mod tests {
         assert_eq!(
             wahlform(ansicht::aussehen::SCHRIFTGROESSEN.len()),
             Wahlform::Ausklapper
+        );
+    }
+
+    /// Decision of the operator, 28.11.2026: a deadline of a release offers only its four fixed values; an effective
+    /// value outside them stands beside the segments in its unit, a value among them or no value adds nothing.
+    #[test]
+    fn a_deadline_offers_its_four_fixed_values_and_shows_one_outside_beside() {
+        let feste = ansicht::woerter::werte::FREIGABEFRIST_WAHLEN;
+        let wahlen = frist_wahlen(&feste);
+        let texte: Vec<&str> = wahlen.iter().map(|(_, t)| t.as_str()).collect();
+        assert_eq!(texte, ["30 s", "1 min", "5 min", "15 min"]);
+        assert_eq!(wahlform(wahlen.len()), Wahlform::Segmente);
+        let k = "aufsicht.freigabefrist_ms";
+        assert_eq!(
+            wert_daneben(k, &json!(120_000), &wahlen),
+            Some("2 min".to_owned())
+        );
+        assert_eq!(wert_daneben(k, &json!(60_000), &wahlen), None);
+        assert_eq!(wert_daneben(k, &Value::Null, &wahlen), None);
+        assert_eq!(
+            wert_daneben(
+                "sitzung.harness",
+                &json!("claude"),
+                &[("pi".to_owned(), "pi".to_owned())]
+            ),
+            Some("claude".to_owned())
+        );
+        // a drop-down shows the effective value itself
+        let sechs: Vec<(String, String)> =
+            (11..=16).map(|g| (g.to_string(), g.to_string())).collect();
+        assert_eq!(
+            wert_daneben("terminal.schriftgroesse", &json!("20"), &sechs),
+            None
         );
     }
 

@@ -1,0 +1,31 @@
+{
+ "beschreibung": "remove ohne SUDO_USER: dieselben Nutzer wie mit sudo",
+ "form": "neustart",
+ "skript": "prerm",
+ "argumente": [
+  "remove"
+ ],
+ "umgebung": {},
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000"
+ ],
+ "aktiv": {
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": null
+}

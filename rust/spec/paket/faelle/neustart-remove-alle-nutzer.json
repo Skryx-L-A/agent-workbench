@@ -1,0 +1,37 @@
+{
+ "beschreibung": "remove: prerm hält die drei Einheiten jedes Nutzers mit laufendem Nutzer-Manager an, Halter zuerst",
+ "form": "neustart",
+ "skript": "prerm",
+ "argumente": [
+  "remove"
+ ],
+ "umgebung": {},
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ],
+  [
+   "1001",
+   "anna"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000",
+  "1001"
+ ],
+ "aktiv": {
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ],
+  "anna": []
+ },
+ "scheitert": {},
+ "notiz": null
+}

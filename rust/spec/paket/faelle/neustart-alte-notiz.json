@@ -1,0 +1,38 @@
+{
+ "beschreibung": "Upgrade von einem Paket, dessen prerm die Einheiten von SUDO_USER anhielt und merkte: genau die gemerkten starten wieder, die anderen Nutzer mit try-restart",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {
+  "SUDO_USER": "wb"
+ },
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ],
+  [
+   "1001",
+   "anna"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000",
+  "1001"
+ ],
+ "aktiv": {
+  "wb": [],
+  "anna": [
+   "werkbank-kern.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": "wb wb-halter.service werkbank-bruecke.service werkbank-kern.service"
+}

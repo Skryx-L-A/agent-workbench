@@ -1,6 +1,8 @@
 #!/bin/sh
 # prerm of the package werkbank: on remove, say whether a key file stays (`werkbank-pruefen --vor-entfernen`, contract
-# "Skripte des Pakets"); stop the user units of the user (core, bridge and holder) (on `upgrade` it notes the ones that ran, for postinst step 4b; not on `dpkg-reconfigure`); on remove and deconfigure unload the profile of the starter with
+# "Skripte des Pakets"); on remove and deconfigure stop the user units (core, bridge and holder) of every user with a running user manager
+# (decision of the operator, 28.11.2026; alt: only SUDO_USER, and also on upgrade with a note for postinst). On `upgrade` it stops no user unit:
+# postinst step 4b restarts the running ones with `try-restart`. On remove and deconfigure unload the profile of the starter with
 # `apparmor_parser -R` while its file is still there (it unloads all three profiles of the file). Never stops the removal.
 case "$1" in
     remove | upgrade | deconfigure) ;;
@@ -13,12 +15,6 @@ if [ "$1" = remove ] && [ -x /usr/bin/werkbank-pruefen ]; then
         if command -v logger >/dev/null 2>&1; then printf '%s\n' "$meldung" | logger -t werkbank-paket 2>/dev/null || true; fi
     fi
 fi
-nutzer=""
-case "${SUDO_USER:-}" in
-    "" | root) ;;
-    *[!a-z0-9_-]*) ;;
-    [a-z_]*) nutzer="$SUDO_USER" ;;
-esac
 # `dpkg-reconfigure` runs this script as `prerm upgrade <version>` with DEBCONF_RECONFIGURE=1 (measured in the VM). It replaces no file of the
 # package, so it leaves the running units alone (a running session of the core service stays up).
 if [ "$1" = upgrade ] && [ "${DEBCONF_RECONFIGURE:-}" = 1 ]; then
@@ -29,22 +25,70 @@ fi
 if command -v systemctl >/dev/null 2>&1; then
     systemctl stop werkbank-vorgabe.socket werkbank-vorgabe.service >/dev/null 2>&1 || true
 fi
-# NEUSTART is the note for postinst (step 4b): the units that run now and that this script stops; postinst starts them again. A run of `remove`
-# or `deconfigure` leaves no note, so nothing starts again.
-NEUSTART=/run/werkbank-paket-neustart
-rm -f "$NEUSTART" 2>/dev/null || true
-if [ -n "$nutzer" ] && command -v systemctl >/dev/null 2>&1; then
-    notiz=""
-    for e in wb-halter.service werkbank-bruecke.service werkbank-kern.service; do
-        [ -f "/usr/lib/systemd/user/$e" ] || continue
-        if [ "$1" = upgrade ] && systemctl --user --machine="$nutzer@" is-active --quiet "$e" >/dev/null 2>&1; then
-            notiz="$notiz $e"
+# --- nutzerliste begin
+# nutzer_liste: the users with a running user manager (decision of the operator, 28.11.2026; contract "Skripte des Pakets"). The list comes from
+# `loginctl list-users` (columns uid and name); a user counts only when `user@<uid>.service` is active, the uid 0 never. Each name gets the check that SUDO_USER
+# gets (not root, only a-z, 0-9, `_` and `-`, starts with a-z or `_`, at most 32 bytes) and must be in passwd with that uid. NL_GUT holds the
+# names that pass (each once, in the order of loginctl); NL_AUS holds one word per user that fails: the uid (only with a running manager),
+# or `-` when the uid is not a number. No name is guessed and no name of NL_AUS is printed. The variables carry the prefix nl_ (sh has no `local`).
+nutzer_liste() {
+    NL_GUT="" NL_AUS=""
+    command -v loginctl >/dev/null 2>&1 || return 0
+    command -v systemctl >/dev/null 2>&1 || return 0
+    nl_text=$(loginctl list-users --no-legend --no-pager 2>/dev/null) || return 0
+    nl_ifs=$IFS
+    IFS='
+'
+    set -f
+    for nl_zeile in $nl_text; do
+        IFS=$nl_ifs
+        # shellcheck disable=SC2086
+        set -- $nl_zeile
+        nl_uid=${1:-} nl_name=${2:-}
+        case "$nl_uid" in
+            "" | *[!0-9]*)
+                NL_AUS="$NL_AUS -"
+                continue
+                ;;
+            0) continue ;;
+        esac
+        systemctl is-active --quiet "user@$nl_uid.service" >/dev/null 2>&1 || continue
+        nl_gut=""
+        case "$nl_name" in
+            "" | root) ;;
+            *[!a-z0-9_-]*) ;;
+            [a-z_]*) [ "${#nl_name}" -le 32 ] && nl_gut=1 ;;
+        esac
+        if [ -n "$nl_gut" ]; then
+            nl_pw=$(getent passwd "$nl_name" 2>/dev/null) || nl_pw=""
+            nl_rest=${nl_pw#*:*:}
+            [ "${nl_pw%%:*}" = "$nl_name" ] && [ "${nl_rest%%:*}" = "$nl_uid" ] || nl_gut=""
         fi
-        systemctl --user --machine="$nutzer@" stop "$e" >/dev/null 2>&1 || true
+        if [ -z "$nl_gut" ]; then
+            NL_AUS="$NL_AUS $nl_uid"
+            continue
+        fi
+        case " $NL_GUT " in
+            *" $nl_name "*) ;;
+            *) NL_GUT="$NL_GUT $nl_name" ;;
+        esac
     done
-    if [ -n "$notiz" ] && [ ! -L "$NEUSTART" ]; then
-        (umask 077 && printf '%s%s\n' "$nutzer" "$notiz" >"$NEUSTART") 2>/dev/null || true
-    fi
+    set +f
+    IFS=$nl_ifs
+    return 0
+}
+# --- nutzerliste end
+# The user units stop only on remove and deconfigure, for every user of nutzer_liste. An upgrade leaves them running, so a failed unpack leaves
+# the old services up; postinst step 4b restarts them. EINHEITEN_ORDNER is the folder of the user units of the package.
+EINHEITEN_ORDNER=/usr/lib/systemd/user
+if [ "$1" != upgrade ] && command -v systemctl >/dev/null 2>&1; then
+    nutzer_liste
+    for nutzer in $NL_GUT; do
+        for e in wb-halter.service werkbank-bruecke.service werkbank-kern.service; do
+            [ -f "$EINHEITEN_ORDNER/$e" ] || continue
+            systemctl --user --machine="$nutzer@" stop "$e" >/dev/null 2>&1 || true
+        done
+    done
 fi
 case "$1" in
     remove | deconfigure)

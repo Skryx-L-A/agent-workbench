@@ -27,7 +27,7 @@ fail() {
 
 DATEN=/var/lib/werkbank
 VORLAGE=/usr/share/werkbank/probelauf
-# The holder (addendum holder) comes after the bridge; step 4b starts the units in this order.
+# The holder (addendum holder) comes after the bridge; step 4b restarts the units in this order.
 EINHEITEN="werkbank-kern.service werkbank-bruecke.service wb-halter.service"
 
 # Step 1: the user is the one who called sudo.
@@ -913,24 +913,112 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 rm -f /etc/systemd/user/default.target.wants/werkbank-modellweg.service /usr/lib/systemd/user/werkbank-modellweg.service 2>/dev/null || true
 
-# Step 4b: the units that prerm stopped for an upgrade or a reinstall run again (note /run/werkbank-paket-neustart: the user and the units that ran;
-# contract "Skripte des Pakets"). Only the user of step 1 and only the three fixed units (core, bridge, holder) are taken from the note; it is
-# removed in every case.
-# `dpkg-reconfigure` stops nothing (prerm), so it leaves no note and this step does nothing.
+# --- nutzerliste begin
+# nutzer_liste: the users with a running user manager (decision of the operator, 28.11.2026; contract "Skripte des Pakets"). The list comes from
+# `loginctl list-users` (columns uid and name); a user counts only when `user@<uid>.service` is active, the uid 0 never. Each name gets the check that SUDO_USER
+# gets (not root, only a-z, 0-9, `_` and `-`, starts with a-z or `_`, at most 32 bytes) and must be in passwd with that uid. NL_GUT holds the
+# names that pass (each once, in the order of loginctl); NL_AUS holds one word per user that fails: the uid (only with a running manager),
+# or `-` when the uid is not a number. No name is guessed and no name of NL_AUS is printed. The variables carry the prefix nl_ (sh has no `local`).
+nutzer_liste() {
+    NL_GUT="" NL_AUS=""
+    command -v loginctl >/dev/null 2>&1 || return 0
+    command -v systemctl >/dev/null 2>&1 || return 0
+    nl_text=$(loginctl list-users --no-legend --no-pager 2>/dev/null) || return 0
+    nl_ifs=$IFS
+    IFS='
+'
+    set -f
+    for nl_zeile in $nl_text; do
+        IFS=$nl_ifs
+        # shellcheck disable=SC2086
+        set -- $nl_zeile
+        nl_uid=${1:-} nl_name=${2:-}
+        case "$nl_uid" in
+            "" | *[!0-9]*)
+                NL_AUS="$NL_AUS -"
+                continue
+                ;;
+            0) continue ;;
+        esac
+        systemctl is-active --quiet "user@$nl_uid.service" >/dev/null 2>&1 || continue
+        nl_gut=""
+        case "$nl_name" in
+            "" | root) ;;
+            *[!a-z0-9_-]*) ;;
+            [a-z_]*) [ "${#nl_name}" -le 32 ] && nl_gut=1 ;;
+        esac
+        if [ -n "$nl_gut" ]; then
+            nl_pw=$(getent passwd "$nl_name" 2>/dev/null) || nl_pw=""
+            nl_rest=${nl_pw#*:*:}
+            [ "${nl_pw%%:*}" = "$nl_name" ] && [ "${nl_rest%%:*}" = "$nl_uid" ] || nl_gut=""
+        fi
+        if [ -z "$nl_gut" ]; then
+            NL_AUS="$NL_AUS $nl_uid"
+            continue
+        fi
+        case " $NL_GUT " in
+            *" $nl_name "*) ;;
+            *) NL_GUT="$NL_GUT $nl_name" ;;
+        esac
+    done
+    set +f
+    IFS=$nl_ifs
+    return 0
+}
+# --- nutzerliste end
+
+# --- neustart begin
+# Step 4b: (decision of the operator, 28.11.2026; contract "Skripte des Pakets", "Upgrade und laufende Dienste"): after an upgrade or a
+# reinstall the units of the package that run for a user with a running user manager (nutzer_liste) restart with `try-restart`, one call per
+# user for the running ones of core, bridge and holder (one start per unit; `try-restart` never starts a stopped unit). The start limit of the
+# units stays as it is: a unit that does not run after the call is named in one line, and the installation goes on (exit 0).
+# The note /run/werkbank-paket-neustart comes only from the prerm of an earlier package (it stopped the units of SUDO_USER and noted the ones
+# that ran): for the user of the note, if that user passes nutzer_liste, exactly the noted units of the three start again; the note is removed in
+# every case. `dpkg-reconfigure` (DEBCONF_RECONFIGURE=1) replaces no file and restarts nothing.
 NEUSTART=/run/werkbank-paket-neustart
+EINHEITEN_ORDNER=/usr/lib/systemd/user
+notiz=""
 if [ -f "$NEUSTART" ] && [ ! -L "$NEUSTART" ]; then
-    notiz=$(head -n 1 "$NEUSTART" 2>/dev/null)
-    rm -f "$NEUSTART" 2>/dev/null || true
-    if [ -n "$nutzer" ] && command -v systemctl >/dev/null 2>&1; then
-        for e in $EINHEITEN; do
-            case " $notiz " in
-                *" $nutzer "*" $e "* | *" $nutzer $e "*) ;;
-                *) continue ;;
-            esac
-            systemctl --user --machine="$nutzer@" start "$e" >/dev/null 2>&1 || log "werkbank: Einheit nicht neu gestartet"
-        done
-    fi
+    notiz=$(head -n 1 "$NEUSTART" 2>/dev/null) || notiz=""
 fi
+rm -f "$NEUSTART" 2>/dev/null || true
+if [ "${DEBCONF_RECONFIGURE:-}" != 1 ] && command -v systemctl >/dev/null 2>&1; then
+    nutzer_liste
+    for u in $NL_AUS; do
+        if [ "$u" = - ]; then
+            echo "werkbank: ein Nutzer uebersprungen, seine uid ist keine Zahl; seine Dienste starten nicht neu"
+        else
+            echo "werkbank: Nutzer mit uid $u uebersprungen, der Name ist nicht gueltig; seine Dienste starten nicht neu"
+        fi
+        log "werkbank: Nutzer uebersprungen"
+    done
+    notiz_nutzer=${notiz%% *}
+    for n in $NL_GUT; do
+        art=try-restart liste=""
+        for e in $EINHEITEN; do
+            [ -f "$EINHEITEN_ORDNER/$e" ] || continue
+            if [ "$n" = "$notiz_nutzer" ]; then
+                art=start
+                case " $notiz " in
+                    *" $e "*) liste="$liste $e" ;;
+                esac
+            elif systemctl --user --machine="$n@" is-active --quiet "$e" >/dev/null 2>&1; then
+                liste="$liste $e"
+            fi
+        done
+        [ -n "$liste" ] || continue
+        echo "werkbank: Neustart der Dienste von $n:$liste; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen"
+        # shellcheck disable=SC2086
+        systemctl --user --machine="$n@" "$art" $liste >/dev/null 2>&1 || true
+        for e in $liste; do
+            if ! systemctl --user --machine="$n@" is-active --quiet "$e" >/dev/null 2>&1; then
+                echo "werkbank: Einheit $e von $n laeuft nach dem Neustart nicht (Startgrenze oder Fehler); systemctl --user status $e"
+                log "werkbank: Einheit nicht neu gestartet"
+            fi
+        done
+    done
+fi
+# --- neustart end
 
 # Step 5: the check command writes its lines to the journal; its exit code does not count. The channel of debconf is closed first, so
 # no child process inherits it.

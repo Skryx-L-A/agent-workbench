@@ -1,0 +1,9 @@
+{
+ "aufrufe": [
+  "wb start werkbank-kern.service"
+ ],
+ "ausgabe": [
+  "werkbank: Neustart der Dienste von wb: werkbank-kern.service; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen"
+ ],
+ "rc": 0
+}

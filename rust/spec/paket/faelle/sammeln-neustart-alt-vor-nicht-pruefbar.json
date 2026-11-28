@@ -1,0 +1,32 @@
+{
+ "beschreibung": "eine Einheit alt, eine nicht prüfbar: noetig",
+ "form": "sammeln",
+ "teil": "neustart",
+ "root": true,
+ "einheiten": [
+  {
+   "name": "werkbank-kern.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": true,
+   "exe": "geloescht",
+   "start": "nach"
+  },
+  {
+   "name": "werkbank-bruecke.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": true,
+   "exe": "unlesbar",
+   "start": "nach"
+  },
+  {
+   "name": "wb-halter.service",
+   "aktiv": true,
+   "zeigen": true,
+   "datei": true,
+   "exe": "gleich",
+   "start": "nach"
+  }
+ ]
+}

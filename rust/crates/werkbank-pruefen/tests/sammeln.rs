@@ -12,9 +12,13 @@ use werkbank_pruefen::bewerte::{bewerte, kuerzen};
 use werkbank_pruefen::lage::{Abweichung, Lage};
 use werkbank_pruefen::manifest::{PFLICHT, PROFIL_A, PROFIL_B, STARTER};
 use werkbank_pruefen::sammeln::{
-    Ausgabe, Echt, Kennwerte, System, Umgebung, anhang_trifft, aufrufer, halter_kette_aus,
-    nutzer_gut, reale_uid, rollengruppe_zustand, rollenprogramm_zustand,
+    Ausgabe, Echt, Kennwerte, PROGRAMME, System, Umgebung, anhang_trifft, aufruf_kennung, aufrufer,
+    dienst_aus, halter_kette_aus, neustart_aus, nutzer_gut, reale_uid, rollengruppe_zustand,
+    rollenprogramm_zustand, wert,
 };
+
+/// The answer of `systemctl show` for a running unit without a main process (no judgment on a restart) and with an id of its run.
+const ZEIGEN_AKTIV: &str = "LoadState=loaded\nActiveState=active\nMainPID=0\nExecMainStartTimestamp=\nInvocationID=0123456789abcdef0123456789abcdef\n";
 
 /// One answer: the program, a part of its command line, and what it returns (`None` = did not run).
 type Antwort = (&'static str, &'static str, Option<(i32, String)>);
@@ -204,11 +208,7 @@ fn attrappe_ok(uid: u32) -> Attrappe {
             ("id", "-u", Some((0, u.to_owned()))),
             ("id", "-g", Some((0, "1000\n".to_owned()))),
             ("dpkg-query", "werkbank", Some((0, "1.2.3".to_owned()))),
-            (
-                "systemctl",
-                ".service",
-                Some((0, "LoadState=loaded\nActiveState=active\n".to_owned())),
-            ),
+            ("systemctl", ".service", Some((0, ZEIGEN_AKTIV.to_owned()))),
             ("setpriv", "bwrap", Some((0, String::new()))),
             ("journalctl", "wb-halter", Some((0, String::new()))),
             rollenprogramm_gut(),
@@ -1516,11 +1516,7 @@ fn attrappe_ohne_root(system: Vec<Antwort>) -> Attrappe {
         ("id", "-u", Some((0, format!("{}\n", eigene_uid())))),
         ("id", "-g", Some((0, "1000\n".to_owned()))),
         ("dpkg-query", "werkbank", Some((0, "1.2.3".to_owned()))),
-        (
-            "systemctl",
-            ".service",
-            Some((0, "LoadState=loaded\nActiveState=active\n".to_owned())),
-        ),
+        ("systemctl", ".service", Some((0, ZEIGEN_AKTIV.to_owned()))),
         ("journalctl", "wb-halter", Some((0, String::new()))),
         rollenprogramm_gut(),
     ];
@@ -2852,8 +2848,8 @@ fn der_echte_blick_auf_eine_datei() {
 }
 
 /// The chain of the holder (decision of the operator, 28.11.2026): a line `halter.kette_fehler` or a start ended with
-/// `halter.kette_rechte` in the journal of `wb-halter.service` turns the result red with its sentence; a journal without
-/// them stays green; a failed read is `nicht_pruefbar`. The read names the unit and the uid of the user, nothing else.
+/// `halter.kette_rechte` in the journal of the latest run of `wb-halter.service` turns the result red with its sentence; a journal
+/// without them stays green; a failed read is `nicht_pruefbar`. The read names the unit, the uid of the user and the id of the run.
 #[test]
 fn die_kette_des_halters_aus_dem_journal() {
     assert_eq!(halter_kette_aus(""), "ok");
@@ -2897,7 +2893,7 @@ fn die_kette_des_halters_aus_dem_journal() {
     assert_eq!(
         aufruf,
         format!(
-            "journalctl --no-pager -q -b -o cat -n 20000 _SYSTEMD_USER_UNIT=wb-halter.service _UID={uid}"
+            "journalctl --no-pager -q -o cat -n 20000 _SYSTEMD_USER_UNIT=wb-halter.service _UID={uid} _SYSTEMD_INVOCATION_ID=0123456789abcdef0123456789abcdef"
         )
     );
     let r = bewerte(&lage);
@@ -2934,5 +2930,227 @@ fn die_kette_des_halters_aus_dem_journal() {
                 .any(|z| z.starts_with("pruef.halter_kette_nicht_pruefbar: "))
         );
     }
+    fs::remove_dir_all(&w).ok();
+}
+
+fn faelle_ordner() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../spec/paket")
+}
+
+fn fall_lesen(pfad: &Path) -> serde_json::Value {
+    serde_json::from_slice(&fs::read(pfad).expect("case file")).expect("case JSON")
+}
+
+fn leck(s: String) -> &'static str {
+    Box::leak(s.into_boxed_str())
+}
+
+/// The answers of the stand-in for one case `sammeln-*` of the part `neustart`: per unit `systemctl show` and the link
+/// `proc/<pid>/exe` in the made-up tree as the case says.
+fn neustart_antworten(w: &Path, fall: &serde_json::Value) -> Vec<Antwort> {
+    use std::os::unix::fs::MetadataExt;
+    let mut vorne = Vec::new();
+    for (i, e) in fall["einheiten"]
+        .as_array()
+        .expect("units")
+        .iter()
+        .enumerate()
+    {
+        let einheit = e["name"].as_str().expect("name");
+        let pid = 4100 + i;
+        let datei = w.join(PROGRAMME[i]);
+        let ctime = fs::metadata(&datei).expect("program").ctime();
+        let start = match e["start"].as_str().expect("start") {
+            "vor" => format!("@{}", ctime - 5),
+            "gleich" => format!("@{ctime}"),
+            "nach" => format!("@{}", ctime + 5),
+            _ => String::new(),
+        };
+        let aktiv = if e["aktiv"] == true {
+            "active"
+        } else {
+            "inactive"
+        };
+        let antwort = (e["zeigen"] == true).then(|| {
+            (
+                0,
+                format!(
+                    "LoadState=loaded\nActiveState={aktiv}\nMainPID={pid}\nExecMainStartTimestamp={start}\nInvocationID=0123456789abcdef0123456789abcdef\n"
+                ),
+            )
+        });
+        vorne.push(("systemctl", leck(format!("-- {einheit}")), antwort));
+        let exe = w.join(format!("proc/{pid}/exe"));
+        fs::create_dir_all(exe.parent().expect("parent")).expect("proc");
+        match e["exe"].as_str().expect("exe") {
+            "gleich" => symlink(&datei, &exe).expect("link"),
+            "geloescht" => symlink(format!("{} (deleted)", datei.display()), &exe).expect("link"),
+            "andere" => symlink(w.join("srv/andere-datei"), &exe).expect("link"),
+            _ => {}
+        }
+        if e["datei"] == false {
+            fs::remove_file(&datei).expect("remove program");
+        }
+    }
+    vorne
+}
+
+/// The answers of the stand-in for one case `sammeln-*` of the part `kette`: `systemctl show` of the holder with the id of the
+/// case and `journalctl` per id of a run.
+fn kette_antworten(fall: &serde_json::Value) -> Vec<Antwort> {
+    let id = match &fall["invocation"] {
+        serde_json::Value::String(s) => format!("InvocationID={s}\n"),
+        _ => String::new(),
+    };
+    let mut vorne: Vec<Antwort> = vec![(
+        "systemctl",
+        "-- wb-halter.service",
+        Some((
+            0,
+            format!("LoadState=loaded\nActiveState=active\nMainPID=0\n{id}"),
+        )),
+    )];
+    let rc = i32::try_from(fall["journal_rc"].as_i64().unwrap_or(0)).expect("rc");
+    for (k, text) in fall["journal"].as_object().expect("journal") {
+        vorne.push((
+            "journalctl",
+            leck(format!("_SYSTEMD_INVOCATION_ID={k}")),
+            Some((rc, text.as_str().expect("text").to_owned())),
+        ));
+    }
+    vorne.push(("journalctl", "wb-halter", Some((rc, String::new()))));
+    vorne
+}
+
+/// The state of one case `sammeln-*` (decision of the operator, 28.11.2026) through the real collector.
+fn sammeln_fall(name: &str, fall: &serde_json::Value) -> String {
+    let w = eigener_ordner(&format!("sammeln-{name}"));
+    baum(&w, "1.2.3", false);
+    nutzerdaten(&w, true);
+    schreiben(&w, "usr/bin/bwrap", b"bwrap", 0o755);
+    schreiben(&w, "srv/andere-datei", b"andere", 0o755);
+    let mut sys = attrappe_ok(eigene_uid());
+    let mut vorne = if fall["teil"] == "neustart" {
+        neustart_antworten(&w, fall)
+    } else {
+        kette_antworten(fall)
+    };
+    vorne.append(&mut sys.antworten);
+    sys.antworten = vorne;
+    let umgebung = Umgebung {
+        wurzel: w.clone(),
+        nutzer: Some("anna".to_owned()),
+        root: fall["root"].as_bool().unwrap_or(true),
+        system: &sys,
+    };
+    let lage = umgebung.lage();
+    fs::remove_dir_all(&w).ok();
+    if fall["teil"] == "neustart" {
+        lage.neustart
+    } else {
+        lage.halter_kette
+    }
+}
+
+/// Every case `sammeln-*` of the contract (decision of the operator, 28.11.2026, form 3 and addendum 1): the collector gives the
+/// state the case expects (written by bau-faelle.py).
+#[test]
+fn jeder_fall_sammeln_des_vertrags() {
+    let mut namen: Vec<String> = fs::read_dir(faelle_ordner().join("faelle"))
+        .expect("cases")
+        .map(|e| e.expect("entry").file_name().to_string_lossy().into_owned())
+        .filter(|n| n.starts_with("sammeln-"))
+        .collect();
+    namen.sort();
+    assert!(namen.len() >= 19, "{}", namen.len());
+    let mut falsch = Vec::new();
+    for n in &namen {
+        let fall = fall_lesen(&faelle_ordner().join("faelle").join(n));
+        let erw = fall_lesen(&faelle_ordner().join("erwartet").join(n));
+        let z = sammeln_fall(n.trim_end_matches(".json"), &fall);
+        if z != erw["zustand"].as_str().expect("state") {
+            falsch.push(format!("{n}: {z} != {}", erw["zustand"]));
+        }
+    }
+    assert!(falsch.is_empty(), "{falsch:?}");
+}
+
+/// The pieces of the reading: `wert` takes only a whole key, `aufruf_kennung` only 32 lowercase hex digits, and `neustart_aus`
+/// puts an old program before a state that cannot be told.
+#[test]
+fn die_teile_der_abfrage() {
+    let z = "LoadState=loaded\nActiveStateX=1\nActiveState=active\nMainPID=7\n";
+    assert_eq!(wert(z, "ActiveState"), Some("active"));
+    assert_eq!(wert(z, "MainPID"), Some("7"));
+    assert_eq!(wert(z, "Main"), None);
+    assert_eq!(wert(z, "InvocationID"), None);
+    assert_eq!(dienst_aus(None), "nicht_pruefbar");
+    assert_eq!(
+        dienst_aus(Some("LoadState=error\nActiveState=inactive\n")),
+        "inaktiv"
+    );
+    assert_eq!(
+        dienst_aus(Some("LoadState=masked\nActiveState=inactive\n")),
+        "inaktiv"
+    );
+    assert!(aufruf_kennung("0123456789abcdef0123456789abcdef"));
+    assert!(aufruf_kennung("9a00000000000000000000000000000f"));
+    for falsch in [
+        "0123456789abcdef0123456789abcde",
+        "0123456789abcdef0123456789abcdef0",
+        "0123456789ABCDEF0123456789abcdef",
+        "0123456789abcdeg0123456789abcdef",
+        "g123456789abcdef0123456789abcdef",
+        "`123456789abcdef0123456789abcdef",
+        "/123456789abcdef0123456789abcdef",
+        ":123456789abcdef0123456789abcdef",
+    ] {
+        assert!(!aufruf_kennung(falsch), "{falsch}");
+    }
+    assert_eq!(neustart_aus(&[]), "ok");
+    assert_eq!(neustart_aus(&[Ok(None), Ok(Some(false))]), "ok");
+    assert_eq!(neustart_aus(&[Err(()), Ok(Some(true))]), "noetig");
+    assert_eq!(neustart_aus(&[Ok(Some(false)), Err(())]), "nicht_pruefbar");
+}
+
+/// The chain and the restart come from one call of `systemctl show` per unit; the call asks for the five values with unix
+/// timestamps, and the journal is read once, without `-b`. A healthy tree with an active unit without a main process stays green.
+#[test]
+fn eine_abfrage_je_einheit_mit_den_fuenf_werten() {
+    let w = eigener_ordner("fuenf-werte");
+    baum(&w, "1.2.3", false);
+    nutzerdaten(&w, true);
+    schreiben(&w, "usr/bin/bwrap", b"bwrap", 0o755);
+    let sys = attrappe_ok(eigene_uid());
+    let lage = lage_mit(&w, &sys, Some("anna"));
+    assert_eq!(
+        (lage.neustart.as_str(), lage.halter_kette.as_str()),
+        ("ok", "ok")
+    );
+    let aufrufe: Vec<String> = sys
+        .aufrufe
+        .borrow()
+        .iter()
+        .filter(|a| a.starts_with("systemctl"))
+        .cloned()
+        .collect();
+    assert_eq!(aufrufe.len(), 3, "{aufrufe:?}");
+    assert_eq!(
+        aufrufe[2],
+        "systemctl --user --machine=anna@ show --no-pager --timestamp=unix -p LoadState -p ActiveState -p MainPID -p ExecMainStartTimestamp -p InvocationID -- wb-halter.service"
+    );
+    let journal: Vec<String> = sys
+        .aufrufe
+        .borrow()
+        .iter()
+        .filter(|a| a.starts_with("journalctl"))
+        .cloned()
+        .collect();
+    assert_eq!(journal.len(), 1, "{journal:?}");
+    assert!(!journal[0].contains(" -b "), "{}", journal[0]);
+    assert_eq!(bewerte(&lage).rc, 0);
+    let mut np = lage.clone();
+    np.neustart = "nicht_pruefbar".to_owned();
+    assert!(np.nicht_pruefbar());
     fs::remove_dir_all(&w).ok();
 }

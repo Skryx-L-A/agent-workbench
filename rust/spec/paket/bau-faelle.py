@@ -1048,6 +1048,21 @@ fall_pruef("linux-halter-kette-ohne-root-mit-hinweis", "Entscheid 28.11.2026: oh
            [HK["nicht_pruefbar"], HINWEIS_SUDO, "pruef.rot: 1 Befunde."], lx(lambda o: o.update(ohne_root=True, halter_kette="nicht_pruefbar")))
 fall_pruef("linux-halter-kette-vor-entfernen-still", "Entscheid 28.11.2026: `prerm` sagt zur Kette nichts", 0, [],
            lx(lambda o: o.update(schluessel="fehlt", copilot="fehlt", halter_kette="fehler")), aufruf=["--vor-entfernen"])
+# Entscheid des Betreibers, 28.11.2026: „Neustart nötig“ nach einem Upgrade, Teil der Prüfung `dienste`, nach der Kette des Halters.
+NS = {"noetig": "pruef.neustart_noetig: Ein Dienst der Werkbank laeuft noch mit dem Programm von vor dem Upgrade; Neustart noetig.",
+      "nicht_pruefbar": "pruef.neustart_nicht_pruefbar: Ob ein Dienst der Werkbank neu starten muss, war nicht pruefbar."}
+for z in ("noetig", "nicht_pruefbar"):
+    fall_pruef("linux-neustart-" + z.replace("_", "-"), f"Entscheid 28.11.2026: Neustart der Dienste im Zustand {z}", 1, rot([NS[z]]),
+               lx(lambda o, z=z: o.update(neustart=z)))
+fall_pruef("linux-neustart-ok", "Entscheid 28.11.2026: neustart ausdrücklich ok (alle laufenden Dienste mit dem Programm der Datei): grün, acht Prüfungen", 0, [OK7],
+           lx(lambda o: o.update(neustart="ok")))
+fall_pruef("linux-neustart-nach-der-kette", "Entscheid 28.11.2026: Kette, Neustart und AppArmor rot: erst die Kette, dann der Neustart, dann AppArmor", 1,
+           rot([HK["fehler"], NS["noetig"], "pruef.apparmor_nicht_geladen: Das AppArmor-Profil ist nicht geladen."]),
+           lx(lambda o: o.update(halter_kette="fehler", neustart="noetig", apparmor="nicht_geladen")))
+fall_pruef("linux-neustart-ohne-root-mit-hinweis", "Entscheid 28.11.2026: ohne root nicht prüfbar (keine Startzeit): nicht_pruefbar und der Hinweis auf sudo", 1,
+           [NS["nicht_pruefbar"], HINWEIS_SUDO, "pruef.rot: 1 Befunde."], lx(lambda o: o.update(ohne_root=True, neustart="nicht_pruefbar")))
+fall_pruef("linux-neustart-vor-entfernen-still", "Entscheid 28.11.2026: `prerm` sagt zum Neustart nichts", 0, [],
+           lx(lambda o: o.update(schluessel="fehlt", copilot="fehlt", neustart="noetig")), aufruf=["--vor-entfernen"])
 ALTER_ORT = "pruef.copilot_alter_ort: Am frueheren Ort liegt noch eine Anmeldedatei der Copilot CLI; sie wird nicht mehr gelesen und muss weg."
 fall_pruef("linux-copilot-alter-ort", "Nachtrag Halter: anmeldung.copilot ist in Ordnung, die Datei am früheren Ort liegt noch da: ein eigener Befund", 1,
            rot([ALTER_ORT]), lx(lambda o: o.update(copilot_alt=True)))
@@ -1914,6 +1929,124 @@ fall_purge2("mount-form-fehler-mit-liste", "Schritt II: `findmnt` ist gescheiter
             einhaengepunkte=[M_WURZEL], findmnt_fehler=True)
 fall_purge2("mount-form-rest-dateien-doppelt", "Schritt II: Dateien stehen zugleich in `rest` und in der Liste der Einhängepunkte", VOR + SYS_KONTEN + ["datei:" + REST_DATEI],
             "entfernen_form", rest={"dateien": [REST_DATEI], "prozesse": []}, journal=KONTO_REST + "\n", einhaengepunkte=[M_WURZEL, M_ZWEITE])
+
+
+# ------------------------------------------------------------------------------------------ Upgrade und laufende Dienste
+# Entscheid des Betreibers, 28.11.2026 (Form 1): `prerm` und `postinst` nehmen jeden Nutzer mit laufendem Nutzer-Manager aus `loginctl`,
+# nach einem Upgrade nur `try-restart`. Die Erwartung steht hier von Hand: die Aufrufe `systemctl --user` als `<nutzer> <aktion> <einheiten>`.
+KERN, BRUECKE, HALTER = "werkbank-kern.service", "werkbank-bruecke.service", "wb-halter.service"
+DREI = [KERN, BRUECKE, HALTER]
+PW = {"wb": 1000, "anna": 1001}
+FOLGE = "; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen"
+
+
+def neu_zeile(n, liste):
+    return f"werkbank: Neustart der Dienste von {n}: {' '.join(liste)}" + FOLGE
+
+
+def fall_neustart(name, beschreibung, aufrufe, zeilen=(), skript="postinst", argumente=("configure", "0.1.0"), **lage):
+    f = {"beschreibung": beschreibung, "form": "neustart", "skript": skript, "argumente": list(argumente), "umgebung": {},
+         "loginctl": [["1000", "wb"]], "passwd": dict(PW), "manager": ["1000"], "aktiv": {"wb": list(DREI)}, "scheitert": {}, "notiz": None}
+    f.update(lage)
+    fall("neustart-" + name, f, {"aufrufe": list(aufrufe), "ausgabe": list(zeilen), "rc": 0})
+
+
+fall_neustart("upgrade-ohne-sudo", "Upgrade ohne SUDO_USER (root-Shell, systemd-run, unattended-upgrades): die drei laufenden Einheiten starten neu, ein Aufruf",
+              ["wb try-restart " + " ".join(DREI)], [neu_zeile("wb", DREI)])
+fall_neustart("upgrade-mit-sudo", "Upgrade mit sudo: derselbe eine Aufruf, SUDO_USER ändert nichts", ["wb try-restart " + " ".join(DREI)],
+              [neu_zeile("wb", DREI)], umgebung={"SUDO_USER": "wb"})
+fall_neustart("upgrade-prerm-haelt-nichts-an", "Upgrade: `prerm` hält keine Benutzereinheit an (alt: die von SUDO_USER, mit Notiz)", [],
+              skript="prerm", argumente=("upgrade", "0.1.0"), umgebung={"SUDO_USER": "wb"})
+fall_neustart("zwei-nutzer", "zwei Nutzer mit laufendem Nutzer-Manager (Linger): beide starten neu, je ein Aufruf in der Reihenfolge von loginctl",
+              ["wb try-restart " + " ".join(DREI), "anna try-restart " + " ".join(DREI)], [neu_zeile("wb", DREI), neu_zeile("anna", DREI)],
+              loginctl=[["1000", "wb"], ["1001", "anna"]], manager=["1000", "1001"], aktiv={"wb": list(DREI), "anna": list(DREI)})
+fall_neustart("nur-laufende", "nur laufende Einheiten starten neu; ein Nutzer ohne laufende Einheit bekommt keinen Aufruf (`try-restart`, nie `start`)",
+              ["anna try-restart " + KERN], [neu_zeile("anna", [KERN])],
+              loginctl=[["1000", "wb"], ["1001", "anna"]], manager=["1000", "1001"], aktiv={"wb": [], "anna": [KERN]})
+fall_neustart("ohne-manager", "loginctl nennt einen Nutzer, sein Nutzer-Manager läuft nicht: kein Aufruf, keine Zeile", [], manager=[])
+fall_neustart("ohne-loginctl", "loginctl fehlt oder scheitert: kein Aufruf, keine Zeile, rc 0", [], loginctl=None)
+fall_neustart("startgrenze", "die Startgrenze des Halters ist erreicht: postinst nennt die Einheit, endet aber mit 0",
+              ["wb try-restart " + " ".join(DREI)],
+              [neu_zeile("wb", DREI), f"werkbank: Einheit {HALTER} von wb laeuft nach dem Neustart nicht (Startgrenze oder Fehler); systemctl --user status {HALTER}"],
+              scheitert={"wb": [HALTER]})
+fall_neustart("name-ungueltig", "Gegenfall: Namen, die die Prüfung nicht bestehen (Großbuchstabe, nicht in passwd, uid weicht ab, uid keine Zahl), werden übersprungen und mit der uid genannt",
+              ["wb try-restart " + " ".join(DREI)],
+              ["werkbank: Nutzer mit uid 1002 uebersprungen, der Name ist nicht gueltig; seine Dienste starten nicht neu",
+               "werkbank: Nutzer mit uid 1003 uebersprungen, der Name ist nicht gueltig; seine Dienste starten nicht neu",
+               "werkbank: Nutzer mit uid 1004 uebersprungen, der Name ist nicht gueltig; seine Dienste starten nicht neu",
+               "werkbank: ein Nutzer uebersprungen, seine uid ist keine Zahl; seine Dienste starten nicht neu",
+               neu_zeile("wb", DREI)],
+              loginctl=[["1002", "Anna"], ["1003", "geist"], ["1004", "berta"], ["x1", "carl"], ["1000", "wb"]],
+              passwd={"wb": 1000, "Anna": 1002, "berta": 1005, "carl": 1006}, manager=["1000", "1002", "1003", "1004"],
+              aktiv={"wb": list(DREI), "Anna": list(DREI), "geist": list(DREI), "berta": list(DREI)})
+fall_neustart("root-still", "die uid 0 zählt nie und wird nicht genannt", ["wb try-restart " + " ".join(DREI)], [neu_zeile("wb", DREI)],
+              loginctl=[["0", "root"], ["1000", "wb"]], passwd={"root": 0, "wb": 1000}, manager=["0", "1000"],
+              aktiv={"root": list(DREI), "wb": list(DREI)})
+fall_neustart("reconfigure", "dpkg-reconfigure (DEBCONF_RECONFIGURE=1) ersetzt keine Datei: kein Neustart", [], umgebung={"DEBCONF_RECONFIGURE": "1"})
+fall_neustart("alte-notiz", "Upgrade von einem Paket, dessen prerm die Einheiten von SUDO_USER anhielt und merkte: genau die gemerkten starten wieder, die anderen Nutzer mit try-restart",
+              ["wb start " + " ".join(DREI), "anna try-restart " + KERN], [neu_zeile("wb", DREI), neu_zeile("anna", [KERN])],
+              umgebung={"SUDO_USER": "wb"}, notiz="wb wb-halter.service werkbank-bruecke.service werkbank-kern.service",
+              loginctl=[["1000", "wb"], ["1001", "anna"]], manager=["1000", "1001"], aktiv={"wb": [], "anna": [KERN]})
+fall_neustart("alte-notiz-nur-kern", "die alte Notiz nennt nur den Kern: nur er startet wieder", ["wb start " + KERN], [neu_zeile("wb", [KERN])],
+              umgebung={"SUDO_USER": "wb"}, notiz="wb werkbank-kern.service", aktiv={"wb": []})
+fall_neustart("remove-alle-nutzer", "remove: prerm hält die drei Einheiten jedes Nutzers mit laufendem Nutzer-Manager an, Halter zuerst",
+              [f"{n} stop {e}" for n in ("wb", "anna") for e in (HALTER, BRUECKE, KERN)], skript="prerm", argumente=("remove",),
+              loginctl=[["1000", "wb"], ["1001", "anna"]], manager=["1000", "1001"], aktiv={"wb": list(DREI), "anna": []})
+fall_neustart("remove-ohne-sudo", "remove ohne SUDO_USER: dieselben Nutzer wie mit sudo", [f"wb stop {e}" for e in (HALTER, BRUECKE, KERN)],
+              skript="prerm", argumente=("remove",))
+
+# ------------------------------------------------------------------------------------------ Sammeln: Neustart nötig und Kette des Halters
+# Entscheid des Betreibers, 28.11.2026 (Form 3 und Nachtrag 1): was `werkbank-pruefen` aus den Antworten des Rechners liest.
+
+
+def einheit(name, aktiv=True, zeigen=True, datei=True, exe="gleich", start="nach"):
+    return {"name": name, "aktiv": aktiv, "zeigen": zeigen, "datei": datei, "exe": exe, "start": start}
+
+
+def fall_sammeln(name, beschreibung, zustand, **f):
+    fall("sammeln-" + name, {"beschreibung": beschreibung, "form": "sammeln", **f}, {"zustand": zustand})
+
+
+def neu3(**ab):
+    return [einheit(KERN), einheit(BRUECKE), einheit(HALTER, **ab)]
+
+
+fall_sammeln("neustart-root-neu", "root: /proc/<MainPID>/exe zeigt auf die Datei (gleiche Inode): ok", "ok", teil="neustart", root=True, einheiten=neu3())
+fall_sammeln("neustart-root-geloescht", "root: exe endet auf ' (deleted)' (alter Halter nach einem Upgrade ohne SUDO_USER): noetig", "noetig",
+             teil="neustart", root=True, einheiten=neu3(exe="geloescht"))
+fall_sammeln("neustart-root-andere-inode", "root: exe zeigt auf eine andere Inode als die Datei: noetig", "noetig", teil="neustart", root=True,
+             einheiten=neu3(exe="andere"))
+fall_sammeln("neustart-root-unlesbar", "root: exe nicht lesbar: nicht_pruefbar, nie grün", "nicht_pruefbar", teil="neustart", root=True,
+             einheiten=neu3(exe="unlesbar"))
+fall_sammeln("neustart-ohne-root-alt", "ohne root: ExecMainStartTimestamp vor der ctime der Datei: noetig", "noetig", teil="neustart", root=False,
+             einheiten=neu3(start="vor"))
+fall_sammeln("neustart-ohne-root-neu", "ohne root: Start nach der ctime der Datei: ok", "ok", teil="neustart", root=False, einheiten=neu3())
+fall_sammeln("neustart-ohne-root-gleiche-sekunde", "ohne root: Start in derselben Sekunde wie die ctime: ok (nur eine frühere Sekunde ist alt)", "ok",
+             teil="neustart", root=False, einheiten=neu3(start="gleich"))
+fall_sammeln("neustart-ohne-root-ohne-start", "ohne root: keine Startzeit: nicht_pruefbar", "nicht_pruefbar", teil="neustart", root=False,
+             einheiten=neu3(start="fehlt"))
+fall_sammeln("neustart-inaktiv", "eine Einheit läuft nicht: sie zählt hier nicht (die Zeile der Einheit sagt es), die anderen sind neu: ok", "ok",
+             teil="neustart", root=True, einheiten=neu3(aktiv=False, exe="geloescht"))
+fall_sammeln("neustart-datei-fehlt", "das Programm der Einheit fehlt: nicht_pruefbar", "nicht_pruefbar", teil="neustart", root=True,
+             einheiten=neu3(datei=False))
+fall_sammeln("neustart-zeigen-scheitert", "systemctl show scheitert: nicht_pruefbar", "nicht_pruefbar", teil="neustart", root=True,
+             einheiten=neu3(zeigen=False))
+fall_sammeln("neustart-alt-vor-nicht-pruefbar", "eine Einheit alt, eine nicht prüfbar: noetig", "noetig", teil="neustart", root=True,
+             einheiten=[einheit(KERN, exe="geloescht"), einheit(BRUECKE, exe="unlesbar"), einheit(HALTER)])
+ID_ALT, ID_NEU = "0" * 31 + "a", "f" * 32
+RECHTE = "halter.kette_rechte: Kette nicht schreibbar"
+fall_sammeln("kette-gruen-nach-neustart", "Gegenprobe: der frühere Aufruf endete mit halter.kette_rechte, der jüngste läuft ohne: ok ohne neuen Boot", "ok",
+             teil="kette", invocation=ID_NEU, journal={ID_ALT: RECHTE + "\n", ID_NEU: "halter.antwortform: {}\n"})
+fall_sammeln("kette-gescheiterter-aufruf", "der jüngste Aufruf ist der gescheiterte (78): rechte", "rechte", teil="kette", invocation=ID_ALT,
+             journal={ID_ALT: RECHTE + "\n"})
+fall_sammeln("kette-fehler-im-laufenden-aufruf", "eine Zeile halter.kette_fehler im jüngsten Aufruf: fehler", "fehler", teil="kette", invocation=ID_NEU,
+             journal={ID_NEU: "halter.kette_fehler: {}\n"})
+fall_sammeln("kette-ohne-invocation", "keine InvocationID: nicht_pruefbar, kein Rückfall auf das Journal seit dem Boot", "nicht_pruefbar", teil="kette",
+             invocation=None, journal={ID_ALT: ""})
+fall_sammeln("kette-invocation-leer", "InvocationID leer: nicht_pruefbar", "nicht_pruefbar", teil="kette", invocation="", journal={})
+fall_sammeln("kette-invocation-form", "InvocationID nicht 32 Hexziffern: nicht_pruefbar", "nicht_pruefbar", teil="kette", invocation="ABC", journal={})
+fall_sammeln("kette-journal-scheitert", "journalctl scheitert: nicht_pruefbar", "nicht_pruefbar", teil="kette", invocation=ID_NEU, journal={},
+             journal_rc=1)
 
 
 # Ausstehende Fälle: keine mehr. Die Fälle des Nachtrags Halter, die erst der Code der Crates bestand, stehen seit dessen Zug in

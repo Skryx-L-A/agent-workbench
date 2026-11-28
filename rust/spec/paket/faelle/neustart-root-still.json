@@ -1,0 +1,42 @@
+{
+ "beschreibung": "die uid 0 zählt nie und wird nicht genannt",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {},
+ "loginctl": [
+  [
+   "0",
+   "root"
+  ],
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "root": 0,
+  "wb": 1000
+ },
+ "manager": [
+  "0",
+  "1000"
+ ],
+ "aktiv": {
+  "root": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ],
+  "wb": [
+   "werkbank-kern.service",
+   "werkbank-bruecke.service",
+   "wb-halter.service"
+  ]
+ },
+ "scheitert": {},
+ "notiz": null
+}

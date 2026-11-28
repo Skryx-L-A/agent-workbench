@@ -984,7 +984,7 @@ ROLLENPROGRAMM_SATZ = {
     "modus": "pruef.rollenprogramm_modus: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg hat nicht root:wb-bruecke mit Modus 2755.",
     "nicht_pruefbar": "pruef.rollenprogramm_nicht_pruefbar: Das Rollenprogramm war nicht pruefbar.",
 }
-# Entscheid des Betreibers, 28.11.2026: die Kette des Halters nach dem Journal von wb-halter.service seit dem Start des Rechners.
+# Entscheid des Betreibers, 28.11.2026: die Kette des Halters nach dem Journal des jüngsten Aufrufs (InvocationID) von wb-halter.service.
 # Lagefeld optional (fehlt es, gilt `ok`); die Zeile steht nach der des Rollenprogramms, noch in der Prüfung `dienste`.
 HALTER_KETTE_SATZ = {
     "rechte": "pruef.halter_kette_rechte: Der Halter startete nicht, weil er seine Kette nicht schreiben kann (halter.kette_rechte); "
@@ -992,6 +992,11 @@ HALTER_KETTE_SATZ = {
     "fehler": "pruef.halter_kette_fehler: Der Halter konnte Zeilen seiner Kette nicht schreiben (halter.kette_fehler im Journal); "
               "Ablehnungen fehlen in der Kette.",
     "nicht_pruefbar": "pruef.halter_kette_nicht_pruefbar: Das Journal des Halters war nicht pruefbar.",
+}
+# Entscheid des Betreibers, 28.11.2026: „Neustart nötig“, nach der Kette des Halters, Teil der Prüfung `dienste`.
+NEUSTART_SATZ = {
+    "noetig": "pruef.neustart_noetig: Ein Dienst der Werkbank laeuft noch mit dem Programm von vor dem Upgrade; Neustart noetig.",
+    "nicht_pruefbar": "pruef.neustart_nicht_pruefbar: Ob ein Dienst der Werkbank neu starten muss, war nicht pruefbar.",
 }
 SCHLUESSEL_SATZ = {
     "fehlt": "pruef.schluessel_fehlt: Die Schluesseldatei fehlt.",
@@ -1008,7 +1013,7 @@ HINWEIS_SUDO = "pruef.hinweis_sudo: Ohne root waren nicht alle Pruefungen moegli
 
 def _nicht_pruefbar(lage):
     """Ubuntu: meldet irgendeine der acht Prüfungen `nicht_pruefbar`?"""
-    zustaende = [d["zustand"] for d in lage["dienste"]] + [lage.get("rollengruppe", "ok"), lage.get("rollenprogramm", "ok"), lage.get("halter_kette", "ok"), lage["apparmor"], lage["einstellungen"]["zustand"], lage["nutzerordner"],
+    zustaende = [d["zustand"] for d in lage["dienste"]] + [lage.get("rollengruppe", "ok"), lage.get("rollenprogramm", "ok"), lage.get("halter_kette", "ok"), lage.get("neustart", "ok"), lage["apparmor"], lage["einstellungen"]["zustand"], lage["nutzerordner"],
                                                            lage["schluessel"], lage["copilot"], lage["vault"], lage["paketstand"]["manifest"]]
     return "nicht_pruefbar" in zustaende
 
@@ -1043,7 +1048,7 @@ def pruefbefehl(aufruf, lage):
             if z == "ok":
                 continue
             befunde.append(DIENST_SATZ[z].format(n=n))
-        for feld, tabelle in (("rollengruppe", ROLLENGRUPPE_SATZ), ("rollenprogramm", ROLLENPROGRAMM_SATZ), ("halter_kette", HALTER_KETTE_SATZ)):
+        for feld, tabelle in (("rollengruppe", ROLLENGRUPPE_SATZ), ("rollenprogramm", ROLLENPROGRAMM_SATZ), ("halter_kette", HALTER_KETTE_SATZ), ("neustart", NEUSTART_SATZ)):
             if lage.get(feld, "ok") != "ok":
                 befunde.append(tabelle[lage[feld]])
         if lage["apparmor"] != "ok":
@@ -1447,3 +1452,107 @@ def vorgabe_block_code(text):
     if 'id -u "$SUDO_USER"' not in text or 'getent passwd "$vg_kuid"' not in text or "$SUDO_USER" in text.replace('id -u "$SUDO_USER"', "").replace('"${SUDO_USER:-}"', ""):
         return "konto"
     return None
+
+
+# ---------------------------------------------------------------------------------------------------- Upgrade und laufende Dienste
+# Entscheid des Betreibers, 28.11.2026 (README, „Upgrade und laufende Dienste“): `prerm` und `postinst` nehmen jeden Nutzer mit laufendem
+# Nutzer-Manager aus `loginctl`; nach einem Upgrade nur `try-restart`; ein Fehlschlag wird genannt, `postinst` endet mit 0.
+
+EINHEITEN_START = ("werkbank-kern.service", "werkbank-bruecke.service", "wb-halter.service")
+EINHEITEN_STOPP = ("wb-halter.service", "werkbank-bruecke.service", "werkbank-kern.service")
+NUTZERNAME = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
+
+
+def nutzer_liste(fall):
+    """(gut, aus): die Namen der Nutzer mit laufendem Nutzer-Manager, die die Prüfung bestehen (je einmal, Reihenfolge von `loginctl`),
+    und je ein Wort für einen, der sie nicht besteht (die uid, `-` bei einer uid, die keine Zahl ist). Die uid 0 zählt nie und wird nicht genannt."""
+    gut, aus = [], []
+    if fall.get("loginctl") is None:
+        return gut, aus
+    for uid, name in fall["loginctl"]:
+        if not uid.isdigit() or not uid.isascii():
+            aus.append("-")
+            continue
+        if uid not in fall.get("manager", []):
+            continue
+        if uid == "0":
+            continue
+        if not NUTZERNAME.match(name) or name == "root" or fall.get("passwd", {}).get(name) != int(uid):
+            aus.append(uid)
+            continue
+        if name not in gut:
+            gut.append(name)
+    return gut, aus
+
+
+def neustart_ablauf(fall):
+    """Fall der Form `neustart`: die Aufrufe von `systemctl --user` (`<nutzer> <aktion> <einheiten>`), die Zeilen der Ausgabe und der Code."""
+    skript, argumente, umgebung = fall["skript"], fall["argumente"], fall.get("umgebung", {})
+    aufrufe, zeilen = [], []
+    aktion = argumente[0] if argumente else ""
+    reconfigure = umgebung.get("DEBCONF_RECONFIGURE") == "1"
+    if skript == "prerm":
+        if aktion in ("remove", "deconfigure"):
+            gut, _ = nutzer_liste(fall)
+            for n in gut:
+                aufrufe += [f"{n} stop {e}" for e in EINHEITEN_STOPP]
+        return {"aufrufe": aufrufe, "ausgabe": zeilen, "rc": 0}
+    if aktion != "configure" or reconfigure:
+        return {"aufrufe": aufrufe, "ausgabe": zeilen, "rc": 0}
+    gut, aus = nutzer_liste(fall)
+    for u in aus:
+        if u == "-":
+            zeilen.append("werkbank: ein Nutzer uebersprungen, seine uid ist keine Zahl; seine Dienste starten nicht neu")
+        else:
+            zeilen.append(f"werkbank: Nutzer mit uid {u} uebersprungen, der Name ist nicht gueltig; seine Dienste starten nicht neu")
+    notiz = (fall.get("notiz") or "").split()
+    for n in gut:
+        if notiz and notiz[0] == n:
+            art, liste = "start", [e for e in EINHEITEN_START if e in notiz[1:]]
+        else:
+            art, liste = "try-restart", [e for e in EINHEITEN_START if e in fall.get("aktiv", {}).get(n, [])]
+        if not liste:
+            continue
+        zeilen.append(f"werkbank: Neustart der Dienste von {n}: {' '.join(liste)}; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen")
+        aufrufe.append(f"{n} {art} {' '.join(liste)}")
+        for e in liste:
+            if e in fall.get("scheitert", {}).get(n, []):
+                zeilen.append(f"werkbank: Einheit {e} von {n} laeuft nach dem Neustart nicht (Startgrenze oder Fehler); systemctl --user status {e}")
+    return {"aufrufe": aufrufe, "ausgabe": zeilen, "rc": 0}
+
+
+# ---------------------------------------------------------------------------------------------------- Sammeln: Neustart nötig, Kette
+
+AUFRUF_KENNUNG = re.compile(r"^[0-9a-f]{32}$")
+
+
+def sammeln_zustand(fall):
+    """Fall der Form `sammeln`: der Zustand, den der Prüfbefehl aus den Antworten des Rechners liest (`teil` `neustart` oder `kette`)."""
+    if fall["teil"] == "kette":
+        kennung = fall.get("invocation")
+        if not kennung or not AUFRUF_KENNUNG.match(kennung) or fall.get("journal_rc", 0) != 0:
+            return "nicht_pruefbar"
+        text = fall.get("journal", {}).get(kennung, "")
+        zeilen = text.split("\n")
+        if any(z.startswith("halter.kette_rechte:") for z in zeilen):
+            return "rechte"
+        if any(z.startswith("halter.kette_fehler:") for z in zeilen):
+            return "fehler"
+        return "ok"
+    zustaende = []
+    for e in fall["einheiten"]:
+        if not e["zeigen"]:
+            zustaende.append("nicht_pruefbar")
+        elif not e["aktiv"]:
+            continue
+        elif not e["datei"]:
+            zustaende.append("nicht_pruefbar")
+        elif fall["root"]:
+            zustaende.append({"gleich": "neu", "geloescht": "alt", "andere": "alt", "unlesbar": "nicht_pruefbar"}[e["exe"]])
+        else:
+            zustaende.append({"vor": "alt", "gleich": "neu", "nach": "neu", "fehlt": "nicht_pruefbar"}[e["start"]])
+    if "alt" in zustaende:
+        return "noetig"
+    if "nicht_pruefbar" in zustaende:
+        return "nicht_pruefbar"
+    return "ok"

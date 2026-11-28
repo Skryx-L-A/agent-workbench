@@ -1,0 +1,11 @@
+{
+ "aufrufe": [
+  "wb try-restart werkbank-kern.service werkbank-bruecke.service wb-halter.service",
+  "anna try-restart werkbank-kern.service werkbank-bruecke.service wb-halter.service"
+ ],
+ "ausgabe": [
+  "werkbank: Neustart der Dienste von wb: werkbank-kern.service werkbank-bruecke.service wb-halter.service; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen",
+  "werkbank: Neustart der Dienste von anna: werkbank-kern.service werkbank-bruecke.service wb-halter.service; laufende Sitzungen enden, wartende und erteilte Freigaben verfallen"
+ ],
+ "rc": 0
+}

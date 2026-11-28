@@ -71,8 +71,8 @@ pub const ROLLENPROGRAMM: &[(&str, &str)] = &[
     ),
 ];
 
-/// The state of the chain of the holder in the journal of `wb-halter.service` since the boot and the sentence for it (decision
-/// of the operator, 28.11.2026; part of the check of the units, after the role program). `fehler`: a line
+/// The state of the chain of the holder in the journal of the latest run (`InvocationID`) of `wb-halter.service` and the sentence
+/// for it (decision of the operator, 28.11.2026; part of the check of the units, after the role program). `fehler`: a line
 /// `halter.kette_fehler` (a refusal is missing in the chain); `rechte`: a start ended with `halter.kette_rechte`.
 pub const HALTER_KETTE: &[(&str, &str)] = &[
     (
@@ -86,6 +86,19 @@ pub const HALTER_KETTE: &[(&str, &str)] = &[
     (
         "nicht_pruefbar",
         "pruef.halter_kette_nicht_pruefbar: Das Journal des Halters war nicht pruefbar.",
+    ),
+];
+
+/// The state "restart needed" of the units of the package and the sentence for it (decision of the operator, 28.11.2026; part of the
+/// check of the units, after the chain of the holder). `noetig`: a running unit still runs the program from before an upgrade.
+pub const NEUSTART: &[(&str, &str)] = &[
+    (
+        "noetig",
+        "pruef.neustart_noetig: Ein Dienst der Werkbank laeuft noch mit dem Programm von vor dem Upgrade; Neustart noetig.",
+    ),
+    (
+        "nicht_pruefbar",
+        "pruef.neustart_nicht_pruefbar: Ob ein Dienst der Werkbank neu starten muss, war nicht pruefbar.",
     ),
 ];
 
@@ -357,6 +370,8 @@ pub struct Lage {
     pub rollenprogramm: String,
     /// State of the chain of the holder after its journal (field `halter_kette`, a state of [`HALTER_KETTE`]; absent gives `ok`).
     pub halter_kette: String,
+    /// State "restart needed" of the units (field `neustart`, a state of [`NEUSTART`]; absent gives `ok`).
+    pub neustart: String,
     /// State of the `AppArmor` profile.
     pub apparmor: String,
     /// The settings file.
@@ -409,6 +424,7 @@ impl Lage {
                 &self.rollengruppe,
                 &self.rollenprogramm,
                 &self.halter_kette,
+                &self.neustart,
                 &self.apparmor,
                 &self.einstellungen.zustand,
                 &self.nutzerordner,
@@ -670,6 +686,7 @@ impl Lage {
             rollengruppe: optional_aus(wert, "rollengruppe", ROLLENGRUPPE)?,
             rollenprogramm: optional_aus(wert, "rollenprogramm", ROLLENPROGRAMM)?,
             halter_kette: optional_aus(wert, "halter_kette", HALTER_KETTE)?,
+            neustart: optional_aus(wert, "neustart", NEUSTART)?,
             apparmor: zustand_pruefen(APPARMOR, text(wert, "apparmor")?, "apparmor")?,
             einstellungen: Einstellungen {
                 zustand: ez.to_owned(),

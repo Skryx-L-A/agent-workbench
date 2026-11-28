@@ -1,0 +1,30 @@
+{
+ "beschreibung": "die alte Notiz nennt nur den Kern: nur er startet wieder",
+ "form": "neustart",
+ "skript": "postinst",
+ "argumente": [
+  "configure",
+  "0.1.0"
+ ],
+ "umgebung": {
+  "SUDO_USER": "wb"
+ },
+ "loginctl": [
+  [
+   "1000",
+   "wb"
+  ]
+ ],
+ "passwd": {
+  "wb": 1000,
+  "anna": 1001
+ },
+ "manager": [
+  "1000"
+ ],
+ "aktiv": {
+  "wb": []
+ },
+ "scheitert": {},
+ "notiz": "wb werkbank-kern.service"
+}

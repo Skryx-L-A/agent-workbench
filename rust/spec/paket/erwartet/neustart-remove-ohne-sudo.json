@@ -1,0 +1,9 @@
+{
+ "aufrufe": [
+  "wb stop wb-halter.service",
+  "wb stop werkbank-bruecke.service",
+  "wb stop werkbank-kern.service"
+ ],
+ "ausgabe": [],
+ "rc": 0
+}

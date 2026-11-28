@@ -1,0 +1,9 @@
+{
+ "beschreibung": "keine InvocationID: nicht_pruefbar, kein Rückfall auf das Journal seit dem Boot",
+ "form": "sammeln",
+ "teil": "kette",
+ "invocation": null,
+ "journal": {
+  "0000000000000000000000000000000a": ""
+ }
+}

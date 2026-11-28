@@ -1,0 +1,9 @@
+{
+ "beschreibung": "eine Zeile halter.kette_fehler im jüngsten Aufruf: fehler",
+ "form": "sammeln",
+ "teil": "kette",
+ "invocation": "ffffffffffffffffffffffffffffffff",
+ "journal": {
+  "ffffffffffffffffffffffffffffffff": "halter.kette_fehler: {}\n"
+ }
+}
