@@ -615,7 +615,12 @@ pub(super) fn vorgang_form(map: &Map<String, Value>) -> bool {
 /// Kinds of version 2 that contract 5 names but whose closed form has no check here yet (register group
 /// „angemeldet, Form noch nicht geprüft", contract 5, section 3). Their line passes as a chain link; their form
 /// comes with the build of their writer.
-const REGISTER_ANGEMELDET: [&str; 3] = ["regel.geaendert", "regel.abgelehnt", "suche.rueckfall"];
+const REGISTER_ANGEMELDET: [&str; 4] = [
+    "regel.geaendert",
+    "regel.abgelehnt",
+    "suche.rueckfall",
+    "lauf.harness",
+];
 
 /// Kinds of version 2 whose form another contract lays down (register group „in anderen Verträgen festgelegt",
 /// contract 5, section 3). This check only knows that they exist, so a chain that holds them stays whole.

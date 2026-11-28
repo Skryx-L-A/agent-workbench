@@ -17,7 +17,7 @@ use zustandskern::Sitzungskern;
 
 use crate::aufraeumen::{KindZeit, sitzung_ende_raeumt_auf};
 use crate::fehler::StartFehler;
-use crate::meldung::{CODE_UNGUELTIG, Ende, GRUND_UNGUELTIG, Meldung};
+use crate::meldung::{CODE_UNGUELTIG, Ende, GRUND_UNGUELTIG, Meldeweg};
 use crate::startdatei::Startdatei;
 use crate::starten::KILL_FRIST_MS;
 use crate::waisen::Kindblick;
@@ -242,7 +242,7 @@ pub(crate) struct Sitzung {
     /// structure for a session of `Starten`, `None` for the room core. `OrdnerLesen` and `InhaltSuchen` read only below it.
     pub(crate) arbeitsordner: Option<PathBuf>,
     /// The socket of the report of `lauf` (section 18); `None` for the session of `kind`, for the room core and after the end.
-    pub(crate) meldung: Option<Meldung>,
+    pub(crate) meldung: Option<Meldeweg>,
     /// The reason the report gave (or [`GRUND_UNGUELTIG`]), once the child has ended; the list shows it.
     pub(crate) grund: Option<String>,
     /// The open socket folder through which the folder above is removed (`loeschen.rs`).
@@ -298,7 +298,7 @@ impl Sitzung {
         kind: Kind,
         eintrag: Value,
         meta: [String; 4],
-        ordner: (PathBuf, Arc<crate::sys::Ordner>, Meldung),
+        ordner: (PathBuf, Arc<crate::sys::Ordner>, Meldeweg),
     ) -> Self {
         let kind_zeit = KindZeit::von(kind.pid());
         let mut s = Self::mit(Some(sid), Some(nr), kern, Some(kind));
@@ -364,7 +364,18 @@ impl Sitzung {
         let Some(mut meldung) = self.meldung.take() else {
             return code;
         };
-        match meldung.auswerten_am_ende() {
+        let ende = meldung.auswerten_am_ende();
+        // Nachtrag 28.11.2026: only the number of the dropped lines goes to the log, never a byte of them
+        if meldung.verworfen() > 0 {
+            use std::io::Write as _;
+            let _ = writeln!(
+                std::io::stderr(),
+                "wb-dienst: meldung {} verworfen: {} Zeilen",
+                self.sid.as_deref().unwrap_or("-"),
+                meldung.verworfen()
+            );
+        }
+        match ende {
             Ende::Keine | Ende::Starter => code,
             Ende::Gemeldet { code, grund } => {
                 self.grund = Some(grund);

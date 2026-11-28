@@ -229,7 +229,7 @@ const stelleForm = (w) => (w.aktionsname === 'mcp.schreibaufruf' ? geschlossenSc
 const ST_ARTEN = ['mcp.schreibaufruf', 'sitzung.gestartet', 'sitzung.abgelehnt', 'vorgang.abgelehnt'];
 // Register (Abschnitt 3): Eine Zeile der Fassung 2 mit einem Aktionsnamen, den Vertrag 5 nicht nennt, ist form_falsch.
 // Gruppe "angemeldet": Vertrag 5 nennt die Art, ihre Form prueft noch kein Arm. Gruppe "fremd": die Form steht in einem anderen Vertrag.
-const REG_ANGEMELDET = ['regel.geaendert', 'regel.abgelehnt', 'suche.rueckfall'];
+const REG_ANGEMELDET = ['regel.geaendert', 'regel.abgelehnt', 'suche.rueckfall', 'lauf.harness'];
 const REG_FREMD = ['hersteller.zugang', 'hersteller.zugriff', 'pflicht.aenderung', 'protokoll.einsicht', 'vorgang.gedrosselt',
   'modell.aufruf', 'fall.freitext', 'mcp.schein_abgelehnt', 'halter.leck_gesperrt', 'halter.pfad_verboten', 'wissen.geschrieben', 'wissen.schreiben.abgelehnt',
   'klasse.erlaubt', 'lauf.melden', 'sitzung.abgemeldet'];
@@ -820,6 +820,13 @@ pFall('kopf ausserhalb des Registers: Form falsch', [datei(GATE, [jcs({ ...JSON.
     const z = frei(art);
     pFall(`fremde Art ${art} aus dem Register: gruen`, [datei(BRAIN, [z])], ['pruefe', `@${BRAIN}`], { ...ok(1), letzte: sha(z) });
   }
+  // Abschnitt 6.9: die Zeile lauf.harness in der Form ihres Schreibers, in der Kette gateway (angemeldet, Form noch ohne Arm).
+  const harnessZeile = frei('lauf.harness', {
+    argv: 'copilot --model claude-sonnet-5.5 --reasoning-effort none --disable-builtin-mcps --additional-mcp-config --session-id',
+    effort: 'none', ergebnis: 'vor_uebergabe', harness: 'copilot', modell: 'claude-sonnet-5.5', route: 'cloud-beispiel', sitzung: 's-2',
+  });
+  pFall('Zeile lauf.harness in der Kette gateway: gruen', [datei(GATE, [harnessZeile])], ['pruefe', `@${GATE}`], { ...ok(1), letzte: sha(harnessZeile) });
+  pFall('Tippfehler lauf.harnes: Form falsch', [datei(GATE, [frei('lauf.harnes')])], ['pruefe', `@${GATE}`], br(GATE, 1, 'form_falsch', 0));
 }
 pFall('leere Datei: gruen mit null Zeilen', [datei(BRAIN, [])], ['pruefe', `@${BRAIN}`], { ...ok(0), letzte: null });
 pFall('Datei fehlt', [{ name: BRAIN, fehlt: true }], ['pruefe', `@${BRAIN}`], br(BRAIN, null, 'datei_nicht_lesbar', 0));

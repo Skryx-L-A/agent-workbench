@@ -1421,3 +1421,142 @@ fn only_a_new_start_of_version_2_of_opencode_keeps_a_conversation_without_a_key(
         std::fs::read_to_string(w.join("zustand/gespraeche/s-4/gespraech.json")).expect("file");
     assert!(!text.contains(r#""kennung":null"#), "{text}");
 }
+
+/// The files of the log folder of the world `w`, sorted, and the text of the month file of `zeit_ms`.
+fn protokoll(w: &Path, zeit_ms: i64) -> (Vec<String>, String) {
+    let mut namen: Vec<String> = std::fs::read_dir(w.join("protokoll"))
+        .expect("log folder")
+        .map(|e| e.expect("entry").file_name().to_string_lossy().into_owned())
+        .collect();
+    namen.sort();
+    let monat = formate::kette::abschnitt(PROTOKOLL_QUELLE, zeit_ms).expect("month");
+    let text = std::fs::read_to_string(w.join("protokoll").join(monat)).unwrap_or_default();
+    (namen, text)
+}
+
+/// A fixed time of the tests (milliseconds); the month file follows from it.
+const ZEIT: i64 = 1_764_000_000_000;
+
+#[test]
+fn the_hand_over_writes_one_line_with_model_and_effort_and_no_other_value() {
+    let o = crate::testhilfe::Ordner::neu("argv-zeile");
+    let w = &o.0;
+    let l = lage(w, "copilot", "cloud-beispiel", None);
+    let argv = strings(&[
+        "/heim/nutzerin/bin/copilot",
+        "--model",
+        "claude-sonnet-5.5",
+        "--reasoning-effort",
+        "none",
+        "-p",
+        "Geheimer Prompt-Text",
+        "--additional-mcp-config",
+        "@/heim/nutzerin/.copilot/wb-mcp.json",
+        "--session-id",
+        "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b",
+    ]);
+    argv_protokollieren(&l, &argv, Some(ZEIT)).expect("line");
+    let (namen, text) = protokoll(w, ZEIT);
+    let monat = formate::kette::abschnitt("gateway", ZEIT).expect("month");
+    assert_eq!(namen, [monat, "gateway.anker.jsonl".to_owned()]);
+    assert_eq!(text.lines().count(), 1, "{text}");
+    let mut z: serde_json::Value = serde_json::from_str(text.trim_end()).expect("json");
+    assert_eq!(z["vorher"], "0".repeat(64));
+    assert_eq!(
+        z["zeit"],
+        formate::kette::zeit_text(ZEIT).expect("time").as_str()
+    );
+    let o = z.as_object_mut().expect("object");
+    o.remove("vorher");
+    o.remove("zeit");
+    assert_eq!(
+        z,
+        serde_json::json!({
+            "aktionsname": "lauf.harness",
+            "argv": "copilot --model claude-sonnet-5.5 --reasoning-effort none --additional-mcp-config --session-id",
+            "effort": "none",
+            "ergebnis": "vor_uebergabe",
+            "fassung": 2,
+            "harness": "copilot",
+            "modell": "claude-sonnet-5.5",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1",
+        })
+    );
+    // counter check: no prompt, no path, no key of a session, no other option value
+    for verboten in [
+        "Geheimer", "Prompt", "nutzerin", "/heim", "6f1c2e3a", "wb-mcp",
+    ] {
+        assert!(!text.contains(verboten), "{verboten} in {text}");
+    }
+    // a second start appends a second line to the same chain
+    argv_protokollieren(&l, &argv, Some(ZEIT + 1)).expect("second line");
+    let (_, text) = protokoll(w, ZEIT);
+    assert_eq!(text.lines().count(), 2, "{text}");
+    let erste = text.lines().next().expect("first");
+    let zweite: serde_json::Value =
+        serde_json::from_str(text.lines().nth(1).expect("second")).expect("json");
+    assert_eq!(
+        zweite["vorher"],
+        formate::kette::sha256_hex(erste.as_bytes()).as_str()
+    );
+}
+
+#[test]
+fn a_harness_without_an_effort_writes_null() {
+    let o = crate::testhilfe::Ordner::neu("argv-zeile-pi");
+    let w = &o.0;
+    let l = lage(w, "pi", "lokal-beispiel", None);
+    let argv = strings(&["/x/pi", "--provider", "wb-lokal", "--model", "qwen3:8b"]);
+    argv_protokollieren(&l, &argv, Some(ZEIT)).expect("line");
+    let (_, text) = protokoll(w, ZEIT);
+    let z: serde_json::Value = serde_json::from_str(text.trim_end()).expect("json");
+    assert_eq!(z["effort"], serde_json::Value::Null);
+    assert_eq!(z["argv"], "pi --provider --model qwen3:8b");
+    assert_eq!(z["modell"], "qwen3:8b");
+    assert_eq!(z["route"], "lokal-beispiel");
+}
+
+#[test]
+fn without_the_line_there_is_no_hand_over() {
+    // the log folder is a file: the line cannot be written, the code is lauf.protokoll and nothing is made
+    let o = crate::testhilfe::Ordner::neu("argv-zeile-kaputt");
+    let w = &o.0;
+    let l = lage(w, "copilot", "cloud-beispiel", None);
+    let argv = strings(&["/x/copilot", "--model", "m"]);
+    std::fs::remove_dir_all(w.join("protokoll")).expect("remove");
+    schreiben(&w.join("protokoll"), "KEIN-ORDNER\n", 0o600);
+    assert_eq!(
+        argv_protokollieren(&l, &argv, Some(ZEIT)),
+        Err(Fehler::Protokoll)
+    );
+    // no clock: the same code, and no file
+    let o = crate::testhilfe::Ordner::neu("argv-zeile-uhr");
+    let w = &o.0;
+    let l = lage(w, "copilot", "cloud-beispiel", None);
+    assert_eq!(argv_protokollieren(&l, &argv, None), Err(Fehler::Protokoll));
+    assert_eq!(protokoll(w, ZEIT).0, Vec::<String>::new());
+    // a broken chain (last line without LF): fail closed, the file stays as it was
+    let monat = formate::kette::abschnitt("gateway", ZEIT).expect("month");
+    schreiben(&w.join("protokoll").join(&monat), "{\"halb\":", 0o600);
+    assert_eq!(
+        argv_protokollieren(&l, &argv, Some(ZEIT)),
+        Err(Fehler::Protokoll)
+    );
+    assert_eq!(protokoll(w, ZEIT).1, "{\"halb\":");
+}
+
+#[test]
+fn the_clock_of_the_line_is_now_in_milliseconds() {
+    let vorher = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock")
+        .as_millis();
+    let ist = jetzt_ms().expect("clock");
+    let nachher = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock")
+        .as_millis();
+    let ist = u128::try_from(ist).expect("positive");
+    assert!(vorher <= ist && ist <= nachher, "{vorher} {ist} {nachher}");
+}

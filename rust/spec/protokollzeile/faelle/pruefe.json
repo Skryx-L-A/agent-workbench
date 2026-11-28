@@ -618,6 +618,23 @@
       }
     },
     {
+      "fall": "angemeldete Art lauf.harness mit freier Form: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"lauf.harness\",\"ergebnis\":\"ok\",\"fassung\":2,\"feld\":\"wert\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"e928caf75ccc44e6808ef9e109d50d5fd6b820fb60f63f262d690996240e23b1\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
       "fall": "fremde Art modell.aufruf aus dem Register: gruen",
       "dateien": [
         {
@@ -666,6 +683,40 @@
       "erwartet": {
         "exit": 0,
         "stdout": "{\"bruch\":null,\"letzte\":\"33442c4bf201bba8a1a19fef6ddf528e676a4e6713cd3361ee4b93b5f68670a9\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "Zeile lauf.harness in der Kette gateway: gruen",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"lauf.harness\",\"argv\":\"copilot --model claude-sonnet-5.5 --reasoning-effort none --disable-builtin-mcps --additional-mcp-config --session-id\",\"effort\":\"none\",\"ergebnis\":\"vor_uebergabe\",\"fassung\":2,\"harness\":\"copilot\",\"modell\":\"claude-sonnet-5.5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-2\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"9a4ad673797f4cc59a2238d90603aebeaafd930c56f929ea0847788a74b276c0\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "Tippfehler lauf.harnes: Form falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"lauf.harnes\",\"ergebnis\":\"ok\",\"fassung\":2,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
       }
     },
     {

@@ -24,5 +24,16 @@
    "kennung": "<harness-kennung>"
   }
  },
- "zustandsordner_beim_start": "leer"
+ "zustandsordner_beim_start": "leer",
+ "harness_zeile": {
+  "aktionsname": "lauf.harness",
+  "argv": "copilot --model claude-sonnet-5.5 --reasoning-effort none --disable-builtin-mcps --additional-mcp-config --session-id",
+  "effort": "none",
+  "ergebnis": "vor_uebergabe",
+  "fassung": 2,
+  "harness": "copilot",
+  "modell": "claude-sonnet-5.5",
+  "route": "cloud-beispiel",
+  "sitzung": "s-2"
+ }
 }

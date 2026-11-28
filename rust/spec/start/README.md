@@ -830,7 +830,7 @@ Entwurf E8 (Außentest, unten).
 | 7 | Socket-Ordner 0700 anlegen, Such-Prozess starten (siehe unten) und auf `{"bereit":true}` warten, Frist 10 s | 69, `lauf.suche_fehlt` (Start scheitert) oder `lauf.suche_nicht_bereit` (Frist verstrichen) |
 | 7a0 | nur Cloud-Route: Zielliste des Modellwegs schreiben (siehe „Zustandsordner der Installation“), vor dem Start des Modellwegs; hat die Route kein Netzziel, das die Liste tragen kann, oder mehr als 16 (Vertrag 8, Abschnitt 12: `ziele[]` hat 1 bis 16 Einträge), oder hat sie ein Netzziel mit `zugriff` gleich `kopf-einsetzen` in der Unterdomänen-Form `*.name` (die Liste kennt kein `*`), endet der Schritt mit demselben Fehler, bevor eine Zielliste oder eine Wegwerf-CA entsteht; das Programm startet nie still ohne ein solches Ziel | 73, `lauf.zielliste` |
 | 7a | Modellweg starten (siehe unten): bei lokaler Route Betriebsart `openai-lokal`, bei Cloud-Route `kopf-einsetzen` mit den Netzzielen; auf `{"bereit":true}` warten, Frist 10 s. Fehlt der Eintrag der Route in `schluessel` der eigenen Konfiguration (Schlüsseldatei), endet der Schritt bei einer lokalen Route immer, bei einer Cloud-Route nur mit gebundenem Ziel (`schluessel: true`) mit `lauf.modellweg_fehlt`, bei der Cloud-Route vor Schritt 7a0 (also ohne Zielliste und ohne CA); ohne gebundenes Ziel startet der Lauf mit leerem Schlüsselnamen (`ablauf.rs:670-675`, `:724-730`) | 69, `lauf.modellweg_fehlt` (Start scheitert) oder `lauf.modellweg_nicht_bereit` (Frist verstrichen) |
-| 8 | Einschluss bauen, Zustandsordner und bei `pi` die Anbieter-Definition schreiben, Umgebung des Harness setzen, danach den Wächter starten (siehe „Lebensdauer“), den Startbefehl (Starter, im Prüfbau `bwrap`) als Kind über das Trampolin starten (siehe „Elternprozess des Starters“) | 69, `lauf.harness_fehlt`, aus zwei Quellen: (1) `lauf` selbst, wenn das Programm des Harness in `lauf.json` fehlt oder nicht ausführbar ist (`beschreibung_bauen`, `ablauf.rs:873-876`; nach Such-Prozess, Modellweg und PID-Dateien, vor dem Trampolin; die Kinder werden beendet), (2) das exec des Trampolins in den Starter scheitert (die Zeile schreibt das Trampolin); 73, `lauf.sitzung_belegt` (der Sitzungsordner `sitzungen/<sitzung>` besteht schon: ein Sitzungsname gilt einmal; auch, wenn `gespraeche/<sitzung>` schon besteht). Fassung 2: `gespraeche/<sitzung>` anlegen oder beim Fortsetzen umbenennen und die Sitzungsoption anhängen; Fassung 1: `gespraeche/<sitzung>` nur mit `gespraech.json` ohne Kennung anlegen (Abschnitt „Fassung 2: `fortsetzung_von` und Fortsetzen“) |
+| 8 | Einschluss bauen, Zustandsordner und bei `pi` die Anbieter-Definition schreiben, Umgebung des Harness setzen, danach den Wächter starten (siehe „Lebensdauer“), den Startbefehl (Starter, im Prüfbau `bwrap`) als Kind über das Trampolin starten (siehe „Elternprozess des Starters“) | 69, `lauf.harness_fehlt`, aus zwei Quellen: (1) `lauf` selbst, wenn das Programm des Harness in `lauf.json` fehlt oder nicht ausführbar ist (`beschreibung_bauen`, `ablauf.rs:873-876`; nach Such-Prozess, Modellweg und PID-Dateien, vor dem Trampolin; die Kinder werden beendet), (2) das exec des Trampolins in den Starter scheitert (die Zeile schreibt das Trampolin); 73, `lauf.sitzung_belegt` (der Sitzungsordner `sitzungen/<sitzung>` besteht schon: ein Sitzungsname gilt einmal; auch, wenn `gespraeche/<sitzung>` schon besteht). Fassung 2: `gespraeche/<sitzung>` anlegen oder beim Fortsetzen umbenennen und die Sitzungsoption anhängen; Fassung 1: `gespraeche/<sitzung>` nur mit `gespraech.json` ohne Kennung anlegen (Abschnitt „Fassung 2: `fortsetzung_von` und Fortsetzen“). Als letzter Schritt nach dem Start des Wächters, vor der Übergabe an das Trampolin: genau eine Protokollzeile `lauf.harness` mit dem Auszug des argv in die Kette `gateway` (Vertrag 5, Abschnitt 6.9; Entscheid des Betreibers, 28.11.2026); stderr bleibt leer; ohne die Zeile keine Übergabe: 73, `lauf.protokoll` (die Zeile ist nicht schreibbar; fail closed wie die Zeile von `werkbank-ordnermarke`; die Kinder werden beendet) |
 | jeder | unerwarteter Fehler im Programm | 70, `lauf.intern` |
 
 Scheitert ein Schritt nach Schritt 7, beendet das Programm den Such-Prozess (und ab Schritt 7a den Modellweg; eine schon
@@ -878,6 +878,7 @@ verbietet den Start), 78 `EX_CONFIG` (auch die eigene Konfiguration fehlt oder i
 | `lauf.paket_cache` | `Paketordner des Harness unbrauchbar` |
 | `lauf.paket_entpacken` | `Paket des Harness nicht entpackt` |
 | `lauf.harness_fehlt` | `Harness nicht startbar` |
+| `lauf.protokoll` | `Protokollzeile nicht schreibbar` |
 | `lauf.meldung_fehlt` | `Meldung an den Dienst nicht moeglich` |
 | `lauf.intern` | `interner Fehler` |
 
@@ -1947,15 +1948,21 @@ python3 -I rust/spec/start/bau-faelle.py            # Fälle neu erzeugen
     und sonst nur, wenn die Grenze `none` erlaubt (Abschnitt „Effort immer ausdrücklich“). Die wörtliche Lesart (der Rückfall auch ohne
     Block mit `start.effort_grenze`) hätte jeden Start von `copilot` ohne Block `effort` beendet, auch in Fassung 1. Die Wahl zwischen
     beiden Lesarten steht beim Betreiber.
-42. **Auszug des argv im Log (28.11.2026, Ziel offen).** Gewünscht ist eine dauerhafte Zeile mit dem argv des Harness: nur die
-    Optionsnamen und die Werte von `--model` und der Effort-Option des Harness, nie andere Werte, keine Umgebung, keine Pfade.
-    Gebaut ist die Funktion `harness::argv_auszug` (`rust/crates/lauf/src/harness.rs`) mit Fall und Gegenprobe (ein Prompt-Text, ein
-    Pfad und die Kennung einer Sitzung erscheinen nie). Nicht gebaut ist das Schreiben: „Lauf starten“ hat keine eigene Logdatei.
-    Seine Standardfehlerausgabe geht in das Terminal der Sitzung, und ein Start mit exec schreibt dort nichts (Abschnitt „Aufruf“,
-    Fälle mit `exec` erwarten `stderr` leer). Zu entscheiden ist das Ziel: eine Zeile auf stderr (ändert diese Regel und alle
-    Fälle mit `exec`), eine Protokollzeile nach Vertrag 5 oder eine Datei neben der Startdatei (Aufräumen im Dienst).
+43. **Zeile `lauf.harness` ohne geschlossene Form im Prüfer (28.11.2026).** `kette pruefe` prüft die Zeile bisher nur als Kettenglied
+    der Fassung 2. Die geschlossene Form (Vertrag 5, Abschnitt 6.9) prüfen der Schreiber in `lauf` und die Fälle. Der Bau im Crate
+    `formate` und ein Wort für `lauf.protokoll` in der Worttabelle der Ansicht (`rust/crates/ansicht/src/woerter.rs`) liegen
+    außerhalb dieses Schritts.
 
 ### Erledigt
+
+42. **Auszug des argv im Log: geschlossen (Entscheid des Betreibers, 28.11.2026).** Ziel ist eine Protokollzeile nach Vertrag 5.
+    Vorher offen war die Wahl zwischen einer Zeile auf stderr, einer Protokollzeile und einer Datei neben der Startdatei, weil „Lauf
+    starten“ keine eigene Logdatei hat und ein Start mit exec auf stderr nichts schreibt. „Lauf starten“ schreibt jetzt in Schritt 8,
+    vor der Übergabe an das Trampolin, genau eine Zeile `lauf.harness` in die Kette `gateway` (Vertrag 5, Abschnitt 6.9): Auszug des
+    argv (`harness::argv_auszug`), Harness, Modell, weitergegebener Effort, Route und Sitzung, sonst kein Wert. stderr bleibt beim exec
+    leer. Ohne schreibbare Zeile endet der Start mit 73, `lauf.protokoll` (fail closed wie `werkbank-ordnermarke`,
+    `rust/crates/lauf/src/ablauf.rs`, `argv_protokollieren`). Fälle: Schlüssel `harness_zeile` in `erwartet/aufruf-f2-*` und
+    `erwartet/aufruf-effort-*`, `aufruf-harness-zeile-protokoll-fehlt`; Unit-Tests in `rust/crates/lauf/src/ablauf/tests.rs`.
 
 34. **Zustand eines fortgesetzten Gesprächs: geschlossen (Projektentscheid, 27.11.2026).** Aus dem Zustandsordner der Vorgängersitzung
     kommt nur das Gespräch, nie die Konfiguration des Harness. Der Zustandsordner ist bei jedem Start leer, der Gesprächsort kommt über

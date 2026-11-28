@@ -33,7 +33,7 @@ use crate::betrachter::{Betrachter, json_rahmen};
 use crate::fehler::StartFehler;
 use crate::json::{ereignis_lesen, unhex};
 use crate::lokal::{Lokal, Neu, Wer};
-use crate::meldung::{Meldung, SOCKET_NAME};
+use crate::meldung::{Meldeweg, SOCKET_NAME};
 use crate::rahmen::{
     A_ABLEHNUNG, A_EREIGNIS, A_FEHLER, A_KERNFEHLER, A_NACHRICHT, A_RASTER, A_STUMM, A_UHR,
     A_ZUSTAND, rahmen,
@@ -2018,9 +2018,9 @@ impl Dienst {
         kennung: &str,
         ordner: &Path,
         datei: &Path,
-    ) -> Result<(traeger::Kind, Meldung), Abgelehnt> {
+    ) -> Result<(traeger::Kind, Meldeweg), Abgelehnt> {
         let meldung_pfad = ordner.join(SOCKET_NAME);
-        let Ok(mut meldung) = Meldung::binden(&meldung_pfad) else {
+        let Ok(mut meldung) = Meldeweg::binden(&meldung_pfad) else {
             crate::loeschen::sitzung_entfernen(self.wurzel.as_fd(), kennung);
             return Err(Abgelehnt::fest("meldung_kanal"));
         };

@@ -23,5 +23,16 @@
    "kennung": "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"
   }
  },
- "zustandsordner_beim_start": "gespraech der vorgaengersitzung"
+ "zustandsordner_beim_start": "gespraech der vorgaengersitzung",
+ "harness_zeile": {
+  "aktionsname": "lauf.harness",
+  "argv": "pi --provider --model qwen3:8b --thinking low --session",
+  "effort": "low",
+  "ergebnis": "vor_uebergabe",
+  "fassung": 2,
+  "harness": "pi",
+  "modell": "qwen3:8b",
+  "route": "lokal-beispiel",
+  "sitzung": "s-4"
+ }
 }

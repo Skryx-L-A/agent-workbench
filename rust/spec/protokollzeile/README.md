@@ -118,7 +118,7 @@ die hier fehlt, bekommt `form_falsch`.
 | Gruppe | Arten |
 |---|---|
 | geschlossene Form, hier geprüft | `ausgabe.gesperrt` (Abschnitt 1), `kanal.abgewiesen` (6.1), `probelauf.zaehlung` (6.2), `person.geloescht` und `person.auskunft` (6.3), `ordnermarke.geloest` und `ordnermarke.gesenkt` (6.4), `modellweg.aufruf` (6.7), `mcp.schreibaufruf`, `sitzung.gestartet`, `sitzung.abgelehnt` und `vorgang.abgelehnt` (6.8) |
-| angemeldet, Form noch nicht geprüft | `suche.rueckfall` (6.5), `regel.geaendert` und `regel.abgelehnt` (6.6) |
+| angemeldet, Form noch nicht geprüft | `suche.rueckfall` (6.5), `regel.geaendert` und `regel.abgelehnt` (6.6), `lauf.harness` (6.9) |
 | in anderen Verträgen festgelegt, Form hier nicht geprüft | `hersteller.zugang`, `hersteller.zugriff`, `pflicht.aenderung`, `protokoll.einsicht`, `vorgang.gedrosselt` (Vertrag 6 Fassung 2), `modell.aufruf` und `sitzung.abgemeldet` (Vertrag 7, Gateway), `fall.freitext` (Vertrag 9, Personenbezug), `mcp.schein_abgelehnt` und `halter.leck_gesperrt` (Vertrag Halter; `halter.leck_gesperrt` Nachtrag 25.11.2026, Treffer der Leck-Sperre; `halter.pfad_verboten` Nachtrag 25.11.2026, abgelehnter Pfad außerhalb der Regeln), `wissen.geschrieben` und `wissen.schreiben.abgelehnt` (Vertrag Schreibtor), `klasse.erlaubt` und `lauf.melden` (Audit-Arten der Hülle im Übergang 1s nach 2, `the previous implementation`) |
 
 Die zweite Gruppe bekommt ihre Arme mit dem Bau ihrer Schreiber; bis dahin prüft der Befehl ihre
@@ -598,6 +598,38 @@ Ist `aktionsname` eine der vier Arten und die Zeile nicht Fassung 2 oder weicht 
 
 **Sichtbare Fälle** in `faelle/stellezeilen.json` (Erzeuger `bau-faelle.mjs`), Abschnitte `pruefe` und `anhaengen`: je Zeilenart ein gültiger Fall, ein Fall mit einem Zusatzfeld (`vorschau` oder `argumente`) und ein Fall mit einem fehlenden Feld, dazu die Kopplungen und eine Kette aus Zeilen aller vier Arten.
 
+### 6.9 Die Zeile „Übergabe an den Harness“
+
+Stand 28.11.2026 (Entscheid des Betreibers, 28.11.2026; schließt OPEN 42 von Vertrag 1). Bei einem Start soll man ohne Mitlesen des Prozesses sehen, welches Modell und welcher Effort an den Harness gingen.
+„Lauf starten“ (Vertrag 1, Schritt 8) schreibt dafür vor der Übergabe an das Trampolin genau eine Zeile. Seine Standardfehlerausgabe bleibt bei einem Start mit exec leer (Vertrag 1, Abschnitt „stderr-Zeile und Kindende“). Anforderungen: A102 (Kette), A104 (kein Pfad, kein Prompt, keine Umgebung).
+
+```
+{"aktionsname":"lauf.harness","argv":"copilot --model claude-sonnet-5.5 --reasoning-effort none --disable-builtin-mcps --additional-mcp-config --session-id","effort":"none","ergebnis":"vor_uebergabe","fassung":2,"harness":"copilot","modell":"claude-sonnet-5.5","route":"cloud-beispiel","sitzung":"s-2","vorher":"<64 hex>","zeit":"<Zeit im Muster aus Abschnitt 1>"}
+```
+
+| Feld | Wert |
+|---|---|
+| `aktionsname` | genau `lauf.harness` |
+| `argv` | Auszug des argv des Harness (`harness::argv_auszug`, Crate `lauf`): der Name des Harness, jeder Optionsname (`--x`, von `--x=<wert>` nur `--x`) und nur die Werte von `--model` und der Effort-Option des Harness (`--reasoning-effort`, `--effort`, `--thinking`; `opencode` hat keine). Jeder andere Wert fehlt: kein Pfad, keine Kennung einer Sitzung, kein Prompt, kein freier Wert |
+| `effort` | der weitergegebene Effort (Vertrag 1, Abschnitt „Effort immer ausdrücklich“, `start::effort`) oder `null` ohne einen; bei `opencode` der Wert in `options.reasoningEffort`, der nicht im argv steht |
+| `ergebnis` | genau `vor_uebergabe`: Die Zeile steht vor der Übergabe. Ob das exec des Trampolins danach gelingt, sagt sie nicht (Vertrag 1, Schritt 8, Quelle 2 von `lauf.harness_fehlt`) |
+| `fassung` | genau `2` |
+| `harness` | Name des Harness aus der Startdatei (`claude`, `copilot`, `pi`, `opencode`) |
+| `modell` | Modell aus der Startdatei (Zeichenregel von Vertrag 1) |
+| `route`, `sitzung` | Schlüssel der Route und Kennung der Sitzung aus der Startdatei, Form wie in Abschnitt 1 |
+| `vorher`, `zeit` | wie in Abschnitt 1 |
+
+- **Geschlossene Form.** Genau diese elf Felder. Die Zeile trägt keine Umgebung, keinen Pfad, keinen Arbeitsordner, keinen Kunden und keinen Wert einer anderen Option.
+- **Quelle.** Die Zeile steht in der Kette `gateway` im Protokollordner der eigenen Konfiguration (`protokoll` in `lauf.json`), neben den Zeilen `modellweg.aufruf` derselben Sitzung (Abschnitt 6.7). Eine eigene Quelle hätte eine Änderung der Liste in `abschnitt` gebraucht (Abschnitt 2).
+  Der Schreiber ist `formate::kette::anhaengen_zeile` (Abschnitt 5.3); die Zeit nimmt „Lauf starten“ unmittelbar davor von der Uhr.
+- **Menge.** Genau eine Zeile je Start, der die Übergabe erreicht, als letzter Schritt nach dem Start des Wächters. Ein Start, der vorher endet, schreibt keine.
+- **Schreibfehler: fail closed.** Wie bei der Zeile von `werkbank-ordnermarke` (Abschnitt 6.4) gibt es ohne die Zeile keine Übergabe. Scheitert die Uhr oder das Anhängen, endet „Lauf starten“ mit Exit 73 und `lauf.protokoll: Protokollzeile nicht schreibbar` (Vertrag 1, Schritt 8) und beendet die Kinder wie bei jedem Fehler nach Schritt 7. Eine teilweise Zeile entsteht nicht (Abschnitt 5.3, Schritt 8c).
+  Code: `rust/crates/lauf/src/ablauf.rs`, Funktion `argv_protokollieren`.
+
+**Prüfen.** Die Art steht im Register (Abschnitt 3) in der Gruppe „angemeldet“. Bis die geschlossene Form in `formate` gebaut ist, prüft `kette pruefe` diese Zeile als Kettenglied der Fassung 2 (Kopf, Kanonik, `vorher`). Ohne den Eintrag in `REGISTER_ANGEMELDET` (`rust/crates/formate/src/kette/pruefen.rs`) lehnt `anhaengen_zeile` die Zeile mit `feld_ungueltig:zeile` ab, und jeder Start endet mit `lauf.protokoll`. Die Form prüfen heute der Schreiber und die Fälle von Vertrag 1.
+
+**Fälle.** Vertrag 1, `rust/spec/start/erwartet/aufruf-f2-*` und `aufruf-effort-*` mit dem Schlüssel `harness_zeile` (genau eine Zeile dieser Art mit diesen Werten, kein Pfad der Testwelt in der Kette); `aufruf-harness-zeile-protokoll-fehlt` (Protokollordner unbrauchbar: 73, keine Zeile, Kinder beendet). Dazu die Unit-Tests in `rust/crates/lauf/src/ablauf/tests.rs` (Prompt-Text, Pfad und Kennung einer Sitzung fehlen in der Zeile; eine unvollständige letzte Zeile bleibt unverändert).
+
 ## 7. Nicht in diesem Vertrag (folgt nach der Vorführung)
 
 - Die Zeilenarten der Entscheidungsstelle stehen seit dem 23.11.2026 in Abschnitt 6.8 und sind nicht mehr offen; die Zeile für das Zeigen einer Marke (`werkbank-ordnermarke zeigen`) ändert nichts und hat keine Zeile; Monate der Fassungen 1g und 1s werden nicht geschrieben.
@@ -610,7 +642,7 @@ Ist `aktionsname` eine der vier Arten und die Zeile nicht Fassung 2 oder weicht 
 - Rechte der neuen Datei unter Windows; neu kanonisieren der Fassungen 1g und 1s; Zeilen der Fassung 1g mit einsamen Surrogaten (das alte Gateway schreibt sie als `\udxxx`).
 
 <!-- vom Bauvorgang angefuegt -->
-> Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `brain`.
+> Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `brain` `pi`.
 > Sie gehoeren zum Setup der Maschine, aus der dieser Baum stammt; hier fehlen
 > sie mit Absicht. Wer sie braucht, schreibt sich seine eigenen.
 > *Named here, not shipped here.*

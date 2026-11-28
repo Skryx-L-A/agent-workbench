@@ -46,6 +46,9 @@ einstellungen = { path = "../einstellungen" }
 einschluss = { path = "../einschluss" }
 # formate: the line `ordnermarke.geloest` / `ordnermarke.gesenkt` of the command `werkbank-ordnermarke` (contract 5, section 6.4).
 formate = { path = "../formate" }
+# serde_json 1: the object of the line `lauf.harness` for `formate::kette::anhaengen_zeile` (contract 5, section 6.9). Before
+#   only a dev-dependency of this crate, so Cargo.lock does not change.
+serde_json = "1"
 rustix = { version = "1", features = ["fs", "process", "pipe", "event", "std", "stdio"] }
 # signal-hook 0.4.6 (safe API only): the parent of the starter takes SIGHUP, SIGTERM, SIGINT and SIGQUIT, passes the
 #   first two on and ends by the signal of the starter (contract 1, "Lebensdauer"). `std` has no signal handler and
@@ -62,10 +65,9 @@ openssl = "0.10"
 #   the workspace forbids `unsafe`. Already in Cargo.lock below portable-pty, same version 0.28.0.
 nix = { version = "0.28", default-features = false, features = ["fs", "socket"] }
 
-# serde_json reads the cases of contract 1 in the tests; modellweg checks the throw-away CA and the target list with
-# its own start checks (both workspace crates, already in the graph).
+# serde_json (a dependency above) also reads the cases of contract 1 in the tests; modellweg checks the throw-away CA
+# and the target list with its own start checks (both workspace crates, already in the graph).
 [dev-dependencies]
-serde_json = "1"
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 modellweg = { path = "../modellweg" }

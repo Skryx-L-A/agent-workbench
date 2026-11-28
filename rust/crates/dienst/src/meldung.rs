@@ -1,5 +1,6 @@
 //! The report of `lauf` to the service (contract `dienst`, section 18): a Unix stream socket `meldung.sock` in the folder of the session,
-//! one connection, one line `<code> <grund>\n`.
+//! one connection, one line `<code> <grund>\n`, or the line `laeuft\n` and after it requests of a worker, each answered on the same
+//! connection (Nachtrag 28.11.2026, stage 1: every valid request is refused with `stelle_nicht_erreichbar`; [`Meldeweg`]).
 //!
 //! Why a socket and no inherited descriptor: the carrier closes every descriptor above 2 in the child before the `exec`, and `unsafe`
 //! is forbidden here, so a pipe cannot reach `lauf`. `lauf` finds the socket through the path in its argument `--meldung <pfad>`.
@@ -267,13 +268,8 @@ impl Meldung {
         }
     }
 
-    /// Accepts what waits and reads what came, without blocking: the first connection that passes the check is the one; the
-    /// listener is closed then, so no second connection comes in. Every other connection is closed at once, unread.
-    pub(crate) fn abfragen(&mut self) {
-        self.annehmen();
-        self.lesen();
-    }
-
+    /// Accepts what waits, without blocking: the first connection that passes the check is the one; the listener is closed then, so
+    /// no second connection comes in. Every other connection is closed at once, unread.
     fn annehmen(&mut self) {
         while !self.verbunden {
             let Some(hoerer) = &self.hoerer else {
@@ -310,15 +306,253 @@ impl Meldung {
             }
         }
     }
+}
+
+/// The first line of a start that reached the starter (Nachtrag 28.11.2026): exactly these 7 bytes, once, and only as the first line.
+pub(crate) const LAEUFT: &[u8] = b"laeuft\n";
+/// The most bytes of one line after [`LAEUFT`], with its line end.
+pub(crate) const ANFORDERUNG_MAX: usize = 256;
+/// The answer to every valid request in stage 1: the channel to the authority is not there yet (fail closed, never `frei`).
+pub(crate) const ANTWORT_STELLE: &[u8] = b"abgelehnt stelle_nicht_erreichbar\n";
+/// The answer to a valid request while another one is open.
+pub(crate) const ANTWORT_OFFEN: &[u8] = b"abgelehnt anfordern_offen\n";
+/// The most bytes read after [`LAEUFT`] in one turn of the loop, so that one session cannot hold the loop.
+const RUNDE_MAX: usize = 1024;
+/// No more is read while this many bytes of answers wait to be written (the peer does not read them).
+const AUSGANG_MAX: usize = 512;
+/// The most writes of the answers in one turn of the loop.
+const SCHREIB_VERSUCHE: usize = 8;
+/// The longest field `modell` (the form of contract 1).
+const MODELL_MAX: usize = 128;
+/// The longest field in the form of an identifier (`rolle`, `harness`, `effort`).
+const KENNUNG_MAX: usize = 64;
+
+/// `^[a-z0-9][a-z0-9._-]{0,63}$`.
+fn kennung_gut(text: &[u8]) -> bool {
+    text.first()
+        .is_some_and(|b| matches!(b, b'a'..=b'z' | b'0'..=b'9'))
+        && text.len() <= KENNUNG_MAX
+        && text
+            .iter()
+            .all(|b| matches!(b, b'a'..=b'z' | b'0'..=b'9' | b'.' | b'_' | b'-'))
+}
+
+/// 1 to 128 characters of `[A-Za-z0-9._:/@+-]`.
+fn modell_gut(text: &[u8]) -> bool {
+    (1..=MODELL_MAX).contains(&text.len())
+        && text.iter().all(|b| {
+            b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'/' | b'@' | b'+' | b'-')
+        })
+}
+
+/// `anfordern <rolle> <harness> <modell> <effort>` without its line end: exactly five fields, each separated by exactly one space.
+pub(crate) fn anforderung_gut(zeile: &[u8]) -> bool {
+    let felder: Vec<&[u8]> = zeile.split(|b| *b == b' ').collect();
+    let [wort, rolle, harness, modell, effort] = felder[..] else {
+        return false;
+    };
+    wort == b"anfordern"
+        && kennung_gut(rolle)
+        && kennung_gut(harness)
+        && modell_gut(modell)
+        && kennung_gut(effort)
+}
+
+/// What the result of one write of the answers means.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Geschrieben {
+    /// This many bytes (at least one) went out.
+    Daten(usize),
+    /// Interrupted: write again.
+    Nochmal,
+    /// The buffer of the peer is full: the rest waits for the next turn.
+    Spaeter,
+    /// The connection is broken (an error, or no byte taken).
+    Ende,
+}
+
+pub(crate) fn geschrieben_als(ergebnis: std::io::Result<usize>) -> Geschrieben {
+    match ergebnis {
+        Ok(0) => Geschrieben::Ende,
+        Ok(n) => Geschrieben::Daten(n),
+        Err(e) if e.kind() == std::io::ErrorKind::Interrupted => Geschrieben::Nochmal,
+        Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => Geschrieben::Spaeter,
+        Err(_) => Geschrieben::Ende,
+    }
+}
+
+/// The report channel of one session with what comes after [`LAEUFT`] (Nachtrag 28.11.2026, stage 1): requests of a worker, each
+/// answered on the same connection. Before [`LAEUFT`] the first line is judged as before (section 18 point 4).
+pub(crate) struct Meldeweg {
+    /// The socket and the first line.
+    pub(crate) kanal: Meldung,
+    /// The first line was exactly [`LAEUFT`]: the starter runs, what follows are requests.
+    laeuft: bool,
+    /// The line after [`LAEUFT`] read so far, without its line end, fewer than [`ANFORDERUNG_MAX`] bytes.
+    zeile: Vec<u8>,
+    /// The line read so far passed [`ANFORDERUNG_MAX`]: its rest up to the next line end is dropped (it was counted already).
+    ueberlang: bool,
+    /// Bytes of answers not yet written.
+    ausgang: Vec<u8>,
+    /// The bytes of [`Meldeweg::ausgang`] up to the end of the answer to the open request; 0: no request is open.
+    offen: usize,
+    /// The lines after [`LAEUFT`] that were dropped without an answer; only this number goes to the log, never a line.
+    verworfen: u64,
+}
+
+impl Meldeweg {
+    /// Binds the socket (see [`Meldung::binden`]).
+    ///
+    /// # Errors
+    /// As [`Meldung::binden`].
+    pub(crate) fn binden(pfad: &Path) -> Result<Self, ()> {
+        Ok(Self {
+            kanal: Meldung::binden(pfad)?,
+            laeuft: false,
+            zeile: Vec::new(),
+            ueberlang: false,
+            ausgang: Vec::new(),
+            offen: 0,
+            verworfen: 0,
+        })
+    }
+
+    /// Names the child whose connection is the right one (0: none).
+    pub(crate) fn kind_setzen(&mut self, pid: u32) {
+        self.kanal.kind_setzen(pid);
+    }
+
+    /// The number of lines after [`LAEUFT`] that were dropped.
+    pub(crate) fn verworfen(&self) -> u64 {
+        self.verworfen
+    }
+
+    /// Accepts what waits, reads what came and writes the answers, without blocking: before [`LAEUFT`] at most [`ZEILE_MAX`] bytes in
+    /// all, after it at most [`RUNDE_MAX`] bytes in this turn and nothing while [`AUSGANG_MAX`] bytes of answers wait.
+    pub(crate) fn abfragen(&mut self) {
+        self.kanal.annehmen();
+        if !self.laeuft {
+            self.kanal.lesen();
+            self.laeuft_pruefen();
+        }
+        if self.laeuft {
+            self.weiterlesen();
+        }
+        self.schreiben();
+    }
+
+    /// The first line is exactly [`LAEUFT`]: from now on requests follow; what came after it in the same read is the start of them.
+    fn laeuft_pruefen(&mut self) {
+        if self.kanal.puffer.starts_with(LAEUFT) {
+            self.laeuft = true;
+            let rest = self.kanal.puffer.split_off(LAEUFT.len());
+            self.eingang(&rest);
+        }
+    }
+
+    /// Reads after [`LAEUFT`]: at most [`RUNDE_MAX`] bytes in this turn, in pieces of at most [`ANFORDERUNG_MAX`].
+    fn weiterlesen(&mut self) {
+        let mut gelesen_runde = 0;
+        while gelesen_runde < RUNDE_MAX && self.ausgang.len() < AUSGANG_MAX {
+            let Some(strom) = self.kanal.strom.as_mut() else {
+                return;
+            };
+            let mut stueck = [0_u8; ANFORDERUNG_MAX];
+            match gelesen(strom.read(&mut stueck)) {
+                Gelesen::Daten(n) => {
+                    gelesen_runde += n;
+                    self.eingang(&stueck[..n]);
+                }
+                Gelesen::Ende => self.kanal.strom = None,
+                Gelesen::Nochmal => return,
+            }
+        }
+    }
+
+    /// Splits what came after [`LAEUFT`] into lines of at most [`ANFORDERUNG_MAX`] bytes with their line end.
+    fn eingang(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            if self.ueberlang {
+                self.ueberlang = b != b'\n';
+            } else if b == b'\n' {
+                let zeile = std::mem::take(&mut self.zeile);
+                self.zeile_behandeln(&zeile);
+            } else {
+                self.zeile.push(b);
+                // the line end would be byte 257: too long
+                if self.zeile.len() >= ANFORDERUNG_MAX {
+                    self.zeile.clear();
+                    self.ueberlang = true;
+                    self.verworfen += 1;
+                }
+            }
+        }
+    }
+
+    /// One whole line after [`LAEUFT`] (without its line end): a valid request gets its answer, anything else is dropped and counted.
+    fn zeile_behandeln(&mut self, zeile: &[u8]) {
+        if !anforderung_gut(zeile) {
+            self.verworfen += 1;
+            return;
+        }
+        if self.offen > 0 {
+            self.ausgang.extend_from_slice(ANTWORT_OFFEN);
+            return;
+        }
+        // stage 1: the answer is known at once; the request stays open until its answer is written at the end of the turn, so a
+        // second request that came before that answer is refused
+        self.ausgang.extend_from_slice(ANTWORT_STELLE);
+        self.offen = self.ausgang.len();
+    }
+
+    /// Writes waiting answers without blocking, at most [`SCHREIB_VERSUCHE`] times in this turn. A broken connection ends it; what
+    /// waited is dropped.
+    fn schreiben(&mut self) {
+        // at most this many writes in one turn, so that a write that is interrupted again and again cannot hold the loop
+        for _ in 0..SCHREIB_VERSUCHE {
+            if self.ausgang.is_empty() {
+                return;
+            }
+            let Some(strom) = self.kanal.strom.as_mut() else {
+                self.ausgang.clear();
+                self.offen = 0;
+                return;
+            };
+            match geschrieben_als(std::io::Write::write(strom, &self.ausgang)) {
+                Geschrieben::Daten(n) => self.geschrieben(n),
+                Geschrieben::Nochmal => {}
+                Geschrieben::Spaeter => return,
+                Geschrieben::Ende => {
+                    self.kanal.strom = None;
+                    self.ausgang.clear();
+                    self.offen = 0;
+                    return;
+                }
+            }
+        }
+    }
+
+    /// `n` bytes of the answers are written; the open request ends with the last byte of its answer.
+    fn geschrieben(&mut self, n: usize) {
+        self.ausgang.drain(..n);
+        self.offen = self.offen.saturating_sub(n);
+    }
 
     /// The end of the child has come: the socket is read empty first, then the end is judged. A line that `lauf` wrote just before its
-    /// end is not lost this way.
+    /// end is not lost this way. After [`LAEUFT`] the code of the child counts, without a reason; a line still unfinished is dropped.
     pub(crate) fn auswerten_am_ende(&mut self) -> Ende {
         self.abfragen();
-        if !self.verbunden {
+        if !self.kanal.verbunden {
             return Ende::Keine;
         }
-        match auswerten(&self.puffer) {
+        if self.laeuft {
+            if !self.zeile.is_empty() {
+                self.zeile.clear();
+                self.verworfen += 1;
+            }
+            return Ende::Starter;
+        }
+        match auswerten(&self.kanal.puffer) {
             Zeile::Leer => Ende::Starter,
             Zeile::Gueltig { code, grund } => Ende::Gemeldet { code, grund },
             Zeile::Unvollstaendig | Zeile::Ungueltig => Ende::Ungueltig,
@@ -485,7 +719,7 @@ mod tests {
     fn am_ende_wird_zuerst_gelesen_dann_ausgewertet() {
         let w = Wegwerf::neu("drain");
         let pfad = w.0.join(SOCKET_NAME);
-        let mut m = Meldung::binden(&pfad).expect("binds");
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
         m.kind_setzen(std::process::id());
         let mut c = UnixStream::connect(&pfad).expect("connect");
         std::io::Write::write_all(&mut c, b"69 lauf.harness_fehlt\n").expect("write");
@@ -504,13 +738,13 @@ mod tests {
     fn die_vier_ausgaenge_am_ende() {
         // no connection
         let w = Wegwerf::neu("ausgaenge");
-        let mut m = Meldung::binden(&w.0.join("a.sock")).expect("binds");
+        let mut m = Meldeweg::binden(&w.0.join("a.sock")).expect("binds");
         m.kind_setzen(std::process::id());
         assert_eq!(m.auswerten_am_ende(), Ende::Keine);
         // a connection without data, closed, and one that stays open and silent: the starter
         for halten in [false, true] {
             let pfad = w.0.join(format!("b{halten}.sock"));
-            let mut m = Meldung::binden(&pfad).expect("binds");
+            let mut m = Meldeweg::binden(&pfad).expect("binds");
             m.kind_setzen(std::process::id());
             let c = UnixStream::connect(&pfad).expect("connect");
             if halten {
@@ -522,12 +756,12 @@ mod tests {
                 // when that copy goes. The service must see it within the deadline, never miss it.
                 let frist = std::time::Instant::now() + std::time::Duration::from_secs(10);
                 m.abfragen();
-                while m.strom.is_some() && std::time::Instant::now() < frist {
+                while m.kanal.strom.is_some() && std::time::Instant::now() < frist {
                     std::thread::sleep(std::time::Duration::from_millis(10));
                     m.abfragen();
                 }
-                assert!(m.strom.is_none(), "the end of the connection is seen");
-                assert!(m.verbunden);
+                assert!(m.kanal.strom.is_none(), "the end of the connection is seen");
+                assert!(m.kanal.verbunden);
                 assert_eq!(m.auswerten_am_ende(), Ende::Starter);
             }
         }
@@ -537,7 +771,7 @@ mod tests {
             (b"69 a\nx", Ende::Ungueltig),
         ] {
             let pfad = w.0.join("c.sock");
-            let mut m = Meldung::binden(&pfad).expect("binds");
+            let mut m = Meldeweg::binden(&pfad).expect("binds");
             m.kind_setzen(std::process::id());
             let mut c = UnixStream::connect(&pfad).expect("connect");
             std::io::Write::write_all(&mut c, bytes).expect("write");
@@ -552,16 +786,16 @@ mod tests {
     fn nie_mehr_als_128_byte_werden_gelesen() {
         let w = Wegwerf::neu("grenze");
         let pfad = w.0.join(SOCKET_NAME);
-        let mut m = Meldung::binden(&pfad).expect("binds");
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
         m.kind_setzen(std::process::id());
         let mut c = UnixStream::connect(&pfad).expect("connect");
         std::io::Write::write_all(&mut c, &[b'a'; 300]).expect("write");
         m.abfragen();
-        assert_eq!(m.puffer.len(), ZEILE_MAX);
+        assert_eq!(m.kanal.puffer.len(), ZEILE_MAX);
         m.abfragen();
-        assert_eq!(m.puffer.len(), ZEILE_MAX);
+        assert_eq!(m.kanal.puffer.len(), ZEILE_MAX);
         assert!(
-            m.strom.is_some(),
+            m.kanal.strom.is_some(),
             "the connection stays open after 128 bytes"
         );
         assert_eq!(m.auswerten_am_ende(), Ende::Ungueltig);
@@ -573,14 +807,14 @@ mod tests {
     fn eine_fremde_pid_wird_geschlossen_und_die_richtige_danach_angenommen() {
         let w = Wegwerf::neu("fremd");
         let pfad = w.0.join(SOCKET_NAME);
-        let mut m = Meldung::binden(&pfad).expect("binds");
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
         // another pid than ours: this process is a stranger
         m.kind_setzen(std::process::id().wrapping_add(1));
         let mut fremd = UnixStream::connect(&pfad).expect("connect");
         std::io::Write::write_all(&mut fremd, b"99 fremd\n").expect("write");
         m.abfragen();
         assert!(
-            !m.verbunden && m.hoerer.is_some(),
+            !m.kanal.verbunden && m.kanal.hoerer.is_some(),
             "still waiting for the child"
         );
         // macOS refuses the timeout with EINVAL on a socket whose peer has closed already; the read below then ends at once
@@ -601,17 +835,17 @@ mod tests {
             "nothing of the stranger counts"
         );
         // no pid at all matches nobody
-        let mut keine = Meldung::binden(&w.0.join("k.sock")).expect("binds");
+        let mut keine = Meldeweg::binden(&w.0.join("k.sock")).expect("binds");
         keine.kind_setzen(0);
         let _c = UnixStream::connect(w.0.join("k.sock")).expect("connect");
         assert_eq!(keine.auswerten_am_ende(), Ende::Keine);
         // the right pid: accepted, the listener is closed, a later connection finds no listener
         let pfad2 = w.0.join("r.sock");
-        let mut m = Meldung::binden(&pfad2).expect("binds");
+        let mut m = Meldeweg::binden(&pfad2).expect("binds");
         m.kind_setzen(std::process::id());
         let _c = UnixStream::connect(&pfad2).expect("connect");
         m.abfragen();
-        assert!(m.verbunden && m.strom.is_some() && m.hoerer.is_none());
+        assert!(m.kanal.verbunden && m.kanal.strom.is_some() && m.kanal.hoerer.is_none());
         // a second connection finds no listener. A test running at the same time can hold a copy of the listener between its `fork` and
         // `exec` (the socket is CLOEXEC, the copy goes at `exec`); a connection that comes in then must end without being served, never wait.
         if let Ok(mut zweite) = UnixStream::connect(&pfad2) {
@@ -645,16 +879,19 @@ mod tests {
         let w = Wegwerf::neu("kind");
         let pfad = w.0.join(SOCKET_NAME);
         // another uid: the effective user of the service is set to one that is not ours
-        let mut m = Meldung::binden(&pfad).expect("binds");
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
         m.kind_setzen(std::process::id());
-        m.euid = m.euid.wrapping_add(1);
+        m.kanal.euid = m.kanal.euid.wrapping_add(1);
         let _c = UnixStream::connect(&pfad).expect("connect");
         m.abfragen();
-        assert!(!m.verbunden && m.hoerer.is_some(), "another uid is closed");
+        assert!(
+            !m.kanal.verbunden && m.kanal.hoerer.is_some(),
+            "another uid is closed"
+        );
         drop(m);
         let _ = fs::remove_file(&pfad);
         // the child: connects, writes its line, holds its end until its stdin ends
-        let mut m = Meldung::binden(&pfad).expect("binds");
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
         let skript = "import socket, sys\ns = socket.socket(socket.AF_UNIX)\ns.connect(sys.argv[1])\n\
                       s.sendall(b'69 lauf.kind\\n')\nprint('verbunden', flush=True)\nsys.stdin.read()\n";
         let mut kind = Command::new("/usr/bin/python3")
@@ -669,7 +906,7 @@ mod tests {
         let _fremd = UnixStream::connect(&pfad).expect("connect");
         m.abfragen();
         assert!(
-            !m.verbunden && m.hoerer.is_some(),
+            !m.kanal.verbunden && m.kanal.hoerer.is_some(),
             "the test is not the child"
         );
         let mut zeile = String::new();
@@ -680,11 +917,14 @@ mod tests {
         .expect("read");
         assert_eq!(zeile, "verbunden\n");
         let ende = std::time::Instant::now() + std::time::Duration::from_secs(10);
-        while m.puffer.len() < 13 && std::time::Instant::now() < ende {
+        while m.kanal.puffer.len() < 13 && std::time::Instant::now() < ende {
             m.abfragen();
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
-        assert!(m.verbunden && m.hoerer.is_none(), "the child is accepted");
+        assert!(
+            m.kanal.verbunden && m.kanal.hoerer.is_none(),
+            "the child is accepted"
+        );
         drop(kind.stdin.take());
         assert!(kind.wait().expect("wait").success());
         assert_eq!(
@@ -694,6 +934,392 @@ mod tests {
                 grund: "lauf.kind".to_owned()
             }
         );
+    }
+
+    /// A report channel without a socket whose connection has come: the first bytes are `puffer`. No answer is written (there is no
+    /// connection), so the test sees them in `ausgang`.
+    fn weg(puffer: &[u8]) -> Meldeweg {
+        let mut m = Meldeweg {
+            kanal: Meldung {
+                hoerer: None,
+                strom: None,
+                verbunden: true,
+                puffer: puffer.to_vec(),
+                pid: 0,
+                euid: 0,
+            },
+            laeuft: false,
+            zeile: Vec::new(),
+            ueberlang: false,
+            ausgang: Vec::new(),
+            offen: 0,
+            verworfen: 0,
+        };
+        m.laeuft_pruefen();
+        m
+    }
+
+    /// A valid request of exactly `laenge` bytes with its line end (from 18 to 334).
+    fn anforderung(laenge: usize) -> Vec<u8> {
+        // "anfordern " and four spaces and the line end are 14 bytes besides the four fields
+        let mut rest = laenge - 14 - 4;
+        let mut feld = |max: usize| {
+            let n = rest.min(max - 1);
+            rest -= n;
+            n + 1
+        };
+        let (m, r, h, e) = (
+            feld(MODELL_MAX),
+            feld(KENNUNG_MAX),
+            feld(KENNUNG_MAX),
+            feld(KENNUNG_MAX),
+        );
+        assert_eq!(rest, 0, "{laenge}");
+        let zeile = format!(
+            "anfordern {} {} {} {}\n",
+            "r".repeat(r),
+            "h".repeat(h),
+            "m".repeat(m),
+            "e".repeat(e)
+        );
+        assert_eq!(zeile.len(), laenge);
+        assert!(anforderung_gut(&zeile.as_bytes()[..laenge - 1]));
+        zeile.into_bytes()
+    }
+
+    #[test]
+    fn die_form_der_anforderung() {
+        for gut in [
+            &b"anfordern worker pi qwen3:8b medium"[..],
+            b"anfordern a b c d",
+            b"anfordern 0 9.a_b-c Org/Mo_del-1.5@v2+x:latest z",
+        ] {
+            assert!(anforderung_gut(gut), "{gut:?}");
+        }
+        let k64 = format!("anfordern {} h m e", "r".repeat(64));
+        assert!(anforderung_gut(k64.as_bytes()));
+        let m128 = format!("anfordern r h {} e", "m".repeat(128));
+        assert!(anforderung_gut(m128.as_bytes()));
+        let k65 = format!("anfordern {} h m e", "r".repeat(65));
+        let m129 = format!("anfordern r h {} e", "m".repeat(129));
+        let e65 = format!("anfordern r h m {}", "e".repeat(65));
+        for schlecht in [
+            &b""[..],
+            b"anfordern",
+            b"anfordern a b c",
+            b"anfordern a b c d e",
+            b"anfordern  a b c d",
+            b"anfordern a b c d ",
+            b" anfordern a b c d",
+            b"anfordern\ta b c d",
+            b"Anfordern a b c d",
+            b"anfordernx a b c d",
+            b"anfordern A b c d",
+            b"anfordern -a b c d",
+            b"anfordern .a b c d",
+            b"anfordern _a b c d",
+            b"anfordern a B c d",
+            b"anfordern a b c D",
+            b"anfordern a b c d/e",
+            b"anfordern a b c! d",
+            b"anfordern a b m\xc3\xa4 d",
+            b"anfordern a b c d\r",
+            b"anfordern a b c\x00 d",
+            k65.as_bytes(),
+            m129.as_bytes(),
+            e65.as_bytes(),
+        ] {
+            assert!(!anforderung_gut(schlecht), "{schlecht:?}");
+        }
+    }
+
+    /// `laeuft\n` is exactly 7 bytes; it means the starter runs, and the code of the child counts without a reason.
+    #[test]
+    fn laeuft_sind_genau_sieben_byte_als_erste_zeile() {
+        assert_eq!(LAEUFT.len(), 7);
+        let mut m = weg(b"laeuft\n");
+        assert!(m.laeuft);
+        assert_eq!(m.auswerten_am_ende(), Ende::Starter);
+        assert_eq!(m.verworfen(), 0);
+        // anything that is not exactly these 7 bytes is the line before it: judged as a code line, so invalid
+        for schlecht in [
+            &b"laeuft"[..],
+            b"laeuf\n",
+            b"laeuft \n",
+            b" laeuft\n",
+            b"Laeuft\n",
+            b"laeuft\r\n",
+            b"laeuftt\n",
+            b"\nlaeuft\n",
+        ] {
+            let mut m = weg(schlecht);
+            assert!(!m.laeuft, "{schlecht:?}");
+            assert_eq!(m.auswerten_am_ende(), Ende::Ungueltig, "{schlecht:?}");
+        }
+    }
+
+    /// Before `laeuft` the code line counts as before: a valid one gives its code, at most 128 bytes, nothing after it; a code line
+    /// followed by `laeuft` is a line with data after it.
+    #[test]
+    fn vor_laeuft_gilt_die_code_zeile() {
+        let mut m = weg(b"69 lauf.harness_fehlt\n");
+        assert_eq!(
+            m.auswerten_am_ende(),
+            Ende::Gemeldet {
+                code: 69,
+                grund: "lauf.harness_fehlt".to_owned()
+            }
+        );
+        for schlecht in [
+            &b"69 lauf.harness_fehlt\nlaeuft\n"[..],
+            &[b'1'; ZEILE_MAX][..],
+            &[b'1'; ZEILE_MAX - 1][..],
+        ] {
+            let mut m = weg(schlecht);
+            assert!(!m.laeuft);
+            assert_eq!(m.auswerten_am_ende(), Ende::Ungueltig, "{schlecht:?}");
+        }
+        // 128 bytes that begin with `laeuft\n`: the rest is the start of a request, read further from the connection
+        let mut voll = LAEUFT.to_vec();
+        voll.extend_from_slice(
+            &anforderung(ZEILE_MAX - LAEUFT.len() + 1)[..ZEILE_MAX - LAEUFT.len()],
+        );
+        assert_eq!(voll.len(), ZEILE_MAX);
+        let mut m = weg(&voll);
+        assert!(m.laeuft);
+        m.eingang(b"\n");
+        assert_eq!(m.ausgang, ANTWORT_STELLE);
+    }
+
+    /// A valid request gets `abgelehnt stelle_nicht_erreichbar` at once and never `frei`; 256 bytes with the line end are valid, 257 are
+    /// dropped without an answer and counted, and the rest of such a line up to its line end does not count as a line of its own.
+    #[test]
+    fn eine_anforderung_hat_hoechstens_256_byte() {
+        let mut m = weg(b"laeuft\n");
+        m.eingang(&anforderung(ANFORDERUNG_MAX));
+        assert_eq!(m.ausgang, ANTWORT_STELLE);
+        assert!(!m.ausgang.starts_with(b"frei"));
+        m.geschrieben(m.ausgang.len());
+        m.eingang(&anforderung(ANFORDERUNG_MAX + 1));
+        assert_eq!(m.ausgang, [] as [u8; 0], "no answer to 257 bytes");
+        assert_eq!(m.verworfen(), 1);
+        assert!(!m.ueberlang, "the line end of the long line ends it");
+        // a much longer line is one dropped line too, and the next one counts again
+        let mut lang = vec![b'a'; 3 * ANFORDERUNG_MAX];
+        lang.push(b'\n');
+        m.eingang(&lang);
+        m.eingang(&anforderung(22));
+        assert_eq!(m.verworfen(), 2);
+        assert_eq!(m.ausgang, ANTWORT_STELLE);
+    }
+
+    /// After `laeuft` a code line, a second `laeuft` and any other line are dropped without an answer and counted; the session is
+    /// not ended by them and its code stays the one of the child.
+    #[test]
+    fn nach_laeuft_wird_jede_andere_zeile_verworfen() {
+        let mut m = weg(b"laeuft\n69 lauf.harness_fehlt\nlaeuft\nanfordern a b c\n\n");
+        assert_eq!(m.ausgang, [] as [u8; 0]);
+        assert_eq!(m.verworfen(), 4);
+        assert_eq!(m.auswerten_am_ende(), Ende::Starter);
+        assert!(m.kanal.verbunden);
+    }
+
+    /// One request is open per run: a second valid one before the answer to the first is written gets `abgelehnt anfordern_offen`;
+    /// once the whole answer is written, the next one is answered again.
+    #[test]
+    fn zwei_anforderungen_vor_der_antwort() {
+        let a = anforderung(30);
+        let mut m = weg(b"laeuft\n");
+        m.eingang(&a);
+        m.eingang(&a);
+        assert_eq!(m.ausgang, [ANTWORT_STELLE, ANTWORT_OFFEN].concat());
+        // the answer to the first is not written completely: still open
+        m.geschrieben(ANTWORT_STELLE.len() - 1);
+        m.eingang(&a);
+        assert_eq!(
+            m.ausgang,
+            [
+                &ANTWORT_STELLE[ANTWORT_STELLE.len() - 1..],
+                ANTWORT_OFFEN,
+                ANTWORT_OFFEN
+            ]
+            .concat()
+        );
+        m.geschrieben(1);
+        m.eingang(&a);
+        assert!(m.ausgang.ends_with(ANTWORT_STELLE));
+        assert_eq!(m.verworfen(), 0);
+    }
+
+    /// EOF after `laeuft` means only that no requests come any more: the code of the child counts without a reason; a line that has
+    /// not ended is dropped.
+    #[test]
+    fn eof_nach_laeuft() {
+        let mut m = weg(b"laeuft\nanfordern a b");
+        assert_eq!(m.auswerten_am_ende(), Ende::Starter);
+        assert_eq!(m.verworfen(), 1);
+        let mut m = weg(b"laeuft\n");
+        assert_eq!(m.auswerten_am_ende(), Ende::Starter);
+        assert_eq!(m.verworfen(), 0);
+    }
+
+    /// The service reads at most 1024 bytes after `laeuft` in one turn, in pieces of 256, and nothing while answers of
+    /// [`AUSGANG_MAX`] bytes wait.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[test]
+    fn nach_laeuft_wird_je_runde_begrenzt_gelesen() {
+        let w = Wegwerf::neu("runde");
+        let pfad = w.0.join(SOCKET_NAME);
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
+        m.kind_setzen(std::process::id());
+        let mut c = UnixStream::connect(&pfad).expect("connect");
+        std::io::Write::write_all(&mut c, LAEUFT).expect("write");
+        let frist = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while !m.laeuft && std::time::Instant::now() < frist {
+            m.abfragen();
+        }
+        assert!(m.laeuft);
+        // 256 lines of 16 bytes
+        let zeilen = b"xxxxxxxxxxxxxxx\n".repeat(256);
+        std::io::Write::write_all(&mut c, &zeilen).expect("write");
+        m.ausgang = vec![b'a'; 512];
+        m.weiterlesen();
+        assert_eq!(m.verworfen(), 0, "nothing is read while answers wait");
+        m.ausgang.clear();
+        m.weiterlesen();
+        // 1024 bytes in one turn: 64 lines of 16 bytes
+        assert_eq!(m.verworfen(), 64);
+        while m.verworfen() < 256 && std::time::Instant::now() < frist {
+            m.abfragen();
+        }
+        assert_eq!(m.verworfen(), 256);
+    }
+
+    /// A peer that does not read its answers: once its buffer is full, the answers wait (`WouldBlock`), the connection stays, and no
+    /// more than [`AUSGANG_MAX`] and one turn of answers wait.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[test]
+    fn ein_voller_puffer_der_gegenseite_beendet_die_verbindung_nicht() {
+        let w = Wegwerf::neu("voll");
+        let pfad = w.0.join(SOCKET_NAME);
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
+        m.kind_setzen(std::process::id());
+        let mut c = UnixStream::connect(&pfad).expect("connect");
+        std::io::Write::write_all(&mut c, LAEUFT).expect("write");
+        c.set_nonblocking(true).expect("nonblocking");
+        let zeilen = b"anfordern a b c d\n".repeat(50);
+        let frist = std::time::Instant::now() + std::time::Duration::from_secs(30);
+        loop {
+            let _ = std::io::Write::write(&mut c, &zeilen);
+            m.abfragen();
+            assert!(m.kanal.strom.is_some(), "the connection stays");
+            if m.laeuft && !m.ausgang.is_empty() {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < frist,
+                "the buffer of the peer did not fill"
+            );
+        }
+        for _ in 0..100 {
+            let _ = std::io::Write::write(&mut c, &zeilen);
+            m.abfragen();
+        }
+        assert!(m.kanal.strom.is_some(), "the connection stays");
+        assert!(m.ausgang.len() < AUSGANG_MAX + RUNDE_MAX * ANTWORT_OFFEN.len());
+    }
+
+    /// Writing fails (the peer shut its reading side): the connection ends, the waiting answers are dropped, and the end is the one of
+    /// the starter.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn ein_fehler_beim_schreiben_beendet_die_verbindung() {
+        let w = Wegwerf::neu("epipe");
+        let pfad = w.0.join(SOCKET_NAME);
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
+        m.kind_setzen(std::process::id());
+        let mut c = UnixStream::connect(&pfad).expect("connect");
+        c.shutdown(std::net::Shutdown::Read).expect("shutdown");
+        std::io::Write::write_all(&mut c, b"laeuft\nanfordern a b c d\n").expect("write");
+        let frist = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        // the connection is accepted first, then the write of the answer fails
+        while !(m.kanal.verbunden && m.kanal.strom.is_none()) && std::time::Instant::now() < frist {
+            m.abfragen();
+        }
+        assert!(
+            m.kanal.verbunden && m.kanal.strom.is_none(),
+            "the failed write ends the connection"
+        );
+        assert_eq!(m.ausgang, [] as [u8; 0]);
+        assert_eq!(m.offen, 0);
+        assert!(m.laeuft);
+        assert_eq!(m.auswerten_am_ende(), Ende::Starter);
+        drop(c);
+    }
+
+    #[test]
+    fn die_bedeutung_eines_schreibens() {
+        use std::io::{Error, ErrorKind};
+        assert_eq!(geschrieben_als(Ok(3)), Geschrieben::Daten(3));
+        assert_eq!(geschrieben_als(Ok(1)), Geschrieben::Daten(1));
+        assert_eq!(geschrieben_als(Ok(0)), Geschrieben::Ende);
+        assert_eq!(
+            geschrieben_als(Err(Error::from(ErrorKind::Interrupted))),
+            Geschrieben::Nochmal
+        );
+        assert_eq!(
+            geschrieben_als(Err(Error::from(ErrorKind::WouldBlock))),
+            Geschrieben::Spaeter
+        );
+        assert_eq!(
+            geschrieben_als(Err(Error::from(ErrorKind::BrokenPipe))),
+            Geschrieben::Ende
+        );
+    }
+
+    /// Over a real connection: the answer comes on the same connection, the end of the connection ends nothing but the requests.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[test]
+    fn die_antwort_kommt_auf_derselben_verbindung() {
+        use std::io::{BufRead, Write};
+        let w = Wegwerf::neu("antwort");
+        let pfad = w.0.join(SOCKET_NAME);
+        let mut m = Meldeweg::binden(&pfad).expect("binds");
+        m.kind_setzen(std::process::id());
+        let mut c = UnixStream::connect(&pfad).expect("connect");
+        c.set_read_timeout(Some(std::time::Duration::from_millis(20)))
+            .expect("timeout");
+        let mut leser = std::io::BufReader::new(c.try_clone().expect("clone"));
+        c.write_all(b"laeuft\nanfordern worker pi qwen3:8b medium\n")
+            .expect("write");
+        let mut antworten = Vec::new();
+        let frist = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let mut zeile = String::new();
+        while antworten.is_empty() && std::time::Instant::now() < frist {
+            m.abfragen();
+            if leser.read_line(&mut zeile).is_ok_and(|n| n > 0) && zeile.ends_with('\n') {
+                antworten.push(std::mem::take(&mut zeile));
+            }
+        }
+        assert_eq!(antworten, ["abgelehnt stelle_nicht_erreichbar\n"]);
+        // an invalid line gets no answer, the valid one after it does
+        c.write_all(b"anfordern Worker pi m e\nanfordern a b c d\n")
+            .expect("write");
+        while antworten.len() < 2 && std::time::Instant::now() < frist {
+            m.abfragen();
+            if leser.read_line(&mut zeile).is_ok_and(|n| n > 0) && zeile.ends_with('\n') {
+                antworten.push(std::mem::take(&mut zeile));
+            }
+        }
+        assert_eq!(antworten[1], "abgelehnt stelle_nicht_erreichbar\n");
+        assert_eq!(m.verworfen(), 1);
+        drop(leser);
+        drop(c);
+        while m.kanal.strom.is_some() && std::time::Instant::now() < frist {
+            m.abfragen();
+        }
+        assert!(m.kanal.strom.is_none(), "the end of the connection is seen");
+        assert_eq!(m.auswerten_am_ende(), Ende::Starter);
     }
 
     /// Contract `dienst` section 18 point 6 (b), project decision, 27.11.2026: no branch for a system outside Linux, macOS and Windows may

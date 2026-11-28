@@ -143,6 +143,33 @@ pub fn argv_auszug(harness: &str, argv: &[String]) -> String {
     teile.join(" ")
 }
 
+/// The action name of the log line of the hand-over (contract 5, section 6.9).
+pub const ZEILE_AKTION: &str = "lauf.harness";
+
+/// The object of the log line `lauf.harness` (contract 5, section 6.9) without `fassung`, `vorher` and `zeit`, which
+/// `formate::kette::anhaengen_zeile` sets: the excerpt of the argv ([`argv_auszug`]), the harness, the model and the
+/// effort passed on (`null` without one), route and session. No other value: no environment, no path, no prompt.
+#[must_use]
+pub fn zeile(
+    harness: &str,
+    modell: &str,
+    effort: Option<&str>,
+    route: &str,
+    sitzung: &str,
+    argv: &[String],
+) -> serde_json::Value {
+    serde_json::json!({
+        "aktionsname": ZEILE_AKTION,
+        "argv": argv_auszug(harness, argv),
+        "effort": effort,
+        "ergebnis": "vor_uebergabe",
+        "harness": harness,
+        "modell": modell,
+        "route": route,
+        "sitzung": sitzung,
+    })
+}
+
 /// The provider file of `pi`: the guest point of the model path and the one model of the route.
 #[must_use]
 pub fn pi_anbieter(modell: &str) -> String {

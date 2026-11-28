@@ -1,0 +1,9 @@
+{
+ "exit": 73,
+ "stderr": "lauf.protokoll: Protokollzeile nicht schreibbar",
+ "suche_gestartet": true,
+ "modellweg_gestartet": true,
+ "suche_beendet": true,
+ "modellweg_beendet": true,
+ "harness_zeile": null
+}

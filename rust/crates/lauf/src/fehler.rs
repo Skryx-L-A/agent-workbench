@@ -96,6 +96,9 @@ pub enum Fehler {
     },
     /// Step 8: the `exec` failed.
     HarnessFehlt,
+    /// Step 8: the log line with the excerpt of the argv of the harness cannot be written (fail closed, like the line of
+    /// `werkbank-ordnermarke`): no hand-over without the line.
+    Protokoll,
     /// With `--meldung`: the connection to the socket of the service fails, or descriptor 4 is not free at the start.
     MeldungFehlt,
     /// Any step: an unexpected fault.
@@ -146,6 +149,7 @@ impl Fehler {
             Fehler::PaketCache(_) => "lauf.paket_cache",
             Fehler::PaketEntpacken { .. } => "lauf.paket_entpacken",
             Fehler::HarnessFehlt => "lauf.harness_fehlt",
+            Fehler::Protokoll => "lauf.protokoll",
             Fehler::MeldungFehlt => "lauf.meldung_fehlt",
             Fehler::Intern => "lauf.intern",
         }
@@ -200,6 +204,7 @@ impl Fehler {
             Fehler::PaketCache(_) => "Paketordner des Harness unbrauchbar",
             Fehler::PaketEntpacken { .. } => "Paket des Harness nicht entpackt",
             Fehler::HarnessFehlt => "Harness nicht startbar",
+            Fehler::Protokoll => "Protokollzeile nicht schreibbar",
             Fehler::MeldungFehlt => "Meldung an den Dienst nicht moeglich",
             Fehler::Intern => "interner Fehler",
         }
@@ -229,6 +234,7 @@ impl Fehler {
             | Fehler::Zielliste
             | Fehler::StartordnerBelegt
             | Fehler::PaketCache(_)
+            | Fehler::Protokoll
             | Fehler::SitzungBelegt => 73,
             Fehler::OrdnerAndererKunde | Fehler::OrdnerHoeherMarkiert => 77,
             Fehler::TlsUmgebung
@@ -316,8 +322,9 @@ mod tests {
             Fehler::FortsetzungFehlt,
             Fehler::FortsetzungKaputt,
             Fehler::FortsetzungFremd,
+            Fehler::Protokoll,
         ];
-        let soll: [(u8, &str); 31] = [
+        let soll: [(u8, &str); 32] = [
             (78, "lauf.tls_umgebung: TLS-Umgebung gesetzt\n"),
             (64, "lauf.aufruf: genau ein Pfad erwartet\n"),
             (66, "lauf.datei_unlesbar: Startdatei nicht lesbar\n"),
@@ -391,6 +398,7 @@ mod tests {
                 65,
                 "lauf.fortsetzung_fremd: Gespraech gehoert zu anderem Harness, Ordner, Route oder Kunde\n",
             ),
+            (73, "lauf.protokoll: Protokollzeile nicht schreibbar\n"),
         ];
         for (f, (exit, zeile)) in alle.iter().zip(soll) {
             assert_eq!((f.exitcode(), f.zeile().as_str()), (exit, zeile));

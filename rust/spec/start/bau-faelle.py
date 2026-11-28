@@ -1241,6 +1241,26 @@ def harness_argv_f2(start, einst, kennung, fortsetzen):
     return argv + sitzungsoption(h, kennung, fortsetzen)
 
 
+def argv_auszug(h, argv):
+    """Eigenes Modell von harness::argv_auszug: Harness, jeder Optionsname, nur die Werte von --model und der Effort-Option."""
+    teile, wert_folgt = [h], False
+    for a in argv[1:]:
+        if wert_folgt:
+            teile.append(a)
+            wert_folgt = False
+        elif a.startswith("--"):
+            teile.append(a.split("=", 1)[0])
+            wert_folgt = "=" not in a and (a == "--model" or a == EFFORT_OPTION.get(h) and h != "opencode")
+    return " ".join(teile)
+
+
+def harness_zeile(start, einst, argv):
+    """Die Zeile lauf.harness (Vertrag 5, Abschnitt 6.9) ohne vorher und zeit; genau eine je Start mit exec."""
+    return {"aktionsname": "lauf.harness", "argv": argv_auszug(start["harness"], argv),
+            "effort": effort_wirksam(start, einst), "ergebnis": "vor_uebergabe", "fassung": 2, "harness": start["harness"],
+            "modell": start["modell"], "route": start["route"], "sitzung": start["sitzung"]}
+
+
 def abgewiesen(code):
     exit_, grund = LAUF_GRUND[code]
     return {"exit": exit_, "stderr": f"{code}: {grund}", "suche_gestartet": False, "modellweg_gestartet": False}
@@ -1255,8 +1275,10 @@ def lauf_f2(start, lage):
     if alt is None:
         g = {"fassung": 1, "harness": h, "arbeitsordner": start["arbeitsordner"], "route": start["route"], "kunde": start["kunde"],
              "kennung": None if h in OHNE_FORTSETZEN else NEU_KENNUNG}
-        aus = {"exec": h, "harness_argv": harness_argv_f2(start, lage["einstellungen"], NEU_KENNUNG, False), "stderr": "", "suche_gestartet": True,
-               "gespraeche_danach": {**gespraeche, neu: g}, "zustandsordner_beim_start": "leer"}
+        argv = harness_argv_f2(start, lage["einstellungen"], NEU_KENNUNG, False)
+        aus = {"exec": h, "harness_argv": argv, "stderr": "", "suche_gestartet": True,
+               "gespraeche_danach": {**gespraeche, neu: g}, "zustandsordner_beim_start": "leer",
+               "harness_zeile": harness_zeile(start, lage["einstellungen"], argv)}
         if h in OHNE_FORTSETZEN:
             aus["gespraech_mit_zustand"] = [neu]
         return aus
@@ -1281,8 +1303,10 @@ def lauf_f2(start, lage):
     if neu in gespraeche:
         return abgewiesen("lauf.sitzung_belegt")
     danach = {k: v for k, v in gespraeche.items() if k != alt}
-    return {"exec": h, "harness_argv": harness_argv_f2(start, lage["einstellungen"], g["kennung"], True), "stderr": "", "suche_gestartet": True,
-            "gespraeche_danach": {**danach, neu: g}, "zustandsordner_beim_start": "gespraech der vorgaengersitzung"}
+    argv = harness_argv_f2(start, lage["einstellungen"], g["kennung"], True)
+    return {"exec": h, "harness_argv": argv, "stderr": "", "suche_gestartet": True,
+            "gespraeche_danach": {**danach, neu: g}, "zustandsordner_beim_start": "gespraech der vorgaengersitzung",
+            "harness_zeile": harness_zeile(start, lage["einstellungen"], argv)}
 
 
 LAGE_GRUND = {"argv": ["<programm>", "<start>"], "datei_modus": "0600", "datei_art": "datei", "ordner_vorhanden": True,
@@ -1416,6 +1440,19 @@ aufruf_effort("aufruf-effort-pi-vorgabe", "pi ohne Effort, die Grenze hat die Vo
               PI2_OHNE, EINST_PI_VORGABE)
 aufruf_effort("aufruf-effort-opencode-ohne-vorgabe", "opencode ohne Effort und ohne Vorgabe: keine Option wie bisher",
               dict(OC2, effort=None), EINST_NONE_LOW)
+
+# Die Zeile lauf.harness (Vertrag 5, Abschnitt 6.9; Entscheid des Betreibers, 28.11.2026): ohne schreibbare Zeile keine Übergabe
+# (fail closed wie die Zeile von werkbank-ordnermarke). Die Kinder sind dann gestartet und werden beendet.
+_inhalt = {"fassung": 2, "sitzung": "s-2", **{k: v for k, v in heim(dict(COP2_OHNE, fortsetzung_von=None)).items()
+                                              if k != "fassung"}}
+if code_f2(_inhalt, EINST_NONE_LOW, D) is not None:
+    raise SystemExit("FEHLER aufruf-harness-zeile-protokoll-fehlt: ungültiger Start")
+FAELLE.append(("aufruf-harness-zeile-protokoll-fehlt",
+               {"beschreibung": "Das Protokoll ist nicht schreibbar: keine Zeile lauf.harness, keine Übergabe, 73",
+                "form": "aufruf",
+                "lage": {**LAGE_GRUND, "einstellungen": EINST_NONE_LOW, "start": _inhalt, "protokoll": "nicht-schreibbar"}},
+               {"exit": 73, "stderr": "lauf.protokoll: Protokollzeile nicht schreibbar", "suche_gestartet": True,
+                "modellweg_gestartet": True, "suche_beendet": True, "modellweg_beendet": True, "harness_zeile": None}))
 ausstehend("anfrage-f2-gueltig-effort-rueckfall", A, "copilot ohne Effort: none ist erlaubt", COP2_OHNE, None, einst=EINST_NONE_LOW)
 ausstehend("anfrage-f2-gueltig-effort-vorgabe", A, "copilot ohne Effort mit Vorgabe low in der Grenze", COP2_OHNE, None,
            einst=EINST_VORGABE_LOW)

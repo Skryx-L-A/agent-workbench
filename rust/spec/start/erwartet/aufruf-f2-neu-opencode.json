@@ -18,6 +18,17 @@
   }
  },
  "zustandsordner_beim_start": "leer",
+ "harness_zeile": {
+  "aktionsname": "lauf.harness",
+  "argv": "opencode --model wb-lokal/qwen3:8b",
+  "effort": null,
+  "ergebnis": "vor_uebergabe",
+  "fassung": 2,
+  "harness": "opencode",
+  "modell": "qwen3:8b",
+  "route": "lokal-beispiel",
+  "sitzung": "s-2"
+ },
  "gespraech_mit_zustand": [
   "s-2"
  ]

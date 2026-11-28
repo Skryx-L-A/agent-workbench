@@ -490,9 +490,18 @@ fn the_command_changes_nothing_inside_the_enclosure() {
         "the entry is unchanged: {danach}"
     );
     assert_eq!(danach.matches("\"ordner\"").count(), 2, "{danach}");
+    // the command wrote no line; the start itself wrote its line `lauf.harness` to the chain `gateway` (contract 5,
+    // section 6.9)
+    let namen: Vec<String> = w
+        .protokoll
+        .read_dir()
+        .expect("log folder")
+        .filter_map(Result::ok)
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
     assert!(
-        w.protokoll.read_dir().is_ok_and(|mut l| l.next().is_none()),
-        "no log line"
+        namen.iter().all(|n| n.starts_with("gateway")),
+        "no line of the command: {namen:?}"
     );
     for p in w.kinder_pids() {
         if let Some(pid) = rustix::process::Pid::from_raw(p) {

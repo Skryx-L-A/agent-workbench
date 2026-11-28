@@ -409,10 +409,11 @@ fn aufbauen_und_laufen(name: &str, lage: &Value) -> (Welt, gemeinsam::Lauf) {
         {
             fs::create_dir_all(o).expect("folder");
         }
-        if lage.get("protokoll").and_then(Value::as_str) == Some("nicht-schreibbar") {
-            fs::remove_dir_all(&w.protokoll).expect("remove");
-            datei(&w.protokoll, b"KEIN-ORDNER\n", 0o600);
-        }
+    }
+    // the log folder may be made unusable, for the command and for the start (line `lauf.harness`)
+    if lage.get("protokoll").and_then(Value::as_str) == Some("nicht-schreibbar") {
+        fs::remove_dir_all(&w.protokoll).expect("remove");
+        datei(&w.protokoll, b"KEIN-ORDNER\n", 0o600);
     }
     let lauf = if befehl {
         w.programm_lauf("werkbank-ordnermarke", &argv, &env)
@@ -518,6 +519,52 @@ fn protokoll_pruefen(
     }
 }
 
+/// The line `lauf.harness` of the start (contract 5, section 6.9): the lines of that action in the chain files of the
+/// source `gateway` (without `vorher` and `zeit`) equal the expected list, and no line names a path of the world.
+/// `null` expects no line.
+fn harness_zeile_pruefen(w: &Welt, soll: &Value, gleich: &mut impl FnMut(&str, String, String)) {
+    let roh: String = fs::read_dir(&w.protokoll)
+        .map(|l| {
+            l.filter_map(Result::ok)
+                .map(|e| e.path())
+                .filter(|p| {
+                    p.file_name()
+                        .and_then(|n| n.to_str())
+                        .is_some_and(|n| n.starts_with("gateway-") && n.ends_with(".jsonl"))
+                })
+                .map(|p| fs::read_to_string(p).unwrap_or_default())
+                .collect()
+        })
+        .unwrap_or_default();
+    let ist: Vec<Value> = roh
+        .lines()
+        .map(|z| serde_json::from_str::<Value>(z).expect("line"))
+        .filter(|z| z["aktionsname"] == "lauf.harness")
+        .map(|mut z| {
+            let o = z.as_object_mut().expect("object");
+            o.remove("vorher");
+            o.remove("zeit");
+            z
+        })
+        .collect();
+    let soll_zeilen: Vec<Value> = if soll.is_null() {
+        Vec::new()
+    } else {
+        vec![soll.clone()]
+    };
+    gleich(
+        "harness_zeile",
+        Value::Array(ist).to_string(),
+        Value::Array(soll_zeilen).to_string(),
+    );
+    let wurzel = w.protokoll.parent().map(s_text).unwrap_or_default();
+    gleich(
+        "harness_zeile ohne pfad",
+        (!wurzel.is_empty() && roh.contains(&wurzel)).to_string(),
+        "false".to_owned(),
+    );
+}
+
 fn pruefen(name: &str, fall: &Value, soll: &Value) -> Result<(), String> {
     let lage = &fall["lage"];
     let (w, lauf) = aufbauen_und_laufen(name, lage);
@@ -598,6 +645,9 @@ fn pruefen(name: &str, fall: &Value, soll: &Value) -> Result<(), String> {
     }
     if let Some(p) = soll.get("protokoll") {
         protokoll_pruefen(&w, lage, p, &mut gleich);
+    }
+    if let Some(z) = soll.get("harness_zeile") {
+        harness_zeile_pruefen(&w, z, &mut gleich);
     }
     if let Some(z) = soll.get("zielliste") {
         let dateien: Vec<PathBuf> = fs::read_dir(w.zustand.join("sitzungen"))

@@ -402,7 +402,43 @@ fn starten(
         Ok(pid) => kinder.wache = Some(pid),
         Err(f) => return f,
     }
+    // the last step before the hand-over: exactly one line with the excerpt of the argv, or no hand-over (fail closed)
+    if let Err(f) = argv_protokollieren(lage, &beschreibung.argv, jetzt_ms()) {
+        return f;
+    }
     uebergeben(lage, platz, meldung, &beschreibung, kinder)
+}
+
+/// The source of the chain of the line `lauf.harness`: the chain of the model path of the session (contract 5, section
+/// 6.9).
+pub const PROTOKOLL_QUELLE: &str = "gateway";
+
+/// Milliseconds since 1970 of the clock; `None` for a clock before 1970 or past `i64`.
+fn jetzt_ms() -> Option<i64> {
+    let d = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?;
+    i64::try_from(d.as_millis()).ok()
+}
+
+/// Step 8, before the hand-over: appends the line `lauf.harness` (contract 5, section 6.9) to the chain `gateway` in the
+/// log folder of the configuration. Standard error stays empty.
+///
+/// # Errors
+/// `lauf.protokoll` for every fault of the clock or of `formate::kette::anhaengen_zeile` (fail closed).
+fn argv_protokollieren(lage: &Lage, argv: &[String], zeit_ms: Option<i64>) -> Result<(), Fehler> {
+    let zeit_ms = zeit_ms.ok_or(Fehler::Protokoll)?;
+    let zeile = harness::zeile(
+        lage.start.harness(),
+        lage.start.modell(),
+        start::effort(&lage.start, &lage.einst),
+        lage.start.route(),
+        lage.start.sitzung(),
+        argv,
+    );
+    formate::kette::anhaengen_zeile(&lage.konfig.protokoll, PROTOKOLL_QUELLE, zeit_ms, &zeile)
+        .map(|_| ())
+        .map_err(|_| Fehler::Protokoll)
 }
 
 /// The children this process keeps past the hand-over (search process, model path, watcher): the parent of the starter

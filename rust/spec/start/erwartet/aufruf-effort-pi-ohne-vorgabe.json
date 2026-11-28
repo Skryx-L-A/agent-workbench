@@ -21,5 +21,16 @@
    "kennung": "<harness-kennung>"
   }
  },
- "zustandsordner_beim_start": "leer"
+ "zustandsordner_beim_start": "leer",
+ "harness_zeile": {
+  "aktionsname": "lauf.harness",
+  "argv": "pi --provider --model qwen3:8b --session-id",
+  "effort": null,
+  "ergebnis": "vor_uebergabe",
+  "fassung": 2,
+  "harness": "pi",
+  "modell": "qwen3:8b",
+  "route": "lokal-beispiel",
+  "sitzung": "s-2"
+ }
 }

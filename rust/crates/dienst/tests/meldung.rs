@@ -21,6 +21,8 @@ use serde_json::{Value, json};
 /// The play of `lauf`. `nie`: no connection. `zeile`: connects, sends `hex`. `exec`: connects and then replaces itself (the socket is
 /// closed on `exec`, like the trampoline of `lauf` does). `halten`: connects, sends `hex`, says `verbunden` and waits for `weiter`.
 /// `fremd`: waits for `fremd.ok`, then as `zeile`. `still`: no connection, waits for `weiter`. `kill`: connects, then SIGKILL to itself.
+/// `anfordern` (Nachtrag 28.11.2026): connects, sends `hex`, then for each line `<hex> <n>` of the file `schritte` sends the bytes and
+/// reads `n` answer lines; it writes all answers to `antworten` and ends.
 const LAUF: &str = r#"#!/usr/bin/python3 -I
 import os, socket, sys, time
 d = os.environ["M_ORDNER"]
@@ -49,6 +51,18 @@ if modus == "exec":
 if modus == "kill":
     os.kill(os.getpid(), 9)
 strom.sendall(bytes.fromhex(datei("hex")))
+if modus == "anfordern":
+    strom.settimeout(20)
+    leser = strom.makefile("rb")
+    antworten = b""
+    for schritt in datei("schritte").splitlines():
+        teil, n = schritt.split(" ")
+        strom.sendall(bytes.fromhex(teil))
+        for _ in range(int(n)):
+            antworten += leser.readline()
+    tmp = d + "/antworten.tmp"
+    open(tmp, "wb").write(antworten)
+    os.rename(tmp, d + "/antworten")
 if modus == "halten":
     open(d + "/verbunden", "w").close()
     warte("weiter")
@@ -94,7 +108,14 @@ fn hex(bytes: &[u8]) -> String {
 
 /// What the next session plays: the files `modus`, `hex` and `exit`; the files of the one before are removed.
 fn spielen(ort: &Wegwerf, modus: &str, zeile: &[u8], code: i32) {
-    for n in ["argv.txt", "verbunden", "weiter", "fremd.ok"] {
+    for n in [
+        "argv.txt",
+        "verbunden",
+        "weiter",
+        "fremd.ok",
+        "schritte",
+        "antworten",
+    ] {
         let _ = std::fs::remove_file(ort.0.join(n));
     }
     std::fs::write(ort.0.join("modus"), modus).expect("modus");
@@ -556,4 +577,106 @@ fn ein_zu_langer_pfad_lehnt_den_start_ab_und_laesst_nichts_zurueck() {
         assert!(Instant::now() < ende, "the service did not end");
         std::thread::sleep(Duration::from_millis(10));
     }
+}
+
+/// Nachtrag 28.11.2026 (stage 1): after `laeuft` the script sends requests and reads the answers on the same connection. Every valid
+/// request gets `abgelehnt stelle_nicht_erreichbar`, never `frei`; a second one before the answer to the first gets
+/// `abgelehnt anfordern_offen`; every other line gets no answer, and only their number goes to the log. The child ends with 0 and the
+/// session has code 0 without `grund`.
+#[test]
+fn nach_laeuft_bekommt_jede_gueltige_anforderung_eine_ablehnung_und_nie_frei() {
+    let ort = Wegwerf::neu("meldung-anfordern");
+    let (proz, mut ans) = dienst(&ort);
+    let gut = b"anfordern worker pi qwen3:8b medium\n";
+    // the form is right, but with its line end the line has 257 bytes
+    let lang = format!(
+        "anfordern {} {} {} e\n",
+        "r".repeat(64),
+        "h".repeat(64),
+        "m".repeat(114)
+    )
+    .into_bytes();
+    assert_eq!(lang.len(), 257);
+    let ungueltig = [
+        &b"69 lauf.harness_fehlt\n"[..],
+        b"laeuft\n",
+        b"anfordern Worker pi m e\n",
+        &lang,
+    ]
+    .concat();
+    let schritte = format!(
+        "{} 1\n{} 1\n{} 2\n",
+        hex(gut),
+        hex(&[&ungueltig[..], gut].concat()),
+        hex(&[&gut[..], gut].concat())
+    );
+    spielen(&ort, "anfordern", b"laeuft\n", 0);
+    std::fs::write(ort.0.join("schritte"), schritte).expect("steps");
+    let id = starten(&mut ans);
+    let res = warte_beendet(&mut ans, &id);
+    let antworten = std::fs::read_to_string(ort.0.join("antworten")).expect("answers");
+    assert_eq!(
+        antworten,
+        "abgelehnt stelle_nicht_erreichbar\nabgelehnt stelle_nicht_erreichbar\n\
+         abgelehnt stelle_nicht_erreichbar\nabgelehnt anfordern_offen\n"
+    );
+    assert_eq!(res["code"], json!(0), "{res}");
+    assert!(res.get("grund").is_none(), "{res}");
+    let log = proz.stderr_zeilen();
+    assert!(
+        log.iter()
+            .any(|z| z == &format!("wb-dienst: meldung {id} verworfen: 4 Zeilen")),
+        "{log:?}"
+    );
+    assert!(
+        !log.iter().any(|z| z.contains("anfordern")
+            || z.contains("harness_fehlt")
+            || z.contains("Worker")),
+        "no byte of a line in the log: {log:?}"
+    );
+    beenden(proz);
+}
+
+/// The length of `laeuft\n`.
+const LAEUFT_LAENGE: usize = 7;
+
+/// Nachtrag 28.11.2026: `laeuft` and the end of the child: the code of the child counts without `grund`, whether the connection ends
+/// at once, a code line follows `laeuft` (dropped, the code does not change) or a second `laeuft`; a start without `laeuft` (end without
+/// data) stays valid.
+#[test]
+fn nach_laeuft_gilt_der_code_des_kindes_ohne_grund() {
+    let ort = Wegwerf::neu("meldung-laeuft");
+    let (proz, mut ans) = dienst(&ort);
+    for (zeile, ende) in [
+        (&b"laeuft\n"[..], 0),
+        (b"laeuft\n", 3),
+        (b"laeuft\n69 lauf.harness_fehlt\n", 5),
+        (b"laeuft\nlaeuft\n", 0),
+        (b"laeuft\nanfordern a b", 0),
+        (b"", 0),
+    ] {
+        spielen(&ort, "zeile", zeile, ende);
+        let id = starten(&mut ans);
+        let res = warte_beendet(&mut ans, &id);
+        assert_eq!(res["code"], json!(ende), "{zeile:?}: {res}");
+        assert!(res.get("grund").is_none(), "{zeile:?}: {res}");
+        // a line in the log only when lines were dropped
+        let verworfen = usize::from(zeile.len() > LAEUFT_LAENGE);
+        let zeilen = proz.stderr_zeilen();
+        let im_log = zeilen
+            .iter()
+            .filter(|z| z.starts_with(&format!("wb-dienst: meldung {id} ")))
+            .count();
+        assert_eq!(im_log, verworfen, "{zeile:?}: {zeilen:?}");
+    }
+    // `laeuft` is no code line: without its line end it is a line that has not ended
+    spielen(&ort, "zeile", b"laeuft", 0);
+    let id = starten(&mut ans);
+    let res = warte_beendet(&mut ans, &id);
+    assert_eq!(
+        (&res["code"], &res["grund"]),
+        (&json!(70), &json!("lauf.meldung_ungueltig")),
+        "{res}"
+    );
+    beenden(proz);
 }
