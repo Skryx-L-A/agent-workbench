@@ -21,6 +21,8 @@ const MARKE: &str = "hgx5-l5-geheimwert";
 const FREMDE_GID: u32 = 3_999_999_999;
 /// The primary group of the person in the file of the accounts of a set-up (a seam file): never a role group.
 const HAUPTGRUPPE: u32 = 3_999_999_998;
+/// A switch of the name services with accounts and groups from the files and systemd only.
+const NSS_GUT: &str = "passwd:         files systemd\ngroup:          files systemd\nshadow:         files systemd\nhosts:          files dns\n";
 
 fn uid() -> u32 {
     rustix::process::getuid().as_raw()
@@ -121,6 +123,7 @@ impl Aufbau {
             format!("root:x:0:\nwb-bruecke:x:{FREMDE_GID}:\n"),
         )
         .expect("group");
+        std::fs::write(wurzel.join("nsswitch.conf"), NSS_GUT).expect("nsswitch");
         let laufzeit = kurzer_ordner();
         Aufbau {
             konfig: datei,
@@ -139,6 +142,7 @@ impl Aufbau {
             .env("WB_HALTER_KONFIG_EIGNER", uid().to_string())
             .env("WB_HALTER_PASSWD", self.wurzel.join("passwd"))
             .env("WB_HALTER_GROUP", self.wurzel.join("group"))
+            .env("WB_HALTER_NSSWITCH", self.wurzel.join("nsswitch.conf"))
             .env("WB_HALTER_LAUFZEIT", &self.laufzeit)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -409,16 +413,51 @@ fn schritt_3_private_gruppe_mit_0775_startet() {
     let a = aufbau("", false, 0o775);
     let kind = a.laufend();
     assert_eq!(beenden(kind), 0);
-    let fehler = (78, "halter.ablage_rechte: Ablage hat falsche Rechte\n");
+    // a refused group write names the remedy with the four levels above `geheim` (decision of 28.11.2026)
+    let mit_abhilfe = |a: &Aufbau| {
+        let h = a.heim.display();
+        format!(
+            "halter.ablage_rechte: Ablage hat falsche Rechte; Abhilfe: chmod g-w {h}/.local {h}/.local/state \
+             {h}/.local/state/agent-workbench {h}/.local/state/agent-workbench/halter\n"
+        )
+    };
     let a = aufbau("andere", false, 0o775);
     let (code, e) = a.ende(&mut a.befehl());
-    assert_eq!((code, e.as_str()), fehler, "second member");
+    assert_eq!((code, e), (78, mit_abhilfe(&a)), "second member");
     let a = aufbau("", true, 0o775);
     let (code, e) = a.ende(&mut a.befehl());
-    assert_eq!((code, e.as_str()), fehler, "second account");
+    assert_eq!((code, e), (78, mit_abhilfe(&a)), "second account");
+    // the switch of the name services: another source than files and systemd, or no readable file, refuses
+    for (grund, nss) in [
+        ("sss", Some("passwd: files sss\ngroup: files sss\n")),
+        ("ldap", Some("passwd: files ldap\ngroup: files ldap\n")),
+        ("missing", None),
+    ] {
+        let a = aufbau("", false, 0o775);
+        match nss {
+            Some(t) => std::fs::write(a.wurzel.join("nsswitch.conf"), t).expect("nsswitch"),
+            None => std::fs::remove_file(a.wurzel.join("nsswitch.conf")).expect("rm"),
+        }
+        let (code, e) = a.ende(&mut a.befehl());
+        assert_eq!((code, e), (78, mit_abhilfe(&a)), "{grund}");
+        assert!(!a.socket().exists(), "{grund}");
+    }
+    let a = aufbau("", false, 0o775);
+    std::fs::write(
+        a.wurzel.join("nsswitch.conf"),
+        "passwd: files\ngroup: files\n",
+    )
+    .expect("nss");
+    let kind = a.laufend();
+    assert_eq!(beenden(kind), 0, "files alone");
+    // o+w: no remedy with chmod g-w, the line stays as it was
     let a = aufbau("", false, 0o777);
     let (code, e) = a.ende(&mut a.befehl());
-    assert_eq!((code, e.as_str()), fehler, "o+w");
+    assert_eq!(
+        (code, e.as_str()),
+        (78, "halter.ablage_rechte: Ablage hat falsche Rechte\n"),
+        "o+w"
+    );
     assert!(!a.socket().exists());
 }
 

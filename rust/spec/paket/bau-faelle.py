@@ -991,6 +991,19 @@ fall_pruef("linux-dienst-bruecke-und-halter-reihenfolge", "Nachtrag Halter: Brü
                 "pruef.dienst_fehlgeschlagen: Der Dienst wb-halter.service ist fehlgeschlagen."]), halter_einheit("fehlgeschlagen", "inaktiv"))
 fall_pruef("linux-copilot-ablage", "Nachtrag Halter: eine Ebene der Ablage ist ein Verweis oder geheim/ ist nicht 0700; die Zeile nennt keinen Pfad", 1,
            rot(["pruef.copilot_ablage: Die Ablage des Halters hat falsche Rechte, einen falschen Eigentuemer oder einen Verweis."]), lx(lambda o: o.update(copilot="ablage")))
+# Nachtrag 1 zum Entscheid des Betreibers (28.11.2026): je Ebene, die für eine nicht private Gruppe schreibbar ist, ein Hinweis mit chmod g-w und dem
+# Pfad; die Hinweise zählen nicht in pruef.rot und stehen vor den anderen Hinweisen.
+ABLAGE_SATZ = "pruef.copilot_ablage: Die Ablage des Halters hat falsche Rechte, einen falschen Eigentuemer oder einen Verweis."
+GRUPPE_HINWEIS = "pruef.hinweis_copilot_gruppe: Die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe: chmod g-w "
+fall_pruef("linux-copilot-ablage-gruppe", "Nachtrag 1: zwei Ebenen für eine nicht private Gruppe schreibbar (umask 002 mit sss oder zweitem Mitglied): Befund, je ein Hinweis mit Pfad, rc 1", 1,
+           [ABLAGE_SATZ, GRUPPE_HINWEIS + "/srv/beispiel/heim/nutzer1/.local", GRUPPE_HINWEIS + "/srv/beispiel/heim/nutzer1/.local/state",
+            "pruef.rot: 1 Befunde."],
+           lx(lambda o: o.update(copilot="ablage", copilot_gruppe=["/srv/beispiel/heim/nutzer1/.local", "/srv/beispiel/heim/nutzer1/.local/state"])))
+fall_pruef("linux-copilot-ablage-gruppe-anfuehrung", "Nachtrag 1: ein Pfad mit Leerzeichen und Apostroph steht in einfachen Anführungszeichen", 1,
+           [ABLAGE_SATZ, GRUPPE_HINWEIS + "'/srv/beispiel/heim/an na'\\''s/.local'", "pruef.rot: 1 Befunde."],
+           lx(lambda o: o.update(copilot="ablage", copilot_gruppe=["/srv/beispiel/heim/an na's/.local"])))
+fall_pruef("linux-copilot-gruppe-leer", "Nachtrag 1: copilot_gruppe leer ist dasselbe wie ein fehlendes Feld: grün", 0, [OK7],
+           lx(lambda o: o.update(copilot_gruppe=[])))
 # Nachtrag Rolle aus der Gruppe (25.11.): Rollengruppe wb-bruecke und Rollenprogramm, Teil der Prüfung `dienste`, nach den Zeilen der Einheiten.
 RG = {"fehlt": "pruef.rollengruppe_fehlt: Die Rollengruppe wb-bruecke fehlt; der Modellweg bekommt beim Halter keine Rolle.",
       "mitglied": "pruef.rollengruppe_mitglied: Die Rollengruppe wb-bruecke hat ein Mitglied, ein Passwort oder eine falsche Form; "

@@ -1,7 +1,7 @@
 //! `werkbank-halter`: the process shell of the holder (section 2.1, start steps 0 to 4, then the accept loop).
 //!
 //! Seams for tests (`WB_HALTER_KONFIG`, `WB_HALTER_KONFIG_EIGNER`, `WB_HALTER_PASSWD`, `WB_HALTER_GROUP`,
-//! `WB_HALTER_LAUFZEIT`) exist only in the test build (feature `pruefbau`) and count there
+//! `WB_HALTER_NSSWITCH`, `WB_HALTER_LAUFZEIT`) exist only in the test build (feature `pruefbau`) and count there
 //! only with `WB_TESTUMGEBUNG=1`. The delivered build never reads them; its paths are fixed.
 
 use std::io::Write;
@@ -84,7 +84,17 @@ mod linux {
         }
         let bereit = match start::starten(&orte, uid) {
             Ok(b) => b,
-            Err(f) => return ende(f),
+            Err(f) => {
+                // decision of the operator, 28.11.2026: a level writable for a group that is not the private group
+                // gets the remedy with its paths in the same line
+                if f == Startfehler::AblageRechte
+                    && let Some(abhilfe) = start::ablage_abhilfe(&orte, uid)
+                {
+                    zeile(&format!("{}; Abhilfe: {abhilfe}", f.zeile()));
+                    return ExitCode::from(f.teile().0);
+                }
+                return ende(f);
+            }
         };
         if bereit.hoerer.set_nonblocking(true).is_err() {
             start::socket_entfernen(&bereit.ordner, bereit.socket_id);

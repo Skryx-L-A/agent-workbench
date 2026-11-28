@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Entscheid des Betreibers, 28.11.2026: das Heim und die Ebenen über geheim haben 0775, ihre Gruppe ist die private Gruppe des Kontos; der Befehl übernimmt",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "ebene-privat",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

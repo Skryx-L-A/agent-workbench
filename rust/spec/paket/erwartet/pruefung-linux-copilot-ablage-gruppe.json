@@ -1,0 +1,10 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.copilot_ablage: Die Ablage des Halters hat falsche Rechte, einen falschen Eigentuemer oder einen Verweis.",
+  "pruef.hinweis_copilot_gruppe: Die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe: chmod g-w /srv/beispiel/heim/nutzer1/.local",
+  "pruef.hinweis_copilot_gruppe: Die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe: chmod g-w /srv/beispiel/heim/nutzer1/.local/state",
+  "pruef.rot: 1 Befunde."
+ ]
+}

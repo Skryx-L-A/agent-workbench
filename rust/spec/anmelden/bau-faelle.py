@@ -37,6 +37,17 @@ GERAETE_ZEILEN = (
 HINWEIS_BUND = "Hinweis: Der Schluesselbund wurde nicht geprueft, weil secret-tool und security fehlen.\n"
 HINWEIS_REST = "Hinweis: Reste frueherer Anmeldungen wurden geloescht: %d\n"
 OK_ZEILE = "Anmeldung gespeichert.\n"
+# Entscheid des Betreibers, 28.11.2026: der Hinweis mit der Abhilfe vor `ziel_nicht_schreibbar`, wenn Ebenen für eine Gruppe schreibbar
+# sind, die nicht die private Gruppe ist. Der Test schreibt das Heim des Aufbaus als `<heim>`.
+HINWEIS_GRUPPE = ("Hinweis: Ordner der Ablage sind fuer ihre Gruppe schreibbar, und die Gruppe ist nicht als private Gruppe pruefbar. "
+                  "Abhilfe: chmod g-w %s\n")
+OBEN = ["<heim>", "<heim>/.local", "<heim>/.local/state", "<heim>/.local/state/agent-workbench", "<heim>/.local/state/agent-workbench/halter"]
+GRUPPE_PFADE = {"ebene-geteilt": ["<heim>/.local/state/agent-workbench"], "ebene-privat-mitglied": OBEN, "ebene-privat-sss": OBEN,
+                "ebene-privat-ohne-nss": OBEN}
+
+
+def hinweis_gruppe(ziel):
+    return HINWEIS_GRUPPE % " ".join(GRUPPE_PFADE[ziel]) if ziel in GRUPPE_PFADE else ""
 
 
 def fall(beschreibung, **kw):
@@ -83,6 +94,10 @@ FAELLE = {
     "ziel-heim-fehlt": fall("Nachtrag Halter: das Heim aus passwd gibt es nicht", ziel="heim-fehlt"),
     "ziel-ebene-verweis": fall("Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, nichts angelegt", ziel="ebene-verweis"),
     "ziel-ebene-geteilt": fall("Nachtrag Halter: agent-workbench ist für die Gruppe schreibbar", ziel="ebene-geteilt"),
+    "ziel-ebene-privat": fall("Entscheid des Betreibers, 28.11.2026: das Heim und die Ebenen über geheim haben 0775 (umask 002), ihre Gruppe ist die private Gruppe des Kontos; der Befehl speichert", ziel="ebene-privat"),
+    "ziel-ebene-privat-mitglied": fall("wie ziel-ebene-privat, aber /etc/group nennt ein zweites Mitglied der Gruppe", ziel="ebene-privat-mitglied"),
+    "ziel-ebene-privat-sss": fall("Entscheid des Betreibers, 28.11.2026: wie ziel-ebene-privat, aber nsswitch.conf nimmt Konten und Gruppen auch aus sss; Hinweis mit chmod g-w und den Pfaden", ziel="ebene-privat-sss"),
+    "ziel-ebene-privat-ohne-nss": fall("wie ziel-ebene-privat, aber nsswitch.conf fehlt; Hinweis mit chmod g-w und den Pfaden", ziel="ebene-privat-ohne-nss"),
     "erfolg-alte-datei-bleibt": fall("Nachtrag Halter: die Datei des früheren Ziels unter /var/lib/werkbank wird weder gelesen noch geändert", ziel="alte-datei"),
     "ziel-schreibgeschuetzt": fall("Ordner geheim der Ablage mit Modus 0500 statt 0700", ziel="schreibgeschuetzt"),
     "datei-da-ohne-neu": fall("Datei da, kein --neu: die CLI startet nicht", ziel="datei-da"),
@@ -107,7 +122,9 @@ FAELLE_AUSSTEHEND = {}
 
 # Ziele, an denen die Ablage des Halters den Befehl mit `ziel_nicht_schreibbar` enden lässt (Abschnitt 2, Regeln für die Ablage).
 # `ordner-fehlt` gehört nicht dazu: der Befehl legt fehlende Ebenen an (alt: auch `ordner-fehlt`).
-ZIEL_KAPUTT = ("schreibgeschuetzt", "heim-fehlt", "ebene-verweis", "ebene-geteilt")
+# `ebene-privat` gehört nicht dazu: Gruppenschreibrecht der privaten Gruppe ist erlaubt (Entscheid des Betreibers, 28.11.2026).
+ZIEL_KAPUTT = ("schreibgeschuetzt", "heim-fehlt", "ebene-verweis", "ebene-geteilt", "ebene-privat-mitglied", "ebene-privat-sss",
+               "ebene-privat-ohne-nss")
 
 
 def erwartet(f, kaputt):
@@ -141,6 +158,7 @@ def erwartet(f, kaputt):
     if f["ziel"] == "datei-da" and not neu:
         return fehler("anmelden.datei_da")
     if f["ziel"] in kaputt:
+        vor += hinweis_gruppe(f["ziel"])
         return fehler("anmelden.ziel_nicht_schreibbar")
     if f["attrappe"] == "fehlt":
         return fehler("anmelden.cli_fehlt")
@@ -241,6 +259,9 @@ FAELLE_UEB = {
     "ueb-ziel-schreibgeschuetzt": ueb("Ordner geheim der Ablage mit Modus 0500 statt 0700", ziel="schreibgeschuetzt"),
     "ueb-ziel-heim-fehlt": ueb("Nachtrag Halter: das Heim aus passwd gibt es nicht; config.json bleibt unverändert", ziel="heim-fehlt"),
     "ueb-ziel-ebene-verweis": ueb("Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, config.json bleibt unverändert", ziel="ebene-verweis"),
+    "ueb-ziel-ebene-privat": ueb("Entscheid des Betreibers, 28.11.2026: das Heim und die Ebenen über geheim haben 0775, ihre Gruppe ist die private Gruppe des Kontos; der Befehl übernimmt", ziel="ebene-privat"),
+    "ueb-ziel-ebene-privat-mitglied": ueb("wie ueb-ziel-ebene-privat, aber /etc/group nennt ein zweites Mitglied; config.json bleibt unverändert", ziel="ebene-privat-mitglied"),
+    "ueb-ziel-ebene-privat-sss": ueb("wie ueb-ziel-ebene-privat, aber nsswitch.conf nimmt Konten und Gruppen auch aus sss; config.json bleibt unverändert", ziel="ebene-privat-sss"),
     "ueb-config-nicht-ersetzbar": ueb("das Ersetzen von config.json scheitert nach der Schlüsseldatei: beides zurück", probe="config-stoeren"),
     "ueb-config-nicht-ersetzbar-mit-neu": ueb("wie ueb-config-nicht-ersetzbar, mit --neu über eine alte Datei: die alte kommt zurück", args=UEB_NEU, ziel="datei-da", probe="config-stoeren"),
     "ueb-echte-anmeldung-bund": ueb("der Schlüsselbund hat einen Eintrag: Schlüsseldatei steht, config.json ist ohne Token, Code", bundtool="gefunden"),
@@ -297,6 +318,7 @@ def erwartet_ueb(f, kaputt):
     if not form_ok(f["token"]):
         return fehler("anmelden.form_falsch")
     if f["ziel"] in kaputt:
+        vor += hinweis_gruppe(f["ziel"])
         return fehler("anmelden.ziel_nicht_schreibbar")
     if f["ziel"] == "datei-da" and not neu:
         return fehler("anmelden.datei_da")

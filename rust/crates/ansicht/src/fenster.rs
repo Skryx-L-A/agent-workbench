@@ -509,8 +509,25 @@ fn wert_text(v: &Value) -> String {
 }
 
 /// The choices of the user for model and effort when the catalog names none: the models of the routes and every effort the admins
-/// allow on a route (`Startwahl`); the effective value stays a choice even when no route names it.
+/// allow on a route (`Startwahl`); the effective value stays a choice even when no route names it. Program and model are
+/// then bound to the limit of the admins (`harnesses`, `modelle`; decision of the operator, 28.11.2026): only values of at
+/// least one class remain, also the effective value.
 fn wahlen_ergaenzen(werte: &mut [Einstellung], start: &crate::start::Startform) {
+    ergaenzen_ohne_grenze(werte, start);
+    let grenzen: Vec<(String, Value)> = werte
+        .iter()
+        .filter(|e| matches!(e.schluessel.as_str(), "harnesses" | "modelle"))
+        .map(|e| (e.schluessel.clone(), e.wert.clone()))
+        .collect();
+    for e in werte.iter_mut() {
+        if let Some(g) = ziel::grenze_von(&e.schluessel) {
+            let grenze = grenzen.iter().find(|(k, _)| k == g).map(|(_, w)| w);
+            e.wahl = ziel::in_grenze(&e.wahl, grenze);
+        }
+    }
+}
+
+fn ergaenzen_ohne_grenze(werte: &mut [Einstellung], start: &crate::start::Startform) {
     let mut modelle: Vec<String> = start
         .modelle
         .iter()
@@ -1142,9 +1159,15 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
         }
         Value::String(w) if !e.wahl.is_empty() => {
             let w = w.clone();
+            // an effective value outside the choice (for instance outside the limit of the admins) shows as it is, but
+            // is no choice; without it the browser would show the first choice as the value
+            let ausserhalb = !e.wahl.contains(&w);
             rsx! {
                 select { class: "feld", "aria-label": "{titel}", disabled: !e.aenderbar, title: "{gesperrt_grund}",
                     onchange: move |x: FormEvent| senden(&ziel::einstellung_setzen(&k2, &json!(x.value()), &b2, &eb2)),
+                    if ausserhalb {
+                        option { key: "{w}", value: "{w}", selected: true, disabled: true, "{w}" }
+                    }
                     for o in e.wahl.clone() {
                         option { key: "{o}", value: "{o}", selected: o == w, "{o}" }
                     }
@@ -1179,7 +1202,101 @@ fn zeile(e: Einstellung, titel: String, beschreibung: String) -> Element {
 
 #[cfg(test)]
 mod tests {
-    use super::{datum_text, grund_text, klartext};
+    use super::{datum_text, grund_text, klartext, wahlen_ergaenzen};
+    use crate::start::Startform;
+    use crate::ziel::{Einstellung, einstellungen_lesen};
+
+    /// The settings of version 2 with `sitzung.harness` and `sitzung.modell` and the given limits of the admins.
+    fn mit_grenze(
+        harnesses: Option<serde_json::Value>,
+        modelle: Option<serde_json::Value>,
+    ) -> Vec<Einstellung> {
+        let w =
+            |wert: serde_json::Value| json!({"wert": wert, "herkunft": "firma", "aenderbar": true});
+        let mut werte =
+            json!({"sitzung.harness": w(json!("claude")), "sitzung.modell": w(json!("opus"))});
+        if let Some(h) = harnesses {
+            werte["harnesses"] = w(h);
+        }
+        if let Some(m) = modelle {
+            werte["modelle"] = w(m);
+        }
+        einstellungen_lesen(&json!({"fassung": 2, "werte": werte}))
+            .expect("version 2")
+            .1
+    }
+
+    fn wahl(werte: &[Einstellung], schluessel: &str) -> Vec<String> {
+        werte
+            .iter()
+            .find(|e| e.schluessel == schluessel)
+            .map(|e| e.wahl.clone())
+            .unwrap_or_default()
+    }
+
+    fn harness_wahl(harnesses: Option<serde_json::Value>) -> Vec<String> {
+        let mut w = mit_grenze(harnesses, None);
+        wahlen_ergaenzen(&mut w, &Startform::default());
+        wahl(&w, "sitzung.harness")
+    }
+
+    #[test]
+    fn the_choice_of_a_session_offers_only_programs_the_limit_allows() {
+        // decision of the operator, 28.11.2026: without `claude` in `harnesses` the choice has no `claude`
+        assert_eq!(
+            harness_wahl(Some(json!({"intern": ["copilot", "pi", "opencode"]}))),
+            ["copilot", "pi", "opencode"]
+        );
+        assert_eq!(
+            harness_wahl(Some(
+                json!({"intern": ["opencode", "pi", "copilot", "claude"]})
+            )),
+            ["claude", "copilot", "pi", "opencode"],
+            "the order of the catalog"
+        );
+        assert_eq!(
+            harness_wahl(Some(json!({"intern": ["copilot"], "kundendaten": ["pi"]}))),
+            ["copilot", "pi"],
+            "a program of at least one class"
+        );
+        assert_eq!(
+            harness_wahl(Some(json!({"intern": []}))),
+            Vec::<String>::new(),
+            "no release"
+        );
+        // `{}` and a missing key are the default of the contract: no restriction (`regelebenen` 15.1)
+        for h in [Some(json!({})), None] {
+            assert_eq!(harness_wahl(h), ["claude", "copilot", "pi", "opencode"]);
+        }
+    }
+
+    #[test]
+    fn the_choice_of_a_model_offers_only_models_the_limit_allows() {
+        let start = Startform {
+            modelle: vec![
+                ("cloud".into(), Some("sonnet".into())),
+                ("lokal".into(), Some("qwen3:8b".into())),
+                ("auto".into(), None),
+            ],
+            ..Startform::default()
+        };
+        let modell_wahl = |modelle: Option<serde_json::Value>| {
+            let mut w = mit_grenze(None, modelle);
+            wahlen_ergaenzen(&mut w, &start);
+            wahl(&w, "sitzung.modell")
+        };
+        // the effective value `opus` lies outside the limit and is no choice
+        assert_eq!(modell_wahl(Some(json!({"intern": ["sonnet"]}))), ["sonnet"]);
+        assert_eq!(
+            modell_wahl(Some(json!({"intern": []}))),
+            Vec::<String>::new()
+        );
+        assert_eq!(modell_wahl(None), ["opus", "sonnet", "qwen3:8b"]);
+        assert_eq!(
+            modell_wahl(Some(json!({"intern": ["opus", "qwen3:8b"]}))),
+            ["opus", "qwen3:8b"]
+        );
+    }
 
     #[test]
     fn dates_and_reasons_of_the_protection_layers_read_plainly() {

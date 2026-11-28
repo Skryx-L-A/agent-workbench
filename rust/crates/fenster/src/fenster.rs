@@ -716,6 +716,27 @@ fn frist_wahlen(feste: &[u64], wert: &Value) -> Vec<(String, String)> {
         .collect()
 }
 
+/// The choices of `sitzung.harness` (the catalog of the view core, `regelebenen` 15.1) and `sitzung.modell`, bound to the
+/// limit of the admins like in the browser view (`ansicht::ziel::in_grenze`; decision of the operator, 28.11.2026). An
+/// effective value outside them is no choice: no segment is marked.
+fn sitzung_wahlen(schluessel: &str, zusatz: &Zusatz) -> Vec<(String, String)> {
+    let werte: &[&str] = match schluessel {
+        "sitzung.harness" => ansicht::ziel::KATALOG
+            .iter()
+            .find(|(k, ..)| *k == schluessel)
+            .map_or(&[], |(_, _, w)| *w),
+        "sitzung.modell" => &["sonnet", "opus"],
+        _ => &[],
+    };
+    let grenze = ansicht::ziel::grenze_von(schluessel)
+        .and_then(|g| zusatz.einstellung(g))
+        .map(|e| &e.wert);
+    ansicht::ziel::in_grenze(werte, grenze)
+        .into_iter()
+        .map(|x| (x.clone(), x))
+        .collect()
+}
+
 /// The rows of the effective deadline `schluessel` for each MCP server (`regelebenen` 15.1.2): the server, the value and
 /// the origin "Firmendatei, Server <server>" or "Katalog"; an origin in another form stays as it is.
 fn fristen_zeilen(
@@ -4308,17 +4329,9 @@ impl Fenster {
                 .filter(|(k, ..)| self.zusatz.einstellung(k).is_some())
                 .map(|zeile| {
                     let wahlen = match zeile.0 {
-                        // the choices of the catalog of the view core (`regelebenen` 15.1)
-                        "sitzung.harness" => ansicht::ziel::KATALOG
-                            .iter()
-                            .find(|(k, ..)| *k == zeile.0)
-                            .map(|(_, _, w)| {
-                                w.iter()
-                                    .map(|x| ((*x).to_owned(), (*x).to_owned()))
-                                    .collect()
-                            })
-                            .unwrap_or_default(),
-                        "sitzung.modell" => paare(&[("sonnet", "sonnet"), ("opus", "opus")]),
+                        "sitzung.harness" | "sitzung.modell" => {
+                            sitzung_wahlen(zeile.0, &self.zusatz)
+                        }
                         "sitzung.effort" => {
                             paare(&[("low", "low"), ("medium", "medium"), ("high", "high")])
                         }
@@ -4607,6 +4620,83 @@ mod tests {
             nr: None,
             herkunft: None,
         }
+    }
+
+    fn mit_grenze(harnesses: Option<Value>, modelle: Option<Value>) -> Zusatz {
+        let e = |schluessel: &str, wert: Value| crate::ziel::Einstellung {
+            schluessel: schluessel.to_owned(),
+            wert,
+            herkunft: "firma".to_owned(),
+            bereich: "admin".to_owned(),
+            aenderbar: false,
+            grund: None,
+        };
+        let mut einstellungen = vec![
+            e("sitzung.harness", json!("claude")),
+            e("sitzung.modell", json!("opus")),
+        ];
+        einstellungen.extend(harnesses.map(|w| e("harnesses", w)));
+        einstellungen.extend(modelle.map(|w| e("modelle", w)));
+        Zusatz {
+            einstellungen,
+            ..Zusatz::default()
+        }
+    }
+
+    fn wahlwerte(wahlen: &[(String, String)]) -> Vec<&str> {
+        wahlen.iter().map(|(w, _)| w.as_str()).collect()
+    }
+
+    #[test]
+    fn the_choice_of_a_session_offers_only_programs_the_limit_allows() {
+        // decision of the operator, 28.11.2026: without `claude` in `harnesses` the choice has no `claude`
+        let z = mit_grenze(Some(json!({"intern": ["copilot", "pi", "opencode"]})), None);
+        assert_eq!(
+            wahlwerte(&sitzung_wahlen("sitzung.harness", &z)),
+            ["copilot", "pi", "opencode"]
+        );
+        let alle = json!({"intern": ["opencode", "pi", "copilot", "claude"]});
+        let z = mit_grenze(Some(alle), None);
+        assert_eq!(
+            wahlwerte(&sitzung_wahlen("sitzung.harness", &z)),
+            ["claude", "copilot", "pi", "opencode"],
+            "the order of the catalog"
+        );
+        let z = mit_grenze(
+            Some(json!({"intern": ["copilot"], "kundendaten": ["pi"]})),
+            None,
+        );
+        assert_eq!(
+            wahlwerte(&sitzung_wahlen("sitzung.harness", &z)),
+            ["copilot", "pi"],
+            "a program of at least one class"
+        );
+        let z = mit_grenze(Some(json!({"intern": []})), None);
+        assert_eq!(
+            sitzung_wahlen("sitzung.harness", &z),
+            Vec::new(),
+            "no release"
+        );
+        // `{}` and a missing key are the default of the contract: no restriction (`regelebenen` 15.1)
+        for z in [mit_grenze(Some(json!({})), None), mit_grenze(None, None)] {
+            assert_eq!(
+                wahlwerte(&sitzung_wahlen("sitzung.harness", &z)),
+                ["claude", "copilot", "pi", "opencode"]
+            );
+        }
+    }
+
+    #[test]
+    fn the_choice_of_a_model_offers_only_models_the_limit_allows() {
+        let z = mit_grenze(None, Some(json!({"intern": ["sonnet"]})));
+        assert_eq!(wahlwerte(&sitzung_wahlen("sitzung.modell", &z)), ["sonnet"]);
+        let z = mit_grenze(None, Some(json!({"intern": []})));
+        assert_eq!(sitzung_wahlen("sitzung.modell", &z), Vec::new());
+        let z = mit_grenze(None, None);
+        assert_eq!(
+            wahlwerte(&sitzung_wahlen("sitzung.modell", &z)),
+            ["sonnet", "opus"]
+        );
     }
 
     fn plus(id: &str, ordner: &str) -> crate::ziel::Sitzungsplus {

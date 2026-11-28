@@ -45,6 +45,11 @@ pub struct Aufbau {
     pub heim: PathBuf,
     /// The test `passwd` (seam `WB_ANMELDEN_PASSWD`): one entry of the own user id with `heim`.
     pub passwd: PathBuf,
+    /// The test `group` (seam `WB_ANMELDEN_GROUP`). Not made by `aufbau`: a missing file allows no group write; a test of
+    /// the private group writes it with `group_schreiben`.
+    pub group: PathBuf,
+    /// The test `nsswitch.conf` (seam `WB_ANMELDEN_NSSWITCH`), written by `aufbau` with `NSS_GUT`.
+    pub nsswitch: PathBuf,
     /// The store of the holder, `<heim>/.local/state/agent-workbench/halter/geheim`.
     pub ziel: PathBuf,
     /// A folder of the user outside the home (target of a link level).
@@ -93,6 +98,8 @@ pub fn aufbau() -> Aufbau {
     let a = Aufbau {
         ziel: ablage_ebenen(&heim).pop().expect("levels"),
         passwd: wurzel.join("passwd"),
+        group: wurzel.join("group"),
+        nsswitch: wurzel.join("nsswitch.conf"),
         aussen: wurzel.join("aussen"),
         alt: wurzel.join("var/lib/werkbank/nutzer/copilot.schluessel"),
         heim,
@@ -115,6 +122,7 @@ pub fn aufbau() -> Aufbau {
     }
     fs::set_permissions(&a.heim, fs::Permissions::from_mode(0o755)).expect("mode");
     passwd_schreiben(&a, &a.heim);
+    fs::write(&a.nsswitch, NSS_GUT).expect("nsswitch");
     skript_schreiben(&a.gh.join("gh"), "#!/bin/sh\nexit 1\n");
     a
 }
@@ -131,14 +139,16 @@ pub fn ablage_ebenen(heim: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-/// The test `passwd`: an unrelated entry, then the own user id with `heim` as field 6.
+/// The test `passwd`: an unrelated entry, then the own user id with its group id (that of the test folder) and `heim`
+/// as field 6.
 pub fn passwd_schreiben(a: &Aufbau, heim: &Path) {
     let uid = eigene_uid(a);
+    let gid = eigene_gid(a);
     fs::write(
         &a.passwd,
         format!(
             "root:x:0:0:root:/root:/bin/sh
-nutzer:x:{uid}:{uid}:Nutzer:{}:/bin/sh
+nutzer:x:{uid}:{gid}:Nutzer:{}:/bin/sh
 ",
             heim.display()
         ),
@@ -335,6 +345,32 @@ pub fn ziel_bauen(a: &Aufbau, ziel: &str) {
             )
             .expect("mode");
         }
+        // Decision of the operator, 28.11.2026: the home and the levels above `geheim` as umask 002 makes them, in the
+        // group of the account; `ebene-privat` names no other member, `ebene-privat-mitglied` a second one,
+        // `ebene-privat-sss` takes the groups also from sss, `ebene-privat-ohne-nss` has no `nsswitch.conf`.
+        "ebene-privat" | "ebene-privat-mitglied" | "ebene-privat-sss" | "ebene-privat-ohne-nss" => {
+            group_schreiben(
+                a,
+                if ziel == "ebene-privat-mitglied" {
+                    "andere"
+                } else {
+                    ""
+                },
+            );
+            match ziel {
+                "ebene-privat-sss" => {
+                    fs::write(&a.nsswitch, "passwd: files sss\ngroup: files sss\n")
+                        .expect("nsswitch");
+                }
+                "ebene-privat-ohne-nss" => fs::remove_file(&a.nsswitch).expect("nsswitch"),
+                _ => {}
+            }
+            let mut ebenen = vec![a.heim.clone()];
+            ebenen.extend(ablage_ebenen(&a.heim).into_iter().take(4));
+            for ebene in ebenen {
+                fs::set_permissions(ebene, fs::Permissions::from_mode(0o775)).expect("mode");
+            }
+        }
         "alte-datei" => {
             fs::create_dir_all(a.alt.parent().expect("folder")).expect("old folder");
             fs::write(&a.alt, "alter-schluessel\n").expect("old key");
@@ -377,6 +413,13 @@ pub const VERBOTEN: [&str; 6] = [
 
 pub const PROXY: &str = "http://127.0.0.1:9";
 
+/// A switch of the name services with accounts and groups from the files and systemd only.
+pub const NSS_GUT: &str =
+    "passwd:         files systemd\ngroup:          files systemd\nshadow:         files systemd\n";
+
+/// The first part of the note with the remedy (decision of the operator, 28.11.2026); `chmod g-w` and the paths follow.
+pub const HINWEIS_GRUPPE: &str = "Hinweis: Ordner der Ablage sind fuer ihre Gruppe schreibbar, und die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe: chmod g-w";
+
 /// The command under test with a clean environment, the seams and the forbidden variables set on purpose.
 pub fn befehl(a: &Aufbau, args: &[String]) -> Command {
     let mut c = Command::new(BIN);
@@ -386,6 +429,8 @@ pub fn befehl(a: &Aufbau, args: &[String]) -> Command {
         .env("HOME", a.wurzel.join("echt"))
         .env("WB_TESTUMGEBUNG", "1")
         .env("WB_ANMELDEN_PASSWD", &a.passwd)
+        .env("WB_ANMELDEN_GROUP", &a.group)
+        .env("WB_ANMELDEN_NSSWITCH", &a.nsswitch)
         .env("WB_ANMELDEN_COPILOT_HEIM", &a.echt)
         .env("WB_ANMELDEN_WURZEL", &a.wegwerf)
         .env("HTTPS_PROXY", PROXY)
@@ -527,4 +572,20 @@ pub fn log_lesen(a: &Aufbau) -> Option<String> {
 
 pub fn eigene_uid(a: &Aufbau) -> u32 {
     fs::metadata(&a.wurzel).expect("meta").uid()
+}
+
+/// The group id of the test folder: the group of every level the test makes, the primary group in the test `passwd`.
+pub fn eigene_gid(a: &Aufbau) -> u32 {
+    fs::metadata(&a.wurzel).expect("meta").gid()
+}
+
+/// The test `group`: an unrelated group with a member, then the group of `eigene_gid` named `nutzer` with the members
+/// `mitglieder` (empty: the private group of the account).
+pub fn group_schreiben(a: &Aufbau, mitglieder: &str) {
+    let gid = eigene_gid(a);
+    fs::write(
+        &a.group,
+        format!("root:x:0:\nsudo:x:27:nutzer,andere\nnutzer:x:{gid}:{mitglieder}\n"),
+    )
+    .expect("group");
 }

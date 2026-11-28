@@ -48,8 +48,36 @@ Regeln für die Ablage (Schritt 3 und 3b Schritt 6):
 
 - Die Ebenen unter dem Heim sind `.local`, `.local/state`, `agent-workbench`, `halter` und `geheim`. Der Befehl öffnet das Heim
   (`O_DIRECTORY`) und jede Ebene relativ zur vorigen mit `O_NOFOLLOW`; er setzt nie einen Pfad zusammen.
-- Das Heim und jede vorhandene Ebene ist ein Ordner, kein Verweis, gehört der eigenen Nutzerkennung und ist für Gruppe und andere
-  nicht schreibbar. `geheim` hat genau den Modus 0700.
+- Das Heim und jede vorhandene Ebene ist ein Ordner, kein Verweis, gehört der eigenen Nutzerkennung und ist für andere nie
+  schreibbar. Für die Gruppe schreibbar darf eine Ebene über `geheim` (und das Heim) nur sein, wenn ihre Gruppe (gid aus `fstat`)
+  die private Gruppe der eigenen Kennung ist. `geheim` hat genau den Modus 0700. alt: „für Gruppe und andere nicht schreibbar“.
+- **Private Gruppe (Entscheid des Betreibers, 28.11.2026):** dieselbe Regel wie im Halter-Vertrag (`rust/spec/halter/README.md`,
+  Punkt „Private Gruppe“). Die Gruppe ist privat, wenn alle drei Bedingungen zutreffen: (a) die gid ist die Hauptgruppe (Feld 4)
+  des einen Eintrags der eigenen uid in `/etc/passwd`; (b) `/etc/group` hat genau eine Zeile mit dieser gid, und sie nennt kein
+  Mitglied außer der eigenen Kennung; (c) kein anderer Eintrag in `/etc/passwd` hat diese gid als Hauptgruppe. Der Befehl liest
+  beide Dateien selbst und streng wie der Halter: NIS-Zeilen, kaputte Zeilen mit Name, uid oder gid, doppelte Einträge und eine
+  gid mit Vorzeichen heben die Ausnahme auf. Ist `/etc/group` nicht lesbar, gilt kein Gruppenschreibrecht. Sonst bleibt es bei
+  `ziel_nicht_schreibbar` (fail closed). Grund: Ubuntu gibt einem Nutzer mit eigener Gruppe die umask 002; `~/.local` hat dann
+  0775, und der Befehl endete auf dem Ubuntu-Cloud-Abbild 26.04.1 mit Exit 14 (gemessen in der Wegwerf-VM). Der Code
+  (`src/gruppe.rs`) ist eine wortgleiche Kopie der Funktionen `private_gruppe`, `nss_nur_dateien` und `chmod_g_w` des
+  Halters mit denselben Fällen; dieselbe Kopie
+  trägt `werkbank-pruefen`. Grund der Kopie: Die drei Sicherheits-Crates haben kein gemeinsames Crate, das selbst ein
+  Sicherheits-Crate des Mutantentors ist. Die Prüfnaht `WB_ANMELDEN_GROUP` (nur Testbau, nur mit `WB_TESTUMGEBUNG=1`) ersetzt
+  `/etc/group` wie `WB_ANMELDEN_PASSWD` die Datei `/etc/passwd`.
+- **Quellen der Namensdienste (Nachtrag 1 zum Entscheid des Betreibers, 28.11.2026):** Was der Befehl nicht sieht, darf nicht
+  zur Annahme einer privaten Gruppe führen (LDAP oder sssd auf Firmenrechnern). Der Befehl liest `/etc/nsswitch.conf` streng wie
+  der Halter (`nss_nur_dateien`): Die Zeilen `passwd:` und `group:` stehen genau einmal, `initgroups:` höchstens einmal, jede nennt
+  mindestens eine Quelle, und jede Quelle ist `files` oder `systemd`. Eine andere Quelle (`sss`, `ldap`, `nis`, `compat`), eine
+  Aktion in eckigen Klammern, ein unbekanntes Wort, eine fehlende oder doppelte Zeile und eine fehlende oder nicht lesbare Datei
+  machen die Gruppe nicht prüfbar: Gruppenschreibrecht führt dann zu `ziel_nicht_schreibbar` wie zuvor. Die Prüfnaht
+  `WB_ANMELDEN_NSSWITCH` (nur Testbau, nur mit `WB_TESTUMGEBUNG=1`) ersetzt die Datei.
+- **Hinweis mit der Abhilfe (Nachtrag 1):** Endet der Befehl mit `ziel_nicht_schreibbar` und sind das Heim oder Ebenen über
+  `geheim` Ordner der eigenen Kennung, für andere nicht schreibbar, aber für eine Gruppe schreibbar, die nicht die private Gruppe
+  ist, steht vor der Zeile des Codes auf stderr genau eine Zeile `Hinweis: Ordner der Ablage sind fuer ihre Gruppe schreibbar, und
+  die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe: chmod g-w <pfade>` (ein Satz auf einer Zeile). `<pfade>` sind die
+  absoluten Pfade dieser Ordner in der Reihenfolge der Kette, durch Leerzeichen getrennt; ein Pfad mit einem anderen Zeichen als
+  Buchstabe, Ziffer oder `/._-` steht in einfachen Anführungszeichen (`chmod_g_w`, wortgleich mit dem Halter). Die Zeile nennt nur
+  Pfade der Ablage-Kette, nie einen Inhalt. Ohne solchen Ordner (etwa bei o+w oder einem Verweis) fehlt die Zeile.
 - Fehlt eine Ebene, legt der Befehl sie an (`mkdirat`, Modus 0700, unter `umask` 077) und prüft sie danach wie eine vorhandene.
   Legt ein anderer Prozess sie zugleich an (`EEXIST`), gilt die Prüfung der vorhandenen Ebene. alt: Der Befehl legte den Zielordner
   nie an.
@@ -294,7 +322,7 @@ Crates (etwa `kernabbild.muster_pipe`); beide ohne Pfad und ohne Wert. stdout bl
 | 3 | `anmelden.login_abgebrochen` | 11 | `Die Anmeldung wurde nicht abgeschlossen.` | die CLI endet mit Exit ungleich 0 oder startet nicht |
 | 4 | `anmelden.kein_token` | 12 | `Die Anmeldung hat kein Token geliefert.` | `config.json` fehlt, ist kein JSON oder hat nicht genau ein Token |
 | 5 | `anmelden.form_falsch` | 13 | `Das Token hat nicht die erwartete Form.` | Form nach Schritt 8 verfehlt |
-| 6 | `anmelden.ziel_nicht_schreibbar` | 14 | `Der Zielordner ist nicht schreibbar.` | Heim aus `passwd` fehlt; eine Ebene der Ablage ist ein Verweis, kein Ordner, nicht die eigene, für Gruppe oder andere schreibbar oder nicht anlegbar; `geheim` nicht 0700; Temp-Datei oder rename scheitert (alt: Ordner fehlt, nicht der eigene oder nicht schreibbar) |
+| 6 | `anmelden.ziel_nicht_schreibbar` | 14 | `Der Zielordner ist nicht schreibbar.` | Heim aus `passwd` fehlt; eine Ebene der Ablage ist ein Verweis, kein Ordner, nicht die eigene, für andere schreibbar, für eine andere als die private Gruppe schreibbar oder nicht anlegbar; `geheim` nicht 0700; Temp-Datei oder rename scheitert (alt: Ordner fehlt, nicht der eigene oder nicht schreibbar) |
 | 7 | `anmelden.datei_da` | 15 | `Die Schluesseldatei ist schon da. Mit --neu wird sie ersetzt.` | Datei da ohne `--neu` |
 | 8 | `anmelden.echte_anmeldung` | 16 | `Im Heim des Nutzers liegt eine Anmeldung der Copilot CLI. Sie muss weg, bevor eine Sitzung startet.` | Abschnitt 4 |
 | 9 | `anmelden.heim_nicht_anlegbar` | 17 | `Das Wegwerf-Heim ist nicht anlegbar.` | Wurzel fehlt oder ist nicht beschreibbar |
@@ -342,7 +370,8 @@ der Code folgte).
 Felder eines Falls: `beschreibung`; `args` (Argumente des Befehls); `attrappe` (`erfolg`: die gemessene Form der CLI 1.0.88, `abbruch`, `ohne-config`, `config-ohne-feld`,
 `zwei-tokens`, `config-defekt`, `alte-form`: die frühere Annahme `copilot_tokens`, `haengt`, `fehlt`); `token` (`praefix`, `fuell`, `laenge`: Text = Präfix und das Füllzeichen, aufgefüllt auf
 die Länge; kein Token steht als Text in einer Datei); `ziel` (`frei`, `datei-da`, `ordner-fehlt`, `schreibgeschuetzt`, und seit dem
-Nachtrag Halter `heim-fehlt`, `ebene-verweis`, `ebene-geteilt`, `alte-datei`; Bedeutung unter „Ziel der Fälle“);
+Nachtrag Halter `heim-fehlt`, `ebene-verweis`, `ebene-geteilt`, `alte-datei`, seit dem Entscheid des Betreibers vom 28.11.2026
+`ebene-privat`, `ebene-privat-mitglied`, `ebene-privat-sss` und `ebene-privat-ohne-nss`; Bedeutung unter „Ziel der Fälle“);
 `echtes_heim` (`leer`, `config-mit-token`, `config-defekt`); `bundtool` (`keins`, `leer`, `gefunden`); `wegwerf_wurzel` (`ok`, `fehlt`);
 `signal` (`null`, `INT`, `TERM`, `HUP`); `reste` (`keine`, `tot`, `lebend`, `verweis`, `nicht-loeschbar`: Inhalt der Wurzel des Wegwerf-Heims vor dem Lauf,
 je ein Ordner mit dem Namen nach Abschnitt 3a: `tot` mit der pid eines beendeten Prozesses, `lebend` mit der pid eines laufenden Prozesses des Nutzers, `verweis` ein
@@ -353,7 +382,14 @@ Heims, wie die untergeschobene Nutzerkennung in Abschnitt 8) und darin die Ablag
 Schlüsseldatei. `datei-da`: dazu `anmeldung.copilot` mit einem anderen Inhalt. `ordner-fehlt`: keine Ebene ab `.local` ist da; der
 Befehl legt alle an (alt: der Zielordner fehlt, Ergebnis `ziel_nicht_schreibbar`). `schreibgeschuetzt`: `geheim` hat den Modus 0500.
 `heim-fehlt`: der Eintrag in `passwd` nennt ein Heim, das es nicht gibt. `ebene-verweis`: `.local/state` ist ein Verweis auf einen
-Ordner des Nutzers außerhalb. `ebene-geteilt`: `agent-workbench` hat den Modus 0770. `alte-datei`: wie `frei`, dazu die Datei des
+Ordner des Nutzers außerhalb. `ebene-geteilt`: `agent-workbench` hat den Modus 0770. Die Datei `group` des Tests (Naht `WB_ANMELDEN_GROUP`) fehlt außer bei
+`ebene-privat` und `ebene-privat-mitglied`; dann gilt kein Gruppenschreibrecht. `ebene-privat`: das Heim, `.local`, `.local/state`, `agent-workbench` und `halter` haben
+0775, `group` des Tests nennt die Gruppe des Testordners ohne Mitglied, sie ist die Hauptgruppe des Eintrags in `passwd`;
+Ergebnis wie `frei`. `ebene-privat-mitglied`: ebenso, aber `group` nennt das Mitglied `andere`; Ergebnis `ziel_nicht_schreibbar`.
+`ebene-privat-sss`: ebenso mit privater Gruppe, aber `nsswitch.conf` des Tests (Naht `WB_ANMELDEN_NSSWITCH`, sonst
+`passwd: files systemd` und `group: files systemd`) nennt `sss`; `ebene-privat-ohne-nss`: die Datei fehlt; beide
+`ziel_nicht_schreibbar`. Bei `ebene-geteilt`, `ebene-privat-mitglied`, `ebene-privat-sss` und `ebene-privat-ohne-nss` steht vor dem Code
+der Hinweis mit der Abhilfe; in `erwartet/` steht das Heim des Aufbaus dort als `<heim>`, der Test ersetzt es vor dem Vergleich. `alte-datei`: wie `frei`, dazu die Datei des
 früheren Ziels `/var/lib/werkbank/<nutzer>/copilot.schluessel` (im Test unter dem Testordner); sie ist danach byte-gleich da.
 Nach jedem Fall mit `ziel_nicht_schreibbar` ist keine Ebene neu, kein Modus geändert und das Ziel eines Verweises unverändert.
 

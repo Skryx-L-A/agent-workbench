@@ -18,6 +18,7 @@ use std::time::{Duration, Instant};
 
 use formate::kette::sha256_hex;
 
+use crate::gruppe::{nss_nur_dateien, private_gruppe};
 use crate::lage::{Abweichung, DIENSTE, Einstellungen, HARNESS, Lage, OK, Paketstand, ordner_form};
 use crate::manifest::{self, Manifest, PROFIL_A, PROFIL_B, STARTER};
 use crate::ohne_doppel;
@@ -637,14 +638,16 @@ impl Umgebung<'_> {
 
     /// The sign-in file of the route `copilot`, `anmeldung.copilot` in the store of the holder below the home (addendum
     /// holder): first the levels `.local`, `.local/state`, `agent-workbench`, `halter` and `geheim`, each looked at without
-    /// following a link (`ablage`: a link, no folder, not the user's, writable by group or others, or `geheim` not exactly
-    /// 0700; a missing level is `fehlt`), then kind, owner, mode, emptiness and form of the file (the form of the holder,
+    /// following a link (`ablage`: a link, no folder, not the user's, writable by others, writable by a group that is not the private group of
+    /// the user after [`Umgebung::private_gruppe_von`] (`etc/nsswitch.conf`, `etc/passwd` and `etc/group` below the root, decision of the operator, 28.11.2026), or
+    /// `geheim` not exactly 0700; a missing level is `fehlt`), then kind, owner, mode, emptiness and form of the file (the form of the holder,
     /// finding F11: a value of 1 to 12288 printable ASCII characters without a space and exactly one final line feed). Nothing is made. The content never
     /// leaves this function.
     fn copilot(&self, uid: Option<u32>) -> &'static str {
         let (Some(heim), Some(uid)) = (self.heim(), uid) else {
             return "nicht_pruefbar";
         };
+        let gruppe = self.private_gruppe_von(uid);
         let mut ort = self.pfad(heim.trim_start_matches('/'));
         for (i, ebene) in ABLAGE.iter().enumerate() {
             ort.push(ebene);
@@ -653,7 +656,8 @@ impl Umgebung<'_> {
                 Some(m)
                     if !m.file_type().is_dir()
                         || m.uid() != uid
-                        || m.mode() & 0o022 != 0
+                        || m.mode() & 0o002 != 0
+                        || (m.mode() & 0o020 != 0 && gruppe != Some(m.gid()))
                         || (i + 1 == ABLAGE.len() && m.mode() & 0o7777 != 0o700) =>
                 {
                     return "ablage";
@@ -677,15 +681,62 @@ impl Umgebung<'_> {
         }
     }
 
+    /// The private group of `uid` (decision of the operator, 28.11.2026, and its addendum 1): only when
+    /// `etc/nsswitch.conf` below the root takes accounts and groups from the files and systemd alone
+    /// ([`nss_nur_dateien`]), then after [`private_gruppe`] from `etc/passwd` and `etc/group`; a file that cannot be read
+    /// gives `None`, so no group write.
+    fn private_gruppe_von(&self, uid: u32) -> Option<u32> {
+        self.konten_text("etc/nsswitch.conf")
+            .filter(|n| nss_nur_dateien(n))
+            .and_then(|_| self.konten_text("etc/passwd"))
+            .zip(self.konten_text("etc/group"))
+            .and_then(|(p, g)| private_gruppe(&p, &g, uid))
+    }
+
+    /// The levels above `geheim` that are writable for a group that is not the private group of the user (addendum 1 to
+    /// the decision of the operator, 28.11.2026), as absolute paths of the machine in the order of the chain, for the
+    /// notes with the remedy `chmod g-w`: folders of the user, not writable by others, with g+w and another gid. Only when
+    /// the check `copilot` says `ablage`; the walk never follows a link and stops at a level that is no folder.
+    fn copilot_gruppe(&self, uid: Option<u32>, zustand: &str) -> Vec<String> {
+        let (Some(heim), Some(uid), "ablage") = (self.heim(), uid, zustand) else {
+            return Vec::new();
+        };
+        let gruppe = self.private_gruppe_von(uid);
+        let mut ort = self.pfad(heim.trim_start_matches('/'));
+        let mut echt = PathBuf::from(&heim);
+        let mut treffer = Vec::new();
+        for ebene in &ABLAGE[..4] {
+            ort.push(ebene);
+            echt.push(ebene);
+            match mode_von(&ort) {
+                Some(m) if m.file_type().is_dir() => {
+                    if m.uid() == uid
+                        && m.mode() & 0o002 == 0
+                        && m.mode() & 0o020 != 0
+                        && gruppe != Some(m.gid())
+                    {
+                        treffer.push(echt.to_string_lossy().into_owned());
+                    }
+                }
+                _ => break,
+            }
+        }
+        treffer
+    }
+
+    /// A file in the form of `/etc/passwd` or `/etc/group` below the root as text: `None` if it cannot be read, is
+    /// larger than [`KONTEN_GRENZE`] or is no UTF-8.
+    fn konten_text(&self, rel: &str) -> Option<String> {
+        lesen_bis(&self.pfad(rel), KONTEN_GRENZE)
+            .ok()
+            .filter(|b| b.len() <= KONTEN_GRENZE)
+            .and_then(|b| String::from_utf8(b).ok())
+    }
+
     /// The role group and the role program (addendum "Rolle aus der Gruppe"): `(rollengruppe, rollenprogramm)`.
     /// `/etc/gshadow` counts only when it is there; there but not readable (without root) is `nicht_pruefbar`.
     fn rolle(&self) -> (&'static str, &'static str) {
-        let lesen = |rel: &str| {
-            lesen_bis(&self.pfad(rel), KONTEN_GRENZE)
-                .ok()
-                .filter(|b| b.len() <= KONTEN_GRENZE)
-                .and_then(|b| String::from_utf8(b).ok())
-        };
+        let lesen = |rel: &str| self.konten_text(rel);
         let gshadow = match mode_von(&self.pfad("etc/gshadow")) {
             None => Ok(None),
             Some(_) => lesen("etc/gshadow").map(Some).ok_or(()),
@@ -1082,6 +1133,7 @@ impl Umgebung<'_> {
         let apparmor = self.apparmor(&m);
         let (programmordner, harness) = self.programmordner_und_harness();
         let (rollengruppe, rollenprogramm) = self.rolle();
+        let copilot = self.copilot(uid);
         Lage {
             konten: self.konten(),
             dienste: DIENSTE
@@ -1095,7 +1147,8 @@ impl Umgebung<'_> {
             einstellungen: self.einstellungen(),
             nutzerordner: self.nutzerordner(uid).to_owned(),
             schluessel: schluessel.to_owned(),
-            copilot: self.copilot(uid).to_owned(),
+            copilot: copilot.to_owned(),
+            copilot_gruppe: self.copilot_gruppe(uid, copilot),
             copilot_alt: self.copilot_alt(),
             ubuntu_profil: self.ubuntu_profil().to_owned(),
             vault: self.vault(uid).to_owned(),

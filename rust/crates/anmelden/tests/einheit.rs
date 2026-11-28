@@ -10,8 +10,8 @@ use std::fs;
 use anmelden::fehler::Fehler;
 use anmelden::form::{Fund, config_hat_anmeldung, platzhalter, token_aus_config, token_form_ok};
 use anmelden::lauf::{
-    ABLAGE, Bund, TempArt, ablage_suchen, bund_pruefen, finde, heim_aus_passwd, pfad_ohne_gh,
-    pid_aus_name, reste_raeumen, temp_reste_in, ziel_oeffnen,
+    ABLAGE, Bund, TempArt, ablage_suchen, bund_pruefen, finde, gruppen_schreibbar, heim_aus_passwd,
+    pfad_ohne_gh, pid_aus_name, reste_raeumen, temp_reste_in, ziel_oeffnen,
 };
 use gemeinsam::{ablage_ebenen, aufbau, rest_anlegen, rest_name, skript_schreiben, tote_pid};
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
@@ -447,7 +447,7 @@ fn missing_levels_of_the_store_are_made_with_0700() {
     assert!(ablage_suchen(&a.heim).is_none(), "the search makes nothing");
     assert!(!a.heim.join(".local").exists());
     let uid = uid_von(&a.wurzel);
-    assert!(ziel_oeffnen(&a.heim, uid).is_ok());
+    assert!(ziel_oeffnen(&a.heim, uid, None).is_ok());
     for ebene in ablage_ebenen(&a.heim) {
         let m = fs::symlink_metadata(&ebene).expect("level");
         assert!(m.is_dir(), "{}", ebene.display());
@@ -460,7 +460,7 @@ fn missing_levels_of_the_store_are_made_with_0700() {
     }
     assert!(ablage_suchen(&a.heim).is_some());
     assert!(
-        ziel_oeffnen(&a.heim, uid).is_ok(),
+        ziel_oeffnen(&a.heim, uid, None).is_ok(),
         "a second call finds the levels"
     );
 }
@@ -469,9 +469,9 @@ fn missing_levels_of_the_store_are_made_with_0700() {
 fn every_rule_of_a_level_of_the_store_is_checked() {
     let a = aufbau();
     let uid = uid_von(&a.wurzel);
-    assert!(ziel_oeffnen(&a.heim, uid).is_ok());
+    assert!(ziel_oeffnen(&a.heim, uid, None).is_ok());
     assert_eq!(
-        ziel_oeffnen(&a.heim, uid + 1).err(),
+        ziel_oeffnen(&a.heim, uid + 1, None).err(),
         Some(Fehler::ZielNichtSchreibbar),
         "the home of another owner"
     );
@@ -483,7 +483,7 @@ fn every_rule_of_a_level_of_the_store_is_checked() {
         for modus in [0o720, 0o702] {
             fs::set_permissions(ebene, fs::Permissions::from_mode(modus)).expect("mode");
             assert_eq!(
-                ziel_oeffnen(&a.heim, uid).err(),
+                ziel_oeffnen(&a.heim, uid, None).err(),
                 Some(Fehler::ZielNichtSchreibbar),
                 "{} with {modus:o}",
                 ebene.display()
@@ -495,7 +495,7 @@ fn every_rule_of_a_level_of_the_store_is_checked() {
     for modus in [0o750, 0o705, 0o500, 0o1700] {
         fs::set_permissions(geheim, fs::Permissions::from_mode(modus)).expect("mode");
         assert_eq!(
-            ziel_oeffnen(&a.heim, uid).err(),
+            ziel_oeffnen(&a.heim, uid, None).err(),
             Some(Fehler::ZielNichtSchreibbar),
             "geheim with {modus:o}"
         );
@@ -504,7 +504,7 @@ fn every_rule_of_a_level_of_the_store_is_checked() {
     let halter = &ebenen[3];
     fs::set_permissions(halter, fs::Permissions::from_mode(0o750)).expect("mode");
     assert!(
-        ziel_oeffnen(&a.heim, uid).is_ok(),
+        ziel_oeffnen(&a.heim, uid, None).is_ok(),
         "only geheim needs exactly 0700"
     );
     fs::set_permissions(halter, fs::Permissions::from_mode(0o700)).expect("mode");
@@ -513,14 +513,14 @@ fn every_rule_of_a_level_of_the_store_is_checked() {
     fs::rename(local, a.wurzel.join("local-weg")).expect("move");
     fs::write(local, "x").expect("file");
     assert_eq!(
-        ziel_oeffnen(&a.heim, uid).err(),
+        ziel_oeffnen(&a.heim, uid, None).err(),
         Some(Fehler::ZielNichtSchreibbar)
     );
     assert!(ablage_suchen(&a.heim).is_none());
     fs::remove_file(local).expect("remove");
     std::os::unix::fs::symlink(a.wurzel.join("local-weg"), local).expect("link");
     assert_eq!(
-        ziel_oeffnen(&a.heim, uid).err(),
+        ziel_oeffnen(&a.heim, uid, None).err(),
         Some(Fehler::ZielNichtSchreibbar)
     );
     assert!(
@@ -530,14 +530,117 @@ fn every_rule_of_a_level_of_the_store_is_checked() {
     let heim_verweis = a.wurzel.join("heim-verweis");
     std::os::unix::fs::symlink(&a.heim, &heim_verweis).expect("link");
     assert_eq!(
-        ziel_oeffnen(&heim_verweis, uid).err(),
+        ziel_oeffnen(&heim_verweis, uid, None).err(),
         Some(Fehler::ZielNichtSchreibbar)
     );
     assert!(ablage_suchen(&heim_verweis).is_none());
     assert_eq!(
-        ziel_oeffnen(&a.wurzel.join("kein-heim"), uid).err(),
+        ziel_oeffnen(&a.wurzel.join("kein-heim"), uid, None).err(),
         Some(Fehler::ZielNichtSchreibbar)
     );
+}
+
+/// Decision of the operator, 28.11.2026: the home and a level above `geheim` may be writable for their group only when
+/// that group is the private group handed in; o+w never, and `geheim` stays exactly 0700.
+#[test]
+fn only_the_private_group_may_write_a_level_above_geheim() {
+    let a = aufbau();
+    let uid = uid_von(&a.wurzel);
+    let gid = fs::metadata(&a.wurzel).expect("meta").gid();
+    let ebenen = ablage_ebenen(&a.heim);
+    let mut oben = vec![a.heim.clone()];
+    oben.extend(ebenen[..4].iter().cloned());
+    for modus in [0o775, 0o770] {
+        for ebene in &oben {
+            fs::set_permissions(ebene, fs::Permissions::from_mode(modus)).expect("mode");
+        }
+        assert!(
+            ziel_oeffnen(&a.heim, uid, Some(gid)).is_ok(),
+            "{modus:o} with the private group"
+        );
+        for gruppe in [None, Some(gid + 1)] {
+            assert_eq!(
+                ziel_oeffnen(&a.heim, uid, gruppe).err(),
+                Some(Fehler::ZielNichtSchreibbar),
+                "{modus:o} with {gruppe:?}"
+            );
+        }
+    }
+    for ebene in &oben {
+        for modus in [0o777, 0o757, 0o702] {
+            fs::set_permissions(ebene, fs::Permissions::from_mode(modus)).expect("mode");
+            assert_eq!(
+                ziel_oeffnen(&a.heim, uid, Some(gid)).err(),
+                Some(Fehler::ZielNichtSchreibbar),
+                "{} with {modus:o}: o+w never",
+                ebene.display()
+            );
+        }
+        fs::set_permissions(ebene, fs::Permissions::from_mode(0o775)).expect("mode");
+    }
+    let geheim = ebenen.last().expect("geheim");
+    for modus in [0o770, 0o750] {
+        fs::set_permissions(geheim, fs::Permissions::from_mode(modus)).expect("mode");
+        assert_eq!(
+            ziel_oeffnen(&a.heim, uid, Some(gid)).err(),
+            Some(Fehler::ZielNichtSchreibbar),
+            "geheim with {modus:o}"
+        );
+    }
+    fs::set_permissions(geheim, fs::Permissions::from_mode(0o700)).expect("mode");
+    // a missing level is made with 0700 below a level of the private group
+    fs::remove_dir_all(&ebenen[2]).expect("remove");
+    assert!(ziel_oeffnen(&a.heim, uid, Some(gid)).is_ok());
+    for ebene in &ebenen[2..] {
+        let m = fs::metadata(ebene).expect("level").permissions().mode() & 0o7777;
+        assert_eq!(m, 0o700, "{}", ebene.display());
+    }
+}
+
+/// Addendum 1 of 28.11.2026: the remedy names the home and the levels above `geheim` that are writable for a group that
+/// is not the private one, in the order of the chain; o+w, no group write, another owner and a missing home give none.
+#[test]
+fn the_remedy_names_the_levels_writable_for_another_group() {
+    let a = aufbau();
+    let uid = uid_von(&a.wurzel);
+    let gid = fs::metadata(&a.wurzel).expect("meta").gid();
+    let ebenen = ablage_ebenen(&a.heim);
+    let mut oben = vec![a.heim.clone()];
+    oben.extend(ebenen[..4].iter().cloned());
+    let pfade: Vec<String> = oben.iter().map(|p| p.display().to_string()).collect();
+    assert!(
+        gruppen_schreibbar(&a.heim, uid, None).is_empty(),
+        "0700 and 0755"
+    );
+    for ebene in &oben {
+        fs::set_permissions(ebene, fs::Permissions::from_mode(0o775)).expect("mode");
+    }
+    fs::set_permissions(&ebenen[4], fs::Permissions::from_mode(0o770)).expect("mode");
+    assert_eq!(
+        gruppen_schreibbar(&a.heim, uid, None),
+        pfade,
+        "geheim is not named"
+    );
+    assert_eq!(gruppen_schreibbar(&a.heim, uid, Some(gid + 1)), pfade);
+    assert!(
+        gruppen_schreibbar(&a.heim, uid, Some(gid)).is_empty(),
+        "the private group"
+    );
+    assert!(
+        gruppen_schreibbar(&a.heim, uid + 1, None).is_empty(),
+        "another owner"
+    );
+    assert!(
+        gruppen_schreibbar(&a.wurzel.join("kein-heim"), uid, None).is_empty(),
+        "no home"
+    );
+    for (modus, grund) in [(0o777, "o+w"), (0o755, "no group write")] {
+        fs::set_permissions(&oben[1], fs::Permissions::from_mode(modus)).expect("mode");
+        let mut ohne = pfade.clone();
+        ohne.remove(1);
+        assert_eq!(gruppen_schreibbar(&a.heim, uid, None), ohne, "{grund}");
+    }
+    fs::set_permissions(&ebenen[4], fs::Permissions::from_mode(0o700)).expect("mode");
 }
 
 #[test]

@@ -378,6 +378,207 @@ fn die_ebenen_der_ablage_werden_ohne_verweis_vor_der_anmeldedatei_beurteilt() {
     fs::remove_dir_all(&w).ok();
 }
 
+/// Decision of the operator, 28.11.2026 (rule of the holder, point "Private Gruppe"): a level above `geheim` may be
+/// writable for its group when that group is the private group of the user after `etc/passwd` and `etc/group` below the
+/// root; a second member, a second account with the group, o+w, `geheim` not 0700 and a group file that cannot be read
+/// refuse as before (the test `die_private_gruppe_darf_die_ebenen_ueber_geheim_beschreiben`).
+///
+/// The made-up tree of the user with the private group: `etc/passwd`, `etc/group` and a good `etc/nsswitch.conf`
+/// below the root, every level above `geheim` 0775. Gives the root, uid, gid, passwd and group.
+fn privat_aufbau(name: &str) -> (PathBuf, u32, u32, String, String) {
+    use std::os::unix::fs::MetadataExt;
+    let w = eigener_ordner(name);
+    nutzerdaten(&w, true);
+    let uid = eigene_uid();
+    let gid = fs::metadata(w.join(EBENEN[0])).expect("level").gid();
+    let passwd = format!(
+        "root:x:0:0:root:/root:/bin/bash\nanna:x:{uid}:{gid}:Anna:/srv/beispiel/anna:/bin/bash\n"
+    );
+    let group = format!("root:x:0:\nsudo:x:27:anna,bert\nanna:x:{gid}:\n");
+    schreiben(&w, "etc/passwd", passwd.as_bytes(), 0o644);
+    schreiben(
+        &w,
+        "etc/nsswitch.conf",
+        b"passwd:         files systemd\ngroup:          files systemd\n",
+        0o644,
+    );
+    schreiben(&w, "etc/group", group.as_bytes(), 0o644);
+    for ebene in &EBENEN[..4] {
+        fs::set_permissions(w.join(ebene), fs::Permissions::from_mode(0o775)).expect("mode");
+    }
+    (w, uid, gid, passwd, group)
+}
+
+/// Addendum 1 (28.11.2026): the switch of the name services names another source, or cannot be read: refused, and
+/// one note with the remedy for each of the four levels.
+#[test]
+fn ohne_pruefbare_namensdienste_gilt_keine_private_gruppe_und_die_abhilfe_nennt_die_pfade() {
+    let (w, uid, _, _, _) = privat_aufbau("privat-nss");
+    let sys = attrappe_ok(uid);
+    let z = |w: &Path| lage_mit(w, &sys, Some("anna")).copilot;
+    let ablage_zeile = |w: &Path| {
+        bewerte(&lage_mit(w, &sys, Some("anna")))
+            .zeilen
+            .iter()
+            .any(|z| z.starts_with("pruef.copilot_ablage: "))
+    };
+    assert_eq!(z(&w), "ok");
+    let oben: Vec<String> = EBENEN[..4].iter().map(|e| format!("/{e}")).collect();
+    let notes = |w: &Path| -> Vec<String> {
+        bewerte(&lage_mit(w, &sys, Some("anna")))
+            .zeilen
+            .into_iter()
+            .filter(|z| z.starts_with("pruef.hinweis_copilot_gruppe: "))
+            .collect()
+    };
+    let erwartet: Vec<String> = oben
+        .iter()
+        .map(|p| format!("pruef.hinweis_copilot_gruppe: Die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe: chmod g-w {p}"))
+        .collect();
+    let nss_gut = fs::read(w.join("etc/nsswitch.conf")).expect("nsswitch");
+    for (grund, text) in [
+        ("sss", Some(&b"passwd: files sss\ngroup: files sss\n"[..])),
+        (
+            "ldap",
+            Some(&b"passwd: files ldap\ngroup: files ldap\n"[..]),
+        ),
+        ("missing", None),
+    ] {
+        let _ = fs::remove_file(w.join("etc/nsswitch.conf"));
+        if let Some(t) = text {
+            schreiben(&w, "etc/nsswitch.conf", t, 0o644);
+        }
+        let lage = lage_mit(&w, &sys, Some("anna"));
+        assert_eq!(lage.copilot, "ablage", "{grund}");
+        assert_eq!(lage.copilot_gruppe, oben, "{grund}");
+        assert!(ablage_zeile(&w), "{grund}");
+        assert_eq!(notes(&w), erwartet, "{grund}");
+    }
+    // with sss: a level without group write is not named, and the walk stops at a level that is no folder
+    schreiben(
+        &w,
+        "etc/nsswitch.conf",
+        b"passwd: files sss\ngroup: files sss\n",
+        0o644,
+    );
+    fs::set_permissions(w.join(EBENEN[0]), fs::Permissions::from_mode(0o755)).expect("mode");
+    assert_eq!(
+        lage_mit(&w, &sys, Some("anna")).copilot_gruppe,
+        oben[1..].to_vec(),
+        ".local without group write"
+    );
+    fs::set_permissions(w.join(EBENEN[0]), fs::Permissions::from_mode(0o775)).expect("mode");
+    let state = w.join(EBENEN[1]);
+    let weg = w.join("state-weg");
+    fs::rename(&state, &weg).expect("move");
+    schreiben(&w, EBENEN[1], b"x", 0o664);
+    let lage = lage_mit(&w, &sys, Some("anna"));
+    assert_eq!(lage.copilot, "ablage", "a file level");
+    assert_eq!(
+        lage.copilot_gruppe,
+        oben[..1].to_vec(),
+        "a file level stops the walk"
+    );
+    fs::remove_file(&state).expect("file away");
+    fs::rename(&weg, &state).expect("back");
+    schreiben(&w, "etc/nsswitch.conf", &nss_gut, 0o644);
+    assert_eq!(z(&w), "ok", "the good switch again");
+    assert!(notes(&w).is_empty(), "no note with the good switch");
+    fs::remove_dir_all(&w).ok();
+}
+
+#[test]
+fn die_private_gruppe_darf_die_ebenen_ueber_geheim_beschreiben() {
+    let (w, uid, gid, passwd, group) = privat_aufbau("privat");
+    let sys = attrappe_ok(uid);
+    let z = |w: &Path| lage_mit(w, &sys, Some("anna")).copilot;
+    let ablage_zeile = |w: &Path| {
+        bewerte(&lage_mit(w, &sys, Some("anna")))
+            .zeilen
+            .iter()
+            .any(|z| z.starts_with("pruef.copilot_ablage: "))
+    };
+    for modus in [0o775, 0o770] {
+        for ebene in &EBENEN[..4] {
+            fs::set_permissions(w.join(ebene), fs::Permissions::from_mode(modus)).expect("mode");
+        }
+        assert_eq!(z(&w), "ok", "every level above geheim {modus:o}");
+        assert!(!ablage_zeile(&w), "no line pruef.copilot_ablage");
+    }
+    assert!(
+        lage_mit(&w, &sys, Some("anna")).copilot_gruppe.is_empty(),
+        "the private group needs no remedy"
+    );
+    let falsch: [(&str, String, String); 4] = [
+        (
+            "second member",
+            passwd.clone(),
+            group.replace(&format!("anna:x:{gid}:"), &format!("anna:x:{gid}:bert")),
+        ),
+        (
+            "second account with the group",
+            format!(
+                "{passwd}bert:x:{}:{gid}::/srv/beispiel/bert:/bin/sh\n",
+                uid + 1
+            ),
+            group.clone(),
+        ),
+        (
+            "the private group is another one than that of the levels",
+            passwd.replace(&format!(":{uid}:{gid}:"), &format!(":{uid}:{}:", gid + 1)),
+            group.replace(&format!("anna:x:{gid}:"), &format!("anna:x:{}:", gid + 1)),
+        ),
+        (
+            "a line in the form of NIS",
+            passwd.clone(),
+            format!("{group}+:::\n"),
+        ),
+    ];
+    for (grund, p, g) in &falsch {
+        schreiben(&w, "etc/passwd", p.as_bytes(), 0o644);
+        schreiben(&w, "etc/group", g.as_bytes(), 0o644);
+        assert_eq!(z(&w), "ablage", "{grund}");
+        assert!(ablage_zeile(&w), "{grund}: the line pruef.copilot_ablage");
+    }
+    schreiben(&w, "etc/passwd", passwd.as_bytes(), 0o644);
+    schreiben(&w, "etc/group", group.as_bytes(), 0o644);
+    assert_eq!(z(&w), "ok");
+    // o+w never, also with the private group; `geheim` stays exactly 0700
+    for ebene in &EBENEN[..4] {
+        for modus in [0o777, 0o757] {
+            fs::set_permissions(w.join(ebene), fs::Permissions::from_mode(modus)).expect("mode");
+            assert_eq!(z(&w), "ablage", "{ebene} {modus:o}");
+            // o+w gets no remedy with chmod g-w, and the private group is no remedy either
+            assert!(
+                lage_mit(&w, &sys, Some("anna")).copilot_gruppe.is_empty(),
+                "{ebene} {modus:o}"
+            );
+        }
+        fs::set_permissions(w.join(ebene), fs::Permissions::from_mode(0o775)).expect("mode");
+    }
+    for modus in [0o770, 0o750] {
+        fs::set_permissions(w.join(EBENEN[4]), fs::Permissions::from_mode(modus)).expect("mode");
+        assert_eq!(z(&w), "ablage", "geheim {modus:o}");
+    }
+    fs::set_permissions(w.join(EBENEN[4]), fs::Permissions::from_mode(0o700)).expect("mode");
+    assert_eq!(z(&w), "ok");
+    // a group file that cannot be read (missing, a folder) allows no group write
+    fs::remove_file(w.join("etc/group")).expect("remove");
+    assert_eq!(z(&w), "ablage", "group missing");
+    fs::create_dir(w.join("etc/group")).expect("folder");
+    assert_eq!(z(&w), "ablage", "group is a folder");
+    fs::remove_dir(w.join("etc/group")).expect("remove");
+    schreiben(&w, "etc/group", group.as_bytes(), 0o644);
+    assert_eq!(z(&w), "ok");
+    // without group write the levels need no group file
+    for ebene in &EBENEN[..4] {
+        fs::set_permissions(w.join(ebene), fs::Permissions::from_mode(0o700)).expect("mode");
+    }
+    fs::remove_file(w.join("etc/group")).expect("remove");
+    assert_eq!(z(&w), "ok", "0700 without a group file");
+    fs::remove_dir_all(&w).ok();
+}
+
 #[test]
 fn der_alte_ort_der_anmeldung_wird_gemeldet_und_nie_gelesen() {
     let w = eigener_ordner("alter-ort");
@@ -1096,6 +1297,15 @@ fn eine_lage_mit_unbekanntem_zustand_wird_abgelehnt() {
         "paketstand": {"manifest": "ok", "bau": "auslieferung", "version": "gleich", "dateien": []}
     });
     assert!(Lage::aus_json(&gut).is_ok());
+    // the paths of the remedy (addendum 1, 28.11.2026): up to four absolute paths of up to 1024 bytes
+    let mut vier = gut.clone();
+    vier["copilot_gruppe"] =
+        serde_json::json!(["/a", "/b c", "/\u{e4}", format!("/{}", "a".repeat(1023))]);
+    assert_eq!(Lage::aus_json(&vier).expect("four").copilot_gruppe.len(), 4);
+    assert!(
+        Lage::aus_json(&gut).expect("gut").copilot_gruppe.is_empty(),
+        "absent is empty"
+    );
     for (feld, wert) in [
         ("apparmor", serde_json::json!("gelb")),
         ("vault", serde_json::json!("x")),
@@ -1138,6 +1348,18 @@ fn eine_lage_mit_unbekanntem_zustand_wird_abgelehnt() {
         (
             "paketstand",
             serde_json::json!({"manifest": "ok", "bau": "test", "version": "gleich", "dateien": [{"pfad": "a", "art": "x"}]}),
+        ),
+        ("copilot_gruppe", serde_json::json!("/a")),
+        (
+            "copilot_gruppe",
+            serde_json::json!(["/a", "/b", "/c", "/d", "/e"]),
+        ),
+        ("copilot_gruppe", serde_json::json!(["a"])),
+        ("copilot_gruppe", serde_json::json!([7])),
+        ("copilot_gruppe", serde_json::json!(["/a\nb"])),
+        (
+            "copilot_gruppe",
+            serde_json::json!([format!("/{}", "a".repeat(1024))]),
         ),
     ] {
         let mut l = gut.clone();

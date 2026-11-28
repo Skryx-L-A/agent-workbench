@@ -68,6 +68,10 @@ pub const HINWEIS_CA_DOPPELT: &str = "pruef.hinweis_ca_doppelt: lauf.json nennt 
 pub const HINWEIS_CA_UNBEKANNT: &str = "pruef.hinweis_ca_unbekannt: Die Zulassung der lokalen CA war nicht lesbar; die Cloud-Route ist gesperrt.";
 /// The note for a call without root while a check was `nicht_pruefbar`: no finding, no effect on `pruef.rot` or the exit code.
 pub const HINWEIS_SUDO: &str = "pruef.hinweis_sudo: Ohne root waren nicht alle Pruefungen moeglich; fuer diese Pruefungen mit sudo aufrufen.";
+/// The note with the remedy for one level writable for a group that is not the private group (addendum 1 to the decision
+/// of the operator, 28.11.2026); `chmod g-w` and the path follow.
+pub const HINWEIS_COPILOT_GRUPPE: &str =
+    "pruef.hinweis_copilot_gruppe: Die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe:";
 /// The sentence of an internal error.
 pub const INTERN: &str = "pruef.intern: Interner Fehler.";
 /// The line of the decision point (A108).
@@ -223,9 +227,15 @@ pub fn befunde(lage: &Lage) -> Vec<String> {
     b
 }
 
-/// The notes of `lage` (no findings): the state of Ubuntu's profile, the note on the system `bwrap`, the approval of the CA, then the note on `sudo`.
+/// The notes of `lage` (no findings): the remedy for each level of `copilot_gruppe`, the state of Ubuntu's profile, the note on the system `bwrap`, the approval of the CA, then the note on `sudo`.
 fn hinweise(lage: &Lage) -> Vec<String> {
     let mut h = Vec::new();
+    for pfad in &lage.copilot_gruppe {
+        h.push(format!(
+            "{HINWEIS_COPILOT_GRUPPE} {}",
+            crate::gruppe::chmod_g_w(std::slice::from_ref(pfad))
+        ));
+    }
     match lage.ubuntu_profil.as_str() {
         "geladen" => h.push(HINWEIS_UBUNTU_PROFIL_GELADEN.to_owned()),
         "entladen" => h.push(HINWEIS_UBUNTU_PROFIL_ENTLADEN.to_owned()),

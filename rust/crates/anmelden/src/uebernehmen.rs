@@ -126,7 +126,7 @@ pub fn uebernehmen(
     }
     let neu_text = ohne_token(&text, &token).ok_or(Fehler::QuelleOhneToken)?;
     // Steps 5 and 6: the store of the holder (missing levels are made) and the key file that is there.
-    let ziel = ziel_oeffnen(&umg.heim, umg.uid)?;
+    let ziel = ziel_oeffnen(&umg.heim, umg.uid, umg.gruppe)?;
     let vorher = match rustix::fs::statat(&ziel, SCHLUESSELDATEI, AtFlags::SYMLINK_NOFOLLOW) {
         Err(Errno::NOENT) => Vorhanden::Nein,
         Err(_) => return Err(Fehler::ZielNichtSchreibbar),

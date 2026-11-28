@@ -184,7 +184,9 @@ Aufruf einsetzt, gehen überall. Der Prüfbefehl des Halters nennt den Zustand �
 
 **Start und Exitcodes.** Beim Start prüft der Halter in dieser Reihenfolge. Die erste Verletzung beendet ihn. Er schreibt
 genau eine Zeile `<code>: <grund>` (ASCII, höchstens 200 Byte) ins Ereignisprotokoll (Windows), ins Journal (Linux) oder
-ins Unified Log (macOS), ohne Pfad, Inhalt oder Geheimnis. Unter Windows ist der Exitcode der dienstspezifische Exitcode
+ins Unified Log (macOS), ohne Pfad, Inhalt oder Geheimnis. Ausnahme (Nachtrag 1 zum Entscheid des Betreibers, 28.11.2026):
+Bei `halter.ablage_rechte` hängt unter Linux die Abhilfe `; Abhilfe: chmod g-w <pfade>` mit Pfaden der Ablage-Kette an
+(Abschnitt 2.3, Punkt „Abhilfe in der Zeile“). Unter Windows ist der Exitcode der dienstspezifische Exitcode
 (`dwServiceSpecificExitCode`), sonst der Exitcode des Prozesses.
 
 | Schritt | Prüfung | Exit, Code, Grund |
@@ -322,8 +324,25 @@ ohne Nachweis setzt nichts), Abschnitt 11.
   Gruppe einmal beim Start und wendet sie bei jedem späteren Öffnen der Ebenen an. Grund: Ubuntu gibt einem Nutzer mit
   eigener Gruppe (`USERGROUPS_ENAB`) die umask 002; `~/.local` hat dann 0775, und der Halter endete nach der Installation
   mit Exit 78 (gemessen auf dem Ubuntu-Cloud-Abbild 26.04.1). Eine Gruppe ohne weiteres Mitglied gibt niemandem außer der
-  eigenen Kennung Schreibrecht. Mitgliedschaften aus anderen Quellen als `/etc/group` (etwa LDAP über NSS) sieht der Halter
-  nicht. alt: Jede Ebene war für Gruppe und andere nicht schreibbar.
+  eigenen Kennung Schreibrecht. alt: Jede Ebene war für Gruppe und andere nicht schreibbar.
+- **Quellen der Namensdienste (Nachtrag 1 zum Entscheid des Betreibers, 28.11.2026):** Was der Halter nicht sieht, darf nicht
+  zur Annahme einer privaten Gruppe führen (Firmenrechner haben oft LDAP oder sssd). Der Halter liest dazu `/etc/nsswitch.conf`
+  streng (`ablage::nss_nur_dateien`): Die Zeilen `passwd:` und `group:` stehen genau einmal, `initgroups:` höchstens einmal,
+  jede nennt mindestens eine Quelle, und jede Quelle ist `files` oder `systemd`; ein Kommentar beginnt mit `#`. Eine andere
+  Quelle (`sss`, `ldap`, `nis`, `compat`), eine Aktion in eckigen Klammern, ein unbekanntes Wort, eine fehlende oder doppelte
+  Zeile und eine fehlende oder nicht lesbare Datei machen die Gruppe nicht prüfbar: Gruppenschreibrecht führt dann zu Exit 78
+  (`halter.ablage_rechte`). Die Prüfnaht `WB_HALTER_NSSWITCH` (nur `pruefbau`, nur mit `WB_TESTUMGEBUNG=1`) ersetzt die Datei
+  wie `WB_HALTER_GROUP` die Datei `/etc/group`. alt: „Mitgliedschaften aus anderen Quellen als `/etc/group` (etwa LDAP über
+  NSS) sieht der Halter nicht.“
+- **Abhilfe in der Zeile (Nachtrag 1):** Endet der Start in Schritt 3 mit Exit 78 und sind Ebenen über `geheim` Ordner der
+  eigenen Kennung, für andere nicht schreibbar, aber für eine Gruppe schreibbar, die nicht die private Gruppe ist
+  (`Ablage::gruppen_schreibbar`), lautet die eine Zeile `halter.ablage_rechte: Ablage hat falsche Rechte; Abhilfe: chmod g-w
+  <pfade>`. `<pfade>` sind die absoluten Pfade dieser Ebenen in der Reihenfolge der Kette, durch Leerzeichen getrennt; ein Pfad
+  mit einem anderen Zeichen als Buchstabe, Ziffer oder `/._-` steht in einfachen Anführungszeichen (`ablage::chmod_g_w`). Die
+  Zeile nennt nur Pfade der Ablage-Kette, nie einen Inhalt oder ein Geheimnis; sie ist die einzige Zeile des Halters mit einem
+  Pfad und kann dadurch länger als 200 Byte sein. Ohne solche Ebene (etwa bei o+w oder einem Verweis) bleibt die Zeile
+  `halter.ablage_rechte: Ablage hat falsche Rechte`. `werkbank-anmelden` und `werkbank-pruefen` tragen dieselbe Regel und
+  dieselbe Abhilfe als wortgleiche Kopie (`src/gruppe.rs` beider Crates).
 - **Datei der Ablage (Nachtrag Anmelden und Paket):** Inhalt ist der Wert (1 bis 12288 Zeichen) und genau ein LF; die Datei hat höchstens
   12289 Byte. Diese Form gilt für alle Programme der Werkbank, auch für `werkbank-pruefen` (Fund F11; Paketvertrag, Prüfung `copilot`). Der Halter nimmt den Wert ohne das LF;
   eine Datei ohne LF am Ende, mit einem zweiten LF oder mit einem Zeichen außerhalb von `\x21` bis `\x7e` gilt als kein

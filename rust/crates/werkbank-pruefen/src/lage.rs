@@ -350,6 +350,10 @@ pub struct Lage {
     /// `true` when the file of the former target `/var/lib/werkbank/<user>/copilot.schluessel` is still there (field
     /// `copilot_alt`; absent gives `false`).
     pub copilot_alt: bool,
+    /// The levels above `geheim` that are writable for a group that is not the private group of the user (addendum 1 to
+    /// the decision of the operator, 28.11.2026), as absolute paths in the order of the chain: one note each with the
+    /// remedy `chmod g-w` (field `copilot_gruppe`; absent gives none).
+    pub copilot_gruppe: Vec<String>,
     /// `gesperrt` or `ubuntu`: the system `bwrap` is open only through the profile Ubuntu ships (a note, not a finding).
     pub system_bwrap: String,
     /// `""` (not shown), `geladen` or `entladen`: Ubuntu's own profile `bwrap-userns-restrict` is loaded or not (a note, not a finding).
@@ -545,6 +549,28 @@ fn copilot_alt_aus(wert: &Value) -> Result<bool, String> {
     }
 }
 
+/// The optional field `copilot_gruppe`: a list of at most four absolute paths of at most 1024 bytes without a control
+/// character; absent gives an empty list.
+fn copilot_gruppe_aus(wert: &Value) -> Result<Vec<String>, String> {
+    let Some(l) = wert.get("copilot_gruppe") else {
+        return Ok(Vec::new());
+    };
+    let l = l
+        .as_array()
+        .filter(|l| l.len() <= 4)
+        .ok_or("copilot_gruppe is not a list of at most four")?;
+    l.iter()
+        .map(|e| {
+            e.as_str()
+                .filter(|p| {
+                    p.starts_with('/') && p.len() <= 1024 && !p.chars().any(char::is_control)
+                })
+                .map(str::to_owned)
+                .ok_or_else(|| "copilot_gruppe: bad path".to_owned())
+        })
+        .collect()
+}
+
 /// The optional field `ohne_root`: `false` when absent, else a boolean.
 fn ohne_root_aus(wert: &Value) -> Result<bool, String> {
     match wert.get("ohne_root") {
@@ -635,6 +661,7 @@ impl Lage {
             schluessel: zustand_pruefen(SCHLUESSEL, text(wert, "schluessel")?, "schluessel")?,
             copilot: zustand_pruefen(COPILOT, text(wert, "copilot")?, "copilot")?,
             copilot_alt: copilot_alt_aus(wert)?,
+            copilot_gruppe: copilot_gruppe_aus(wert)?,
             system_bwrap: system_bwrap_aus(wert)?,
             ubuntu_profil: ubuntu_profil_aus(wert)?,
             vault: zustand_pruefen(VAULT, text(wert, "vault")?, "vault")?,

@@ -83,7 +83,8 @@ fn fall_laufen(name: &str) {
         "{name}: stdout"
     );
     assert_eq!(
-        aus.stderr,
+        // the note with the remedy names the paths below the home of the set-up as `<heim>` (contract 9, section 7)
+        aus.stderr.replace(&a.heim.display().to_string(), "<heim>"),
         erwartet["stderr"].as_str().expect("stderr"),
         "{name}: stderr"
     );

@@ -265,6 +265,44 @@ fn private_gruppe_erlaubt_gruppenschreibrecht_nur_ueber_geheim() {
         modus(&p, 0o775);
     }
     assert!(mit.oeffnen(false).is_ok());
+    // the remedy names the levels writable for a group that is not the private one (decision of 28.11.2026)
+    let mut ort = h.0.clone();
+    let pfade: Vec<String> = EBENEN[..4]
+        .iter()
+        .map(|e| {
+            ort = ort.join(e);
+            ort.display().to_string()
+        })
+        .collect();
+    assert!(mit.gruppen_schreibbar().is_empty(), "the private group");
+    assert_eq!(
+        Ablage::neu(&h.0, uid()).gruppen_schreibbar(),
+        pfade,
+        "no private group"
+    );
+    assert_eq!(anders.gruppen_schreibbar(), pfade, "another gid");
+    assert!(
+        Ablage::neu(&h.0, uid().wrapping_add(1))
+            .gruppen_schreibbar()
+            .is_empty(),
+        "not the own levels"
+    );
+    assert!(
+        Ablage::neu(&h.0.join("fehlt"), uid())
+            .gruppen_schreibbar()
+            .is_empty(),
+        "no home"
+    );
+    let local = h.0.join(".local");
+    for (m, grund) in [(0o777, "o+w"), (0o755, "no group write")] {
+        modus(&local, m);
+        assert_eq!(
+            Ablage::neu(&h.0, uid()).gruppen_schreibbar(),
+            pfade[1..].to_vec(),
+            "{grund}"
+        );
+    }
+    modus(&local, 0o775);
 }
 
 /// Step 3 with the files of the accounts and the groups of a set-up: the private group lets the start take 0775 above
@@ -289,14 +327,19 @@ fn schritt_3_mit_privater_gruppe_aus_passwd_und_group() {
     let wurzel = PathBuf::from(format!("{}-etc", h.0.display()));
     let _ = std::fs::remove_dir_all(&wurzel);
     std::fs::create_dir(&wurzel).expect("etc");
-    let (pw, gr) = (wurzel.join("passwd"), wurzel.join("group"));
+    let (pw, gr, nss) = (
+        wurzel.join("passwd"),
+        wurzel.join("group"),
+        wurzel.join("nsswitch.conf"),
+    );
+    std::fs::write(&nss, "passwd: files systemd\ngroup: files systemd\n").expect("nsswitch");
     let start = |konten: &str, gruppen: Option<&str>| {
         std::fs::write(&pw, konten).expect("passwd");
         let _ = std::fs::remove_file(&gr);
         if let Some(g) = gruppen {
             std::fs::write(&gr, g).expect("group");
         }
-        halter::start::ablage_pruefen(&pw, &gr, uid()).map(|_| ())
+        halter::start::ablage_pruefen(&pw, &gr, &nss, uid()).map(|_| ())
     };
     assert_eq!(start(&konten, Some(&gut)), Ok(()));
     let rechte = Err(halter::code::Startfehler::AblageRechte);
@@ -311,11 +354,25 @@ fn schritt_3_mit_privater_gruppe_aus_passwd_und_group() {
     // a file of the groups that is a folder cannot be read either
     std::fs::create_dir(&gr).expect("folder");
     assert_eq!(
-        halter::start::ablage_pruefen(&pw, &gr, uid()).map(|_| ()),
+        halter::start::ablage_pruefen(&pw, &gr, &nss, uid()).map(|_| ()),
         rechte,
         "group is a folder"
     );
     std::fs::remove_dir(&gr).expect("rmdir");
+    // the switch of the name services names another source, or cannot be read (decision of the operator, 28.11.2026)
+    for (grund, text) in [
+        ("sss", Some("passwd: files sss\ngroup: files sss\n")),
+        ("ldap", Some("passwd: files\ngroup: ldap\n")),
+        ("missing", None),
+    ] {
+        let _ = std::fs::remove_file(&nss);
+        if let Some(t) = text {
+            std::fs::write(&nss, t).expect("nsswitch");
+        }
+        assert_eq!(start(&konten, Some(&gut)), rechte, "{grund}");
+    }
+    std::fs::write(&nss, "passwd: files\ngroup: files\n").expect("nsswitch");
+    assert_eq!(start(&konten, Some(&gut)), Ok(()), "files alone");
     // the levels 0700 need no group: the start takes them without a file of the groups
     let mut p = h.0.clone();
     for e in &EBENEN[..4] {

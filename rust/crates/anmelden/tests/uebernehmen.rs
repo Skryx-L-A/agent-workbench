@@ -301,8 +301,9 @@ fn fall_laufen(name: &str) {
         erwartet["stdout"].as_str().expect("stdout"),
         "{name}: stdout"
     );
+    // the note with the remedy names the paths below the home of the set-up as `<heim>` (contract 9, section 7)
     assert_eq!(
-        String::from_utf8_lossy(&aus.stderr),
+        String::from_utf8_lossy(&aus.stderr).replace(&a.heim.display().to_string(), "<heim>"),
         erwartet["stderr"].as_str().expect("stderr"),
         "{name}: stderr"
     );
@@ -843,9 +844,9 @@ fn a_folder_a_config_json_or_a_target_of_another_owner_is_refused() {
         config_lesen(&quelle, fremde_uid(&a)).err(),
         Some(Fehler::QuelleUnsicher)
     );
-    assert!(ziel_oeffnen(&a.heim, eigen).is_ok());
+    assert!(ziel_oeffnen(&a.heim, eigen, None).is_ok());
     assert_eq!(
-        ziel_oeffnen(&a.heim, fremde_uid(&a)).err(),
+        ziel_oeffnen(&a.heim, fremde_uid(&a), None).err(),
         Some(Fehler::ZielNichtSchreibbar)
     );
     let mut umg = umgebung(&a);
@@ -865,7 +866,7 @@ fn a_key_file_of_another_owner_is_no_restart() {
     let Fund::Eins(token) = token_aus_config(&text) else {
         panic!("one token");
     };
-    let ziel = ziel_oeffnen(&a.heim, eigene_uid(&a)).expect("target");
+    let ziel = ziel_oeffnen(&a.heim, eigene_uid(&a), None).expect("target");
     let st = rustix::fs::statat(
         &ziel,
         "anmeldung.copilot",
@@ -883,6 +884,7 @@ fn umgebung(a: &Aufbau) -> Umgebung {
         echtes_copilot_heim: a.echt.clone(),
         wegwerf_wurzel: a.wegwerf.clone(),
         uid: eigene_uid(a),
+        gruppe: None,
         durchreichen: Vec::new(),
     }
 }
@@ -1272,7 +1274,7 @@ fn a_target_without_the_write_bit_of_the_owner_is_refused() {
     let a = aufbau();
     fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o500)).expect("mode");
     assert_eq!(
-        ziel_oeffnen(&a.heim, eigene_uid(&a)).err(),
+        ziel_oeffnen(&a.heim, eigene_uid(&a), None).err(),
         Some(Fehler::ZielNichtSchreibbar)
     );
     fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o700)).expect("mode");

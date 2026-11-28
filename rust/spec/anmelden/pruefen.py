@@ -18,7 +18,8 @@ FELDER_FALL = {"beschreibung", "args", "attrappe", "token", "ziel", "echtes_heim
 FELDER_ERWARTET = {"exit", "code", "stdout", "stderr", "ziel_datei", "login_gestartet", "reste_geloescht", "reste_uebrig"}
 WERTE = {
     "attrappe": {"erfolg", "abbruch", "ohne-config", "config-ohne-feld", "zwei-tokens", "config-defekt", "alte-form", "haengt", "fehlt"},
-    "ziel": {"frei", "datei-da", "ordner-fehlt", "schreibgeschuetzt", "heim-fehlt", "ebene-verweis", "ebene-geteilt", "alte-datei"},
+    "ziel": {"frei", "datei-da", "ordner-fehlt", "schreibgeschuetzt", "heim-fehlt", "ebene-verweis", "ebene-geteilt", "ebene-privat", "ebene-privat-mitglied", "ebene-privat-sss",
+             "ebene-privat-ohne-nss", "alte-datei"},
     "echtes_heim": {"leer", "config-mit-token", "config-defekt"},
     "bundtool": {"keins", "leer", "gefunden"},
     "wegwerf_wurzel": {"ok", "fehlt"},
@@ -62,7 +63,8 @@ WERTE_UEB = {
                "weitere-anmeldung", "token-ausserhalb", "token-andere-tiefe", "kommentar-mitte", "blockkommentar",
                "komma-vor-klammer", "alte-form", "verweis", "hardlink", "zu-gross", "fifo", "ordner"},
     "quellordner": {"ok", "fehlt", "verweis", "gruppe-schreibbar"},
-    "ziel": {"frei", "datei-da", "datei-gleich", "ordner-fehlt", "schreibgeschuetzt", "heim-fehlt", "ebene-verweis"},
+    "ziel": {"frei", "datei-da", "datei-gleich", "ordner-fehlt", "schreibgeschuetzt", "heim-fehlt", "ebene-verweis", "ebene-privat", "ebene-privat-mitglied",
+             "ebene-privat-sss"},
     "bundtool": {"keins", "leer", "gefunden"},
     "reste": {"keine", "schluessel-temp", "config-temp", "beide", "lebend", "verweis"},
     "probe": {None, "config-stoeren"},
@@ -167,6 +169,8 @@ def geraet_pruefen(mod, codes, fehler, f_ordner="faelle", e_ordner="erwartet", m
             elif e["exit"] != exit_:
                 fehler.append("%s: Exit %s statt %s" % (name, e["exit"], exit_))
             vor = "Hinweis: Reste frueherer Anmeldungen wurden geloescht: %d\n" % e["reste_geloescht"] if e["reste_geloescht"] else ""
+            if code == "anmelden.ziel_nicht_schreibbar":
+                vor += mod.hinweis_gruppe(f["ziel"])  # Nachtrag 1 (28.11.2026): der Hinweis mit der Abhilfe
             if code == "anmelden.rest_nicht_loeschbar" and e["reste_geloescht"]:
                 fehler.append("%s: bei einem nicht löschbaren Rest gibt es keinen Hinweis" % name)
             if e["stderr"] != vor + "werkbank-anmelden: %s: %s\n" % (code, satz):

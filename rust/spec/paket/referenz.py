@@ -956,6 +956,21 @@ COPILOT_SATZ = {
 }
 # Nachtrag Halter: the file of the former target /var/lib/werkbank/<nutzer>/copilot.schluessel is still there (field `copilot_alt` of the `lage`).
 COPILOT_ALTER_ORT = "pruef.copilot_alter_ort: Am frueheren Ort liegt noch eine Anmeldedatei der Copilot CLI; sie wird nicht mehr gelesen und muss weg."
+# Nachtrag 1 zum Entscheid des Betreibers, 28.11.2026: je Ebene über geheim, die für eine Gruppe schreibbar ist, die nicht die private Gruppe
+# ist (Feld `copilot_gruppe` der `lage`), ein Hinweis mit der Abhilfe; der Pfad steht wie in `chmod_g_w` der Crates.
+HINWEIS_COPILOT_GRUPPE = "pruef.hinweis_copilot_gruppe: Die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe:"
+
+
+def chmod_g_w(pfade):
+    """Spiegel von `chmod_g_w` (Halter, anmelden, werkbank-pruefen): ein Pfad mit einem anderen Byte als Buchstabe, Ziffer oder
+    `/._-` (oder leer) steht in einfachen Anführungszeichen."""
+    teile = ["chmod g-w"]
+    for p in pfade:
+        sicher = p != "" and all(c.isascii() and (c.isalnum() or c in "/._-") for c in p)
+        teile.append(p if sicher else "'" + p.replace("'", "'\\''") + "'")
+    return " ".join(teile)
+
+
 # Nachtrag Rolle aus der Gruppe (25.11.2026): die Rollengruppe wb-bruecke und das setgid-Rollenprogramm, Teil der Prüfung `dienste`. Beide
 # Lagefelder sind optional (fehlt eines, gilt `ok`); ihre Zeilen stehen nach den Zeilen der Einheiten, die Gruppe zuerst.
 ROLLENGRUPPE_SATZ = {
@@ -1080,6 +1095,9 @@ def pruefbefehl(aufruf, lage):
 
     # Der Hinweis ist kein Befund: er färbt nichts rot und zählt nicht in `pruef.rot`.
     hinweis = []
+    if linux:
+        for pfad in lage.get("copilot_gruppe", []):
+            hinweis.append(HINWEIS_COPILOT_GRUPPE + " " + chmod_g_w([pfad]))
     if linux and lage.get("ubuntu_profil") in HINWEIS_UBUNTU_PROFIL:
         hinweis.append(HINWEIS_UBUNTU_PROFIL[lage["ubuntu_profil"]])
     if linux and lage.get("system_bwrap", "gesperrt") == "ubuntu":

@@ -1,6 +1,8 @@
 //! `werkbank-anmelden copilot [--uebernehmen] [--neu]`: process shell. Arguments, signals and output; the logic is
 //! in the library. Seams for tests (`WB_ANMELDEN_PASSWD`, a file read in place of `/etc/passwd` that names the home,
-//! `WB_ANMELDEN_COPILOT_HEIM`, `WB_ANMELDEN_WURZEL`, and the probe `WB_ANMELDEN_PROBE` with `WB_ANMELDEN_PROBE_MARKE`,
+//! `WB_ANMELDEN_GROUP` and `WB_ANMELDEN_NSSWITCH`, files read in place of `/etc/group` and `/etc/nsswitch.conf` for the
+//! private group, `WB_ANMELDEN_COPILOT_HEIM`,
+//! `WB_ANMELDEN_WURZEL`, and the probe `WB_ANMELDEN_PROBE` with `WB_ANMELDEN_PROBE_MARKE`,
 //! and `grenze-weich-0` for the check before the child) exist only in the test build (feature `pruefbau`) and count there only with `WB_TESTUMGEBUNG=1`. The delivered build has no
 //! seam: it never reads these variables, the paths are fixed and there is no probe.
 
@@ -23,9 +25,10 @@ mod unix {
     use std::sync::atomic::AtomicUsize;
 
     use anmelden::fehler::Fehler;
+    use anmelden::gruppe::{chmod_g_w, nss_nur_dateien, private_gruppe};
     use anmelden::lauf::{
-        TempArt, Umgebung, ablage_suchen, anmelden, durchreichen_aus_umgebung, heim_aus_passwd,
-        reste_raeumen, temp_reste_in, temp_reste_raeumen, wegwerf_wurzel,
+        TempArt, Umgebung, ablage_suchen, anmelden, durchreichen_aus_umgebung, gruppen_schreibbar,
+        heim_aus_passwd, reste_raeumen, temp_reste_in, temp_reste_raeumen, wegwerf_wurzel,
     };
     use anmelden::uebernehmen::{Probe, Punkt, uebernehmen};
 
@@ -121,7 +124,25 @@ mod unix {
                 }
                 ExitCode::SUCCESS
             }
-            Err(fehler) => fehler_ausgeben(fehler),
+            Err(fehler) => {
+                if fehler == Fehler::ZielNichtSchreibbar {
+                    abhilfe_ausgeben(&umg);
+                }
+                fehler_ausgeben(fehler)
+            }
+        }
+    }
+
+    /// Decision of the operator, 28.11.2026: the levels of the store that are writable for a group that is not the private
+    /// group, with the remedy `chmod g-w` and their paths; nothing when there is none. Only paths, never a content.
+    fn abhilfe_ausgeben(umg: &Umgebung) {
+        let pfade = gruppen_schreibbar(&umg.heim, umg.uid, umg.gruppe);
+        if !pfade.is_empty() {
+            let _ = writeln!(
+                std::io::stderr(),
+                "Hinweis: Ordner der Ablage sind fuer ihre Gruppe schreibbar, und die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe: {}",
+                chmod_g_w(&pfade)
+            );
         }
     }
 
@@ -165,6 +186,8 @@ mod unix {
     #[derive(Clone, Copy)]
     enum Naht {
         Passwd,
+        Group,
+        Nsswitch,
         CopilotHeim,
         Wurzel,
         Probe,
@@ -179,6 +202,8 @@ mod unix {
         let wert = {
             let name = match naht {
                 Naht::Passwd => "WB_ANMELDEN_PASSWD",
+                Naht::Group => "WB_ANMELDEN_GROUP",
+                Naht::Nsswitch => "WB_ANMELDEN_NSSWITCH",
                 Naht::CopilotHeim => "WB_ANMELDEN_COPILOT_HEIM",
                 Naht::Wurzel => "WB_ANMELDEN_WURZEL",
                 Naht::Probe => "WB_ANMELDEN_PROBE",
@@ -204,6 +229,15 @@ mod unix {
         let passwd_pfad = seam(Naht::Passwd).unwrap_or_else(|| PathBuf::from("/etc/passwd"));
         let passwd = std::fs::read_to_string(passwd_pfad).ok()?;
         let heim = heim_aus_passwd(&passwd, uid)?;
+        // The private group (decision of the operator, 28.11.2026): only when `/etc/nsswitch.conf` takes accounts and groups
+        // from the files and systemd alone; a file that cannot be read allows no group write.
+        let nss_pfad = seam(Naht::Nsswitch).unwrap_or_else(|| PathBuf::from("/etc/nsswitch.conf"));
+        let group_pfad = seam(Naht::Group).unwrap_or_else(|| PathBuf::from("/etc/group"));
+        let gruppe = std::fs::read_to_string(nss_pfad)
+            .ok()
+            .filter(|n| nss_nur_dateien(n))
+            .and_then(|_| std::fs::read_to_string(group_pfad).ok())
+            .and_then(|g| private_gruppe(&passwd, &g, uid));
         let echtes = seam(Naht::CopilotHeim)
             .or_else(|| std::env::var_os("COPILOT_HOME").map(PathBuf::from))
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".copilot")))?;
@@ -214,6 +248,7 @@ mod unix {
             echtes_copilot_heim: echtes,
             wegwerf_wurzel: wurzel,
             uid,
+            gruppe,
             durchreichen: durchreichen_aus_umgebung(),
         })
     }

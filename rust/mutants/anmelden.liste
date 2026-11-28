@@ -2,12 +2,12 @@
 # Format and rules: mutants/README.md. One entry per line: <list> <kind> <pattern>.
 
 # anmelden, `seam`: the comparison with `WB_TESTUMGEBUNG` stands in the block behind the feature.
-erster re crates/anmelden/src/main.rs:187:70: replace == with != in unix::seam
+erster re crates/anmelden/src/main.rs:212:70: replace == with != in unix::seam
 
 # Equivalent in the delivered build (decision of 25.11.2026, way a); each one the second run catches, measured.
 # anmelden, `seam` -> None: without the feature `seam` already returns None.
-erster re crates/anmelden/src/main.rs:178:9: replace unix::seam -> Option<PathBuf> with None
+erster re crates/anmelden/src/main.rs:201:9: replace unix::seam -> Option<PathBuf> with None
 
 # Equivalent in the delivered build as well (same decision, caught by the second run).
 # anmelden, `lauf`: the block of the probe runs only when `seam` returns a value, that is only with the feature.
-erster re crates/anmelden/src/main.rs:51:60: replace == with != in unix::lauf
+erster re crates/anmelden/src/main.rs:54:60: replace == with != in unix::lauf

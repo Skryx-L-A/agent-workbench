@@ -27,6 +27,8 @@ pub struct Orte {
     pub passwd: PathBuf,
     /// The file of the groups (`/etc/group`), for the role groups (section 2.3a).
     pub gruppen: PathBuf,
+    /// The switch of the name services (`/etc/nsswitch.conf`), for the private group (decision of the operator, 28.11.2026).
+    pub nsswitch: PathBuf,
     /// The runtime folder, `None`: always `/run/user/<uid>`, never `$XDG_RUNTIME_DIR` (section 2.3).
     pub laufzeit: Option<PathBuf>,
 }
@@ -40,12 +42,13 @@ impl Orte {
             konfig_eigner: 0,
             passwd: PathBuf::from("/etc/passwd"),
             gruppen: PathBuf::from("/etc/group"),
+            nsswitch: PathBuf::from("/etc/nsswitch.conf"),
             laufzeit: None,
         }
     }
 
     /// The places of the test build (feature `pruefbau`): the seams `WB_HALTER_KONFIG`, `WB_HALTER_KONFIG_EIGNER`,
-    /// `WB_HALTER_PASSWD`, `WB_HALTER_GROUP` and `WB_HALTER_LAUFZEIT` read through `lies`, valid only with
+    /// `WB_HALTER_PASSWD`, `WB_HALTER_GROUP`, `WB_HALTER_NSSWITCH` and `WB_HALTER_LAUFZEIT` read through `lies`, valid only with
     /// `WB_TESTUMGEBUNG=1`; a missing seam (or an owner that is no number) keeps the fixed place. Only the test build
     /// calls it, with the environment; the delivered build uses [`Orte::fest`] only.
     #[must_use]
@@ -67,6 +70,9 @@ impl Orte {
         }
         if let Some(p) = lies("WB_HALTER_GROUP") {
             o.gruppen = PathBuf::from(p);
+        }
+        if let Some(p) = lies("WB_HALTER_NSSWITCH") {
+            o.nsswitch = PathBuf::from(p);
         }
         o.laufzeit = lies("WB_HALTER_LAUFZEIT").map(PathBuf::from);
         o
@@ -172,24 +178,49 @@ pub fn konfig_lesen(
     konfig::fuer_start(&inhalt, eigene_uid, &group, &konten).map_err(|_| Startfehler::Konfig)
 }
 
+/// The home and the store of `uid` with its private group: `None` without a readable `passwd` or a home in it.
+fn ablage_fuer(
+    passwd: &Path,
+    gruppen: &Path,
+    nsswitch: &Path,
+    uid: u32,
+) -> Option<(PathBuf, Ablage)> {
+    let inhalt = std::fs::read_to_string(passwd).ok()?;
+    let heim = ablage::heim_aus_passwd(&inhalt, uid)?;
+    let gruppe = text_lesen(nsswitch)
+        .ok()
+        .filter(|n| ablage::nss_nur_dateien(n))
+        .and_then(|_| text_lesen(gruppen).ok())
+        .and_then(|g| ablage::private_gruppe(&inhalt, &g, uid));
+    let a = Ablage::neu(&heim, uid).mit_gruppe(gruppe);
+    Some((heim, a))
+}
+
+/// The remedy for `halter.ablage_rechte` (decision of the operator, 28.11.2026): `chmod g-w` with the levels above
+/// `geheim` that are writable for a group that is not the private group ([`Ablage::gruppen_schreibbar`]), read anew
+/// from the places of the start; `None` when there is no such level. Only paths of the store, never a content.
+#[must_use]
+pub fn ablage_abhilfe(orte: &Orte, uid: u32) -> Option<String> {
+    let (_, a) = ablage_fuer(&orte.passwd, &orte.gruppen, &orte.nsswitch, uid)?;
+    let pfade = a.gruppen_schreibbar();
+    (!pfade.is_empty()).then(|| ablage::chmod_g_w(&pfade))
+}
+
 /// Step 3: the home from the file of the accounts and the levels of the store; also the folder of the chain
 /// (`halter/protokoll`, 0700) next to `geheim`. A level above `geheim` may be writable for the private group of the
-/// account after [`ablage::private_gruppe`], read from `passwd` and `gruppen`; if `gruppen` cannot be read, no group
-/// write is allowed.
+/// account after [`ablage::private_gruppe`], read from `passwd` and `gruppen`, and only when `nsswitch` takes accounts
+/// and groups from the files and systemd alone ([`ablage::nss_nur_dateien`]); if `gruppen` or `nsswitch` cannot be
+/// read, no group write is allowed.
 ///
 /// # Errors
 /// [`Startfehler::AblageRechte`].
 pub fn ablage_pruefen(
     passwd: &Path,
     gruppen: &Path,
+    nsswitch: &Path,
     uid: u32,
 ) -> Result<(Ablage, Option<PathBuf>), Startfehler> {
-    let inhalt = std::fs::read_to_string(passwd).map_err(|_| Startfehler::AblageRechte)?;
-    let heim = ablage::heim_aus_passwd(&inhalt, uid).ok_or(Startfehler::AblageRechte)?;
-    let gruppe = text_lesen(gruppen)
-        .ok()
-        .and_then(|g| ablage::private_gruppe(&inhalt, &g, uid));
-    let a = Ablage::neu(&heim, uid).mit_gruppe(gruppe);
+    let (heim, a) = ablage_fuer(passwd, gruppen, nsswitch, uid).ok_or(Startfehler::AblageRechte)?;
     let geheim = a.oeffnen(true).map_err(|_| Startfehler::AblageRechte)?;
     drop(geheim);
     let halter: PathBuf = ablage::EBENEN[..4]
@@ -317,7 +348,7 @@ pub fn starten(orte: &Orte, uid: u32) -> Result<Bereit, Startfehler> {
         &orte.gruppen,
         &orte.passwd,
     )?;
-    let (ablage, kette) = ablage_pruefen(&orte.passwd, &orte.gruppen, uid)?;
+    let (ablage, kette) = ablage_pruefen(&orte.passwd, &orte.gruppen, &orte.nsswitch, uid)?;
     let (hoerer, socket, socket_id, ordner) = endpunkt(&laufzeit_ordner(orte, uid), uid)?;
     Ok(Bereit {
         konfig,
@@ -356,6 +387,7 @@ mod tests {
                 "WB_HALTER_KONFIG_EIGNER" => "4321",
                 "WB_HALTER_PASSWD" => "/srv/beispiel/passwd",
                 "WB_HALTER_GROUP" => "/srv/beispiel/group",
+                "WB_HALTER_NSSWITCH" => "/srv/beispiel/nsswitch.conf",
                 "WB_HALTER_LAUFZEIT" => "/srv/beispiel/laufzeit",
                 _ => return None,
             };
@@ -369,6 +401,7 @@ mod tests {
         assert_eq!(o.konfig_eigner, 0);
         assert_eq!(o.passwd, f.passwd);
         assert_eq!(o.gruppen, f.gruppen);
+        assert_eq!(o.nsswitch, f.nsswitch);
         assert_eq!(o.laufzeit, None);
     }
 
@@ -379,6 +412,7 @@ mod tests {
         assert_eq!(o.konfig_eigner, 4321);
         assert_eq!(o.passwd, PathBuf::from("/srv/beispiel/passwd"));
         assert_eq!(o.gruppen, PathBuf::from("/srv/beispiel/group"));
+        assert_eq!(o.nsswitch, PathBuf::from("/srv/beispiel/nsswitch.conf"));
         assert_eq!(o.laufzeit, Some(PathBuf::from("/srv/beispiel/laufzeit")));
         fest_gleich(&Orte::aus_naht(naht(None)));
         fest_gleich(&Orte::aus_naht(naht(Some("0"))));

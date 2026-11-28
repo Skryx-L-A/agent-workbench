@@ -1,0 +1,18 @@
+{
+ "beschreibung": "wie ziel-ebene-privat, aber /etc/group nennt ein zweites Mitglied der Gruppe",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "ebene-privat-mitglied",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

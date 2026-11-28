@@ -16,9 +16,11 @@ const KEY_TEMP: &str = ".anmeldung.copilot.";
 const CONFIG_TEMP: &str = ".config.json.wb-anmelden-";
 
 /// The names of the seams; none of them may stand in the delivered program.
-const NAMEN: [&str; 6] = [
+const NAMEN: [&str; 8] = [
     "WB_TESTUMGEBUNG",
     "WB_ANMELDEN_PASSWD",
+    "WB_ANMELDEN_GROUP",
+    "WB_ANMELDEN_NSSWITCH",
     "WB_ANMELDEN_COPILOT_HEIM",
     "WB_ANMELDEN_WURZEL",
     "WB_ANMELDEN_PROBE",

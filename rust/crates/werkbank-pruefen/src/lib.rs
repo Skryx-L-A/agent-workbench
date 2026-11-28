@@ -6,6 +6,7 @@
 //! [`manifest`] checks the manifest of the package.
 
 pub mod bewerte;
+pub mod gruppe;
 pub mod lage;
 pub mod manifest;
 pub mod ohne_doppel;

@@ -1,0 +1,18 @@
+{
+ "beschreibung": "wie ueb-ziel-ebene-privat, aber nsswitch.conf nimmt Konten und Gruppen auch aus sss; config.json bleibt unverändert",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "ebene-privat-sss",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

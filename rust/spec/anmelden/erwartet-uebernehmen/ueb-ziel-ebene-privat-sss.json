@@ -1,0 +1,10 @@
+{
+ "exit": 14,
+ "code": "anmelden.ziel_nicht_schreibbar",
+ "stdout": "",
+ "stderr": "Hinweis: Ordner der Ablage sind fuer ihre Gruppe schreibbar, und die Gruppe ist nicht als private Gruppe pruefbar. Abhilfe: chmod g-w <heim> <heim>/.local <heim>/.local/state <heim>/.local/state/agent-workbench <heim>/.local/state/agent-workbench/halter\nwerkbank-anmelden: anmelden.ziel_nicht_schreibbar: Der Zielordner ist nicht schreibbar.\n",
+ "ziel_datei": "keine",
+ "config": "unveraendert",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

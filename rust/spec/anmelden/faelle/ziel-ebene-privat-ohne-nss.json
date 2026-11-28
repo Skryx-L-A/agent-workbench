@@ -1,0 +1,18 @@
+{
+ "beschreibung": "wie ziel-ebene-privat, aber nsswitch.conf fehlt; Hinweis mit chmod g-w und den Pfaden",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "ebene-privat-ohne-nss",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

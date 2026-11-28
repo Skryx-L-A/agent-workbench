@@ -247,6 +247,41 @@ pub const KATALOG: [(&str, &str, &[&str]); 19] = [
     ("aufsicht.einloesefrist_ms", "admin", &[]),
 ];
 
+/// The limit of the admins that binds a choice of the user (`regelebenen` 5.2): `harnesses` for `sitzung.harness`, `modelle`
+/// for `sitzung.modell`.
+#[must_use]
+pub fn grenze_von(schluessel: &str) -> Option<&'static str> {
+    match schluessel {
+        "sitzung.harness" => Some("harnesses"),
+        "sitzung.modell" => Some("modelle"),
+        _ => None,
+    }
+}
+
+/// The values of `wahl` that stand in at least one class of the limit `grenze`, in the order of `wahl` (`regelebenen` 5.2,
+/// code `ebenen.ausser_grenze`). Without the key or with `{}` nothing is restricted (default of 15.1). A class with
+/// another value than a list allows nothing. The view knows only the classes the limit names; a class of the company
+/// that the limit leaves out is open for the service, but not here (stricter, never looser).
+#[must_use]
+pub fn in_grenze<S: AsRef<str>>(wahl: &[S], grenze: Option<&Value>) -> Vec<String> {
+    let erlaubt = |w: &str| match grenze {
+        None => true,
+        Some(Value::Object(o)) => {
+            o.is_empty()
+                || o.values().any(|l| {
+                    l.as_array()
+                        .is_some_and(|l| l.iter().any(|x| x.as_str() == Some(w)))
+                })
+        }
+        Some(_) => false,
+    };
+    wahl.iter()
+        .map(AsRef::as_ref)
+        .filter(|w| erlaubt(w))
+        .map(str::to_owned)
+        .collect()
+}
+
 /// One setting of `Einstellungen` version 2 (`regelebenen` 15.5).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Einstellung {

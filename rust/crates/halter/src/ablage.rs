@@ -142,6 +142,59 @@ fn gruppen_zeile(f: &[&str]) -> Option<u32> {
     zahl(f[2])
 }
 
+/// The databases of `/etc/nsswitch.conf` that say who is in a group: `passwd`, `group` and `initgroups`.
+const NSS_DATENBANKEN: [&str; 3] = ["passwd", "group", "initgroups"];
+
+/// `true` only when `/etc/nsswitch.conf` (the text `nsswitch`) takes `passwd` and `group`, and `initgroups` when it is
+/// named, from the files and systemd alone (decision of the operator, 28.11.2026): a source the program cannot read
+/// (`sss`, `ldap`, ...) could add a member, so the group is then not checkable. Strict: `passwd` and `group` stand
+/// exactly once, `initgroups` at most once; each names at least one source, and every word after the colon is `files`
+/// or `systemd` (an action in brackets, `compat` or an unknown word refuses). A comment starts at `#`.
+#[must_use]
+pub fn nss_nur_dateien(nsswitch: &str) -> bool {
+    let mut anzahl = [0_usize; 3];
+    for zeile in nsswitch.split('\n') {
+        let text = zeile.split('#').next().unwrap_or_default();
+        let (name, quellen) = match text.split_once(':') {
+            Some((n, q)) => (n.trim(), Some(q)),
+            None => (text.split_whitespace().next().unwrap_or_default(), None),
+        };
+        let Some(i) = NSS_DATENBANKEN.iter().position(|d| *d == name) else {
+            continue;
+        };
+        anzahl[i] += 1;
+        let Some(quellen) = quellen else {
+            return false;
+        };
+        let mut woerter = quellen.split_whitespace().peekable();
+        if woerter.peek().is_none() || !woerter.all(|w| w == "files" || w == "systemd") {
+            return false;
+        }
+    }
+    anzahl[0] == 1 && anzahl[1] == 1 && anzahl[2] <= 1
+}
+
+/// The command that takes the group write from the folders `pfade` (decision of the operator, 28.11.2026): `chmod g-w`
+/// and each path, in single quotes when it is empty or holds another byte than a letter, a digit or one of `/._-`.
+#[must_use]
+pub fn chmod_g_w(pfade: &[String]) -> String {
+    let mut befehl = String::from("chmod g-w");
+    for p in pfade {
+        befehl.push(' ');
+        if !p.is_empty()
+            && p.bytes()
+                .all(|c| c.is_ascii_alphanumeric() || b"/._-".contains(&c))
+        {
+            befehl.push_str(p);
+        } else {
+            befehl.push('\'');
+            befehl.push_str(&p.replace('\'', "'\\''"));
+            befehl.push('\'');
+        }
+    }
+    befehl
+}
+
 impl Ablage {
     /// The store below `heim` for the account `konto`.
     #[must_use]
@@ -201,6 +254,37 @@ impl Ablage {
             fd = naechste;
         }
         Ok(fd)
+    }
+
+    /// The levels above `geheim` that are writable for a group that is not the private group (decision of the operator,
+    /// 28.11.2026), as paths for the remedy `chmod g-w`: folders of the own account, not writable for others, with g+w
+    /// and a gid that is not the private group. The walk opens level after level like [`Ablage::oeffnen`], makes
+    /// nothing and stops at a level it cannot open.
+    #[must_use]
+    pub fn gruppen_schreibbar(&self) -> Vec<String> {
+        let mut treffer = Vec::new();
+        let Ok(mut fd) = openat(rustix::fs::CWD, &self.heim, ordner_flags(), Mode::empty()) else {
+            return treffer;
+        };
+        let mut pfad = self.heim.clone();
+        for name in &EBENEN[..4] {
+            let Ok(naechste) = openat(&fd, *name, ordner_flags(), Mode::empty()) else {
+                break;
+            };
+            pfad.push(name);
+            if let Ok(st) = fstat(&naechste) {
+                let modus = st.st_mode & 0o7777;
+                if st.st_uid == self.konto
+                    && modus & 0o002 == 0
+                    && modus & 0o020 != 0
+                    && self.gruppe != Some(st.st_gid)
+                {
+                    treffer.push(pfad.to_string_lossy().into_owned());
+                }
+            }
+            fd = naechste;
+        }
+        treffer
     }
 
     /// The names of all files in `geheim` that have the form of a secret (no dot at the start).
@@ -418,6 +502,71 @@ mod tests {
         let p = P.replace("person:x:1000:1000:", "person:x:1000:10x0:");
         assert_eq!(private_gruppe(&p, G, 1000), None);
         assert_eq!(private_gruppe("", G, 1000), None);
+    }
+
+    /// The decision of the operator of 28.11.2026: only `files` and `systemd` for `passwd`, `group` and `initgroups`;
+    /// every other source, an action, a missing or doubled line refuses.
+    #[test]
+    fn nss_nur_aus_den_dateien() {
+        let gut = "# comment\npasswd:         files systemd\ngroup:          files systemd\nshadow:         files\n\
+                   hosts:          files dns\nnetgroup:       nis\n";
+        assert!(nss_nur_dateien(gut));
+        assert!(nss_nur_dateien("passwd: files\ngroup: files\n"));
+        assert!(nss_nur_dateien(
+            "passwd:files\ngroup:\tsystemd files\ninitgroups: files\n"
+        ));
+        assert!(nss_nur_dateien(
+            "passwd: files # sss\ngroup: files\n#group: sss\n"
+        ));
+        let falsch = [
+            ("sss for group", "passwd: files\ngroup: files sss\n"),
+            ("ldap for passwd", "passwd: files ldap\ngroup: files\n"),
+            ("only sss", "passwd: files\ngroup: sss\n"),
+            (
+                "an action",
+                "passwd: files\ngroup: files [NOTFOUND=return] systemd\n",
+            ),
+            ("compat", "passwd: compat\ngroup: compat\n"),
+            ("unknown word", "passwd: files\ngroup: files winbind\n"),
+            ("no source", "passwd: files\ngroup:\n"),
+            ("no colon", "passwd: files\ngroup files\n"),
+            ("group missing", "passwd: files\n"),
+            ("passwd missing", "group: files\n"),
+            ("group twice", "passwd: files\ngroup: files\ngroup: files\n"),
+            (
+                "passwd twice",
+                "passwd: files\npasswd: files\ngroup: files\n",
+            ),
+            (
+                "initgroups with sss",
+                "passwd: files\ngroup: files\ninitgroups: files sss\n",
+            ),
+            (
+                "initgroups twice",
+                "passwd: files\ngroup: files\ninitgroups: files\ninitgroups: files\n",
+            ),
+            ("empty", ""),
+        ];
+        for (grund, text) in falsch {
+            assert!(!nss_nur_dateien(text), "{grund}");
+        }
+    }
+
+    #[test]
+    fn chmod_mit_den_pfaden() {
+        let p = |v: &[&str]| v.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+        assert_eq!(
+            chmod_g_w(&p(&[
+                "/srv/beispiel/wb/.local",
+                "/srv/beispiel/wb/.local/state"
+            ])),
+            "chmod g-w /srv/beispiel/wb/.local /srv/beispiel/wb/.local/state"
+        );
+        assert_eq!(chmod_g_w(&p(&["/h/a b"])), "chmod g-w '/h/a b'");
+        assert_eq!(chmod_g_w(&p(&["/h/it's"])), "chmod g-w '/h/it'\\''s'");
+        assert_eq!(chmod_g_w(&p(&["", "/h_1-2.x"])), "chmod g-w '' /h_1-2.x");
+        assert_eq!(chmod_g_w(&p(&["/h/\u{e4}"])), "chmod g-w '/h/\u{e4}'");
+        assert_eq!(chmod_g_w(&[]), "chmod g-w");
     }
 
     #[test]

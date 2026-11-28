@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Entscheid des Betreibers, 28.11.2026: wie ziel-ebene-privat, aber nsswitch.conf nimmt Konten und Gruppen auch aus sss; Hinweis mit chmod g-w und den Pfaden",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "ebene-privat-sss",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

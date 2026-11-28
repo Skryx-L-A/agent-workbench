@@ -71,6 +71,9 @@ pub struct Umgebung {
     pub wegwerf_wurzel: PathBuf,
     /// Own user id.
     pub uid: u32,
+    /// The private group of the account after [`crate::gruppe::private_gruppe`], read from `/etc/passwd` and
+    /// `/etc/group`: a level of the store above `geheim` may be writable for this group. `None` allows no group write.
+    pub gruppe: Option<u32>,
     /// Variables of the caller that pass to the CLI (see `DURCHREICHEN`).
     pub durchreichen: Vec<(OsString, OsString)>,
 }
@@ -431,14 +434,53 @@ pub fn ablage_suchen(heim: &Path) -> Option<OwnedFd> {
     Some(fd)
 }
 
-/// A level of the store (or the home): owned by `uid` and not writable by group or others; `geheim` has exactly 0700.
-fn ebene_pruefen(fd: &OwnedFd, uid: u32, geheim: bool) -> Result<(), Fehler> {
+/// A level of the store (or the home): owned by `uid`, never writable by others, writable by its group only if that
+/// group (`st_gid`) is `gruppe`, the private group of the account (decision of the operator, 28.11.2026); `geheim` has
+/// exactly 0700.
+fn ebene_pruefen(fd: &OwnedFd, uid: u32, gruppe: Option<u32>, geheim: bool) -> Result<(), Fehler> {
     let st = rustix::fs::fstat(fd).map_err(|_| Fehler::ZielNichtSchreibbar)?;
-    if st.st_uid == uid && st.st_mode & 0o022 == 0 && (!geheim || st.st_mode & 0o7777 == 0o700) {
+    let modus = st.st_mode & 0o7777;
+    let gruppe_ok = modus & 0o020 == 0 || gruppe == Some(st.st_gid);
+    if st.st_uid == uid && modus & 0o002 == 0 && gruppe_ok && (!geheim || modus == 0o700) {
         Ok(())
     } else {
         Err(Fehler::ZielNichtSchreibbar)
     }
+}
+
+/// The home and the levels above `geheim` that are writable for a group that is not `gruppe` (decision of the operator,
+/// 28.11.2026), as paths for the remedy `chmod g-w`: folders of `uid`, not writable for others, with g+w and another gid.
+/// The walk opens level after level like [`ziel_oeffnen`] without following a link, makes nothing and stops at a level
+/// it cannot open.
+#[must_use]
+pub fn gruppen_schreibbar(heim: &Path, uid: u32, gruppe: Option<u32>) -> Vec<String> {
+    let mut treffer = Vec::new();
+    let pruefen = |fd: &OwnedFd, pfad: &Path, treffer: &mut Vec<String>| {
+        if let Ok(st) = rustix::fs::fstat(fd) {
+            let modus = st.st_mode & 0o7777;
+            if st.st_uid == uid
+                && modus & 0o002 == 0
+                && modus & 0o020 != 0
+                && gruppe != Some(st.st_gid)
+            {
+                treffer.push(pfad.to_string_lossy().into_owned());
+            }
+        }
+    };
+    let Ok(mut fd) = ordner_oeffnen(heim) else {
+        return treffer;
+    };
+    pruefen(&fd, heim, &mut treffer);
+    let mut pfad = heim.to_path_buf();
+    for name in &ABLAGE[..4] {
+        let Ok(naechste) = ebene_oeffnen(&fd, name) else {
+            break;
+        };
+        pfad.push(name);
+        pruefen(&naechste, &pfad, &mut treffer);
+        fd = naechste;
+    }
+    treffer
 }
 
 /// Makes the missing level `name` with 0700 under the umask 077, whatever the umask of the caller is.
@@ -451,15 +493,15 @@ fn ebene_anlegen(ordner: &OwnedFd, name: &str) -> rustix::io::Result<()> {
 }
 
 /// Step 3 (and step 6 of the takeover): opens the store of the holder below `heim` level by level without following
-/// a link, checks the home and every level (`ebene_pruefen`) before it goes one deeper, and makes a missing level with
+/// a link, checks the home and every level (`ebene_pruefen`, with the private group `gruppe`) before it goes one deeper, and makes a missing level with
 /// 0700. Made at the same time by another process (`EEXIST`): the check of the present level holds. A level that
 /// breaks a rule stops the walk before anything below it is made.
 ///
 /// # Errors
 /// `ZielNichtSchreibbar`.
-pub fn ziel_oeffnen(heim: &Path, uid: u32) -> Result<OwnedFd, Fehler> {
+pub fn ziel_oeffnen(heim: &Path, uid: u32, gruppe: Option<u32>) -> Result<OwnedFd, Fehler> {
     let mut fd = ordner_oeffnen(heim).map_err(|_| Fehler::ZielNichtSchreibbar)?;
-    ebene_pruefen(&fd, uid, false)?;
+    ebene_pruefen(&fd, uid, gruppe, false)?;
     for (i, name) in ABLAGE.iter().enumerate() {
         let naechste = match ebene_oeffnen(&fd, name) {
             Err(rustix::io::Errno::NOENT) => {
@@ -472,7 +514,7 @@ pub fn ziel_oeffnen(heim: &Path, uid: u32) -> Result<OwnedFd, Fehler> {
             anders => anders,
         }
         .map_err(|_| Fehler::ZielNichtSchreibbar)?;
-        ebene_pruefen(&naechste, uid, i + 1 == ABLAGE.len())?;
+        ebene_pruefen(&naechste, uid, gruppe, i + 1 == ABLAGE.len())?;
         fd = naechste;
     }
     Ok(fd)
@@ -490,7 +532,7 @@ pub fn anmelden(umg: &Umgebung, neu: bool, signal: &AtomicUsize) -> Result<Erfol
     {
         return Err(Fehler::DateiDa);
     }
-    let ablage = ziel_oeffnen(&umg.heim, umg.uid)?;
+    let ablage = ziel_oeffnen(&umg.heim, umg.uid, umg.gruppe)?;
     let cli = finde(&umg.suchpfad, "copilot").ok_or(Fehler::CliFehlt)?;
     let wegwerf = Wegwerf::neu(&umg.wegwerf_wurzel)?;
     login_laufen_lassen(umg, &cli, &wegwerf, signal)?;

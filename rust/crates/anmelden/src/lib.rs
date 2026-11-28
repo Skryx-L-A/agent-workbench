@@ -7,6 +7,7 @@
 
 pub mod fehler;
 pub mod form;
+pub mod gruppe;
 pub mod lauf;
 pub mod schutz;
 pub mod uebernehmen;
